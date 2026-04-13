@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  scheduleBlocks  ScheduleBlock[]
+  goals           Goal[]
+  habits          Habit[]
+  tasks           Task[]
+  competitions    Competition[]
+}
+
+model ScheduleBlock {
+  id          String   @id @default(cuid())
+  userId      String
+  dayOfWeek   String
+  startTime   String
+  endTime     String
+  label       String
+  category    String?
+  color       String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  category    String?
+  status      String    @default("active")
+  targetDate  DateTime?
+  targetValue Float?
+  unit        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries     GoalEntry[]
+  tasks       Task[]
+}
+
+model GoalEntry {
+  id        String   @id @default(cuid())
+  goalId    String
+  value     Float
+  note      String?
+  loggedOn  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+model Habit {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  category      String?
+  frequency     String   @default("daily")
+  targetPerWeek Int      @default(7)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs          HabitLog[]
+}
+
+model HabitLog {
+  id          String   @id @default(cuid())
+  habitId     String
+  completedOn DateTime @default(now())
+  note        String?
+  createdAt   DateTime @default(now())
+
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  goalId      String?
+  title       String
+  status      String    @default("todo")
+  priority    String    @default("medium")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal        Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+}
+
+model Competition {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  rulesJson String?
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   CompetitionEntry[]
+}
+
+model CompetitionEntry {
+  id            String   @id @default(cuid())
+  competitionId String
+  weekNumber    Int
+  value         Float
+  metric        String
+  weekComplete  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+}
