@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import TaskList from "@/components/tasks/TaskList"
 
+export const dynamic = "force-dynamic"
+
 export default async function TasksPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
