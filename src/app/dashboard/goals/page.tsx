@@ -20,8 +20,8 @@ export default async function GoalsPage() {
         },
     })
 
-    const todoCount = goals.filter(g => g.status === "active").length
-    const doneCount = goals.filter(g => g.status === "completed").length
+    const todoCount = goals.filter((g: { status: string }) => g.status === "active").length
+    const doneCount = goals.filter((g: { status: string }) => g.status === "completed").length
 
     return (
         <div className="min-h-screen bg-slate-50">

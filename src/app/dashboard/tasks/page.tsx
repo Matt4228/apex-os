@@ -17,8 +17,8 @@ export default async function TasksPage() {
         ],
     })
 
-    const todoCount = tasks.filter(t => t.status === "active").length
-    const doneCount = tasks.filter(t => t.status === "completed").length
+    const todoCount = tasks.filter((t: { status: string }) => t.status === "active").length
+    const doneCount = tasks.filter((t: { status: string }) => t.status === "completed").length
 
     return (
         <div className="min-h-screen bg-slate-50">
