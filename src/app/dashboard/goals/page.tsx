@@ -20,6 +20,9 @@ export default async function GoalsPage() {
         },
     })
 
+    const todoCount = goals.filter(g => g.status === "active").length
+    const doneCount = goals.filter(g => g.status === "completed").length
+
     return (
         <div className="min-h-screen bg-slate-50">
             <nav className="bg-white border-b border-slate-200 px-6 py-4">
@@ -30,7 +33,7 @@ export default async function GoalsPage() {
                 <div className="mb-8">
                     <h2 className="text-2x1 font-semibold text-slate-900">Goals</h2>
                     <p className="text-slate-500 text-sm mt-1">
-                        {goals.filter(g => g.status === "active").length} active · {goals.filter(g => g.status === "complete").length} completed
+                        {todoCount} active · {doneCount} completed
                     </p>
                 </div>
 
