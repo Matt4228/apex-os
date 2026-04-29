@@ -40,16 +40,26 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                 if (action === "removed") {
                     return {
                         ...h,
-                        logs: h.logs.filter(
-                            l => format(new Date(l.completedOn), "yyyy-MM-dd") !== date
-                        ),
+                        logs: h.logs.filter(l => {
+                            const logDate = new Date(l.completedOn)
+                            const [year, month, day] = date.split("-").map(Number)
+                            return !(
+                                logDate.getFullYear() === year &&
+                                logDate.getMonth() === month - 1 &&
+                                logDate.getDate() === day
+                            )
+                        }),
                     }
                 } else {
+                    const [year, month, day] = date.split("-").map(Number)
                     return {
                         ...h,
                         logs: [
                             ...h.logs,
-                            { id: crypto.randomUUID(), completedOn: new Date(date) },
+                            { 
+                                id: crypto.randomUUID(),
+                                completedOn: new Date(year, month - 1, day), 
+                            },
                         ],
                     }
                 }

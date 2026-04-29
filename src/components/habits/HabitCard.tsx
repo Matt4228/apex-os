@@ -35,7 +35,14 @@ export default function HabitCard({
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   const isLoggedOnDay = (date: Date) =>
-    habit.logs.some(log => isSameDay(new Date(log.completedOn), date))
+    habit.logs.some(log => {
+      const logDate = new Date(log.completedOn)
+      return (
+        logDate.getFullYear() === date.getFullYear() &&
+        logDate.getMonth() === date.getMonth() &&
+        logDate.getDate() === date.getDate()
+      )
+    })
 
   const completedThisWeek = weekDays.filter(isLoggedOnDay).length
 

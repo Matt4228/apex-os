@@ -51,11 +51,10 @@ export async function toggleHabitLog(habitId: string, date: string) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
-  const targetDate = new Date(date)
-  const startOfDay = new Date(targetDate)
-  startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date(targetDate)
-  endOfDay.setHours(23, 59, 59, 999)
+  const [year, month, day] = date.split("-").map(Number)
+  const targetDate = new Date(year, month - 1, day)
+  const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+  const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
 
   const existing = await prisma.habitLog.findFirst({
     where: {
