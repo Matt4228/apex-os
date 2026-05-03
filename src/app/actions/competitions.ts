@@ -30,7 +30,7 @@ export async function createCompetition(formData: FormData) {
             title: parsed.data.title,
             startDate: new Date(parsed.data.startDate),
             endDate: new Date(parsed.data.endDate),
-            ruleJson: parsed.data.rulesJson ||  null,
+            rulesJson: parsed.data.rulesJson ||  null,
             status: "active",
         },
     })
