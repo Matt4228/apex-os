@@ -12,9 +12,9 @@ type Task = {
 }
 
 const priorityStyles = {
-    high: "bg-red-100 text-red-700",
-    medium: "bg-amber-100 text-amber-700",
-    low: "bg-green-100 text-green-700",
+    high: "bg-danger/10 text-danger",
+    medium: "bg-warning/10 text-warning",
+    low: "bg-success/10 text-success-dark",
 }
 
 export default function TaskCard({
@@ -35,11 +35,11 @@ export default function TaskCard({
             <button 
                 onClick={() => onToggle(task.id, isDone ? "todo" : "done")}
                 disabled={isPending}
-                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0  transition-colors ${
+                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${
                     isDone
-                        ? "bg-slate-900 border-slate-900"
-                        : "border-slate-300 hover:border-slate-900"
-                }`}
+                        ? "bg-accent border-accent"
+                        : "border-slate-300 hover:border-accent"
+                    }`}
             />
 
             <div className="flex-1 min-w-0">

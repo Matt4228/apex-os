@@ -17,8 +17,9 @@ type Block = {
 }
 
 const COLORS = [
-    "#1a1a2e", "#533AB7", "#0F6E56", "#BA7517",
-    "#3B6D11", "#C0392B", "#2980B9", "#8E44AD",
+  "#2E294E", "#1B998B", "#D7263D",
+  "#F46036", "#C5D86D", "#1e1b33",
+  "#147a6f", "#b01e31",
 ]
 
 export default function BlockForm({

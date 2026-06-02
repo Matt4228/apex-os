@@ -95,13 +95,13 @@ export default function HabitCard({
               disabled={isFuture || isLoadingDay}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${
                 isFuture
-                    ? "border-slate-100 text-slate-300 cursor-not-allowed"
-                    : isLogged
-                    ? "bg-slate-900 border-slate-900 text-white"
-                    : isToday
-                    ? "border-slate-400 bg-slate-50 hover:bg-slate-100 text-slate-700"
-                    : "border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-600"
-                }`}
+                  ? "border-slate-100 text-slate-300 cursor-not-allowed"
+                  : isLogged
+                  ? "bg-accent border-accent text-white"
+                  : isToday
+                  ? "border-slate-400 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                  : "border-slate-200 hover:border-accent hover:bg-slate-50 text-slate-600"
+              }`}
             >
               <span className="text-xs font-medium">
                 {format(day, "EEE")[0]}
@@ -117,7 +117,7 @@ export default function HabitCard({
       <div className="mt-3">
         <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-slate-900 rounded-full transition-all"
+            className="h-full bg-accent rounded-full transition-all"
             style={{
               width: `${Math.min((completedThisWeek / habit.targetPerWeek) * 100, 100)}%`
             }}

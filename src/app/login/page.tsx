@@ -35,8 +35,8 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="w-full max-w-md bg-white rounded-x1 border border-slate-200 p-8">
+        <div className="min-h-screen flex items-center justify-center bg-primary py-10">
+            <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 p-8">
                 <div className="mb-8">
                     <h1 className="text-2x1 font-semibold text-slate-900">Welcome back</h1>
                     <p className="text-slate-500 text-sm mt-1">Sign in to your Apex OS account</p>
