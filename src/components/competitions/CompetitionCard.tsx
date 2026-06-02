@@ -87,7 +87,7 @@ export default function CompetitionCard({
                     onClick={() => onDelete(competition.id)}
                     className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
                 >
-                    x
+                    ×
                 </button>
             </div>
 

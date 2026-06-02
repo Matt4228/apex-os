@@ -70,7 +70,7 @@ export default function ScheduleBlock({
                     onClick={() => onDelete(block.id)}
                     className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none"
                 >
-                    x
+                    ×
                 </button>
             </div>
         </div>

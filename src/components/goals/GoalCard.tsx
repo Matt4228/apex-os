@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { deleteGoal, updateGoalStatus, logGoalEntry } from "@/app/actions/goals"
+import { deleteGoal, updateGoalStatus, logGoalEntry, updateGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
+import GoalProgressChart from "./GoalProgressChart"
 
 type Entry = {
     id: string
@@ -30,14 +31,18 @@ export default function GoalCard({
     onDelete,
     onStatusChange,
     onEntryLogged,
+    onUpdate,
 }: {
     goal: Goal
     onDelete: (id: string) => void
     onStatusChange: (id: string, status: string) => void
     onEntryLogged: (goalId: string, entry: Entry) => void
+    onUpdate: (id: string, update: Partial<Goal>) => void
 }) {
     const [showLog, setShowLog] = useState(false)
+    const [editing, setEditing] = useState(false)
     const [logging, setLogging] = useState(false)
+    const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const latestEntry = goal.entries[0]
@@ -70,6 +75,50 @@ export default function GoalCard({
         ;(e.target as HTMLFormElement).reset()
     }
 
+    async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        setSaving(true)
+        setError(null)
+
+        const formData = new FormData(e.currentTarget)
+        const result = await updateGoal(goal.id, formData)
+
+        if (result?.error) {
+            setError(result.error)
+            setSaving(false)
+            return
+        }
+        
+        if (result?.goal) {
+            onUpdate(goal.id, result.goal)
+        }
+
+        setSaving(false)
+        setEditing(false)
+    }
+
+    if (editing) {
+        return (
+            <form onSubmit={handleEdit} className="bg-white border border-accent rounded-lg p-5 space-y-3">
+                <Input name="title" defaultValue={goal.title} required autoFocus />
+                <Input name="description" placeholder="Description (optional)" defaultValue={goal.description ?? ""} className="flex-1" />
+                <div className="flex gap-2">
+                    <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""} className="flex-1" />
+                    <Input name="targetDate" type="date" defaultValue={goal.targetDate ? format(new Date(goal.targetDate), "yyyy-MM-dd") : ""} className="flex-1" />
+                </div>
+                {error && <p className="text-xs text-red-500">{error}</p>}
+                <div className="flex gap-2">
+                    <Button type="submit" size="sm" disabled={saving}>
+                        {saving ? "Saving..." : "Save"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                        Cancel
+                    </Button>
+                </div>
+            </form>
+        )
+    }
+
     return (
         <div className={`bg-white border border-slate-200 rounded-lg p-5 ${isComplete ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-3 mb-3">
@@ -88,12 +137,23 @@ export default function GoalCard({
                         <p className="text-xs text-slate-400 mt-1">{goal.description}</p>
                     )}
                 </div>
-                <button
-                    onClick={() => onDelete(goal.id)}
-                    className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
-                >
-                    x
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                    {!isComplete && (
+                        <button 
+                            onClick={() => setEditing(true)}
+                            className="text-xs text-slate-400 hover:text-accent transition-colors leading-none"
+                        >
+                            Edit
+                        </button>
+                    )}
+                    <button
+                        onClick={() => onDelete(goal.id)}
+                        className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+                    >
+                        ×
+                    </button>
+                </div>
+                
             </div>
 
             {progress !== null && (
@@ -125,7 +185,7 @@ export default function GoalCard({
                     )}
                 </div>
                 <div className="flex gap-2">
-                    {isComplete && (
+                    {!isComplete && (
                         <Button
                             size="sm"
                             variant="outline"
@@ -166,6 +226,14 @@ export default function GoalCard({
                 </form>
             )}
             {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+
+            {goal.entries.length > 0 && (
+                <GoalProgressChart 
+                    entries={goal.entries}
+                    targetValue={goal.targetValue}
+                    unit={goal.unit}
+                />
+            )}
         </div>
     )
 }

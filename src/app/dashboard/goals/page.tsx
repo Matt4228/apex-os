@@ -14,8 +14,7 @@ export default async function GoalsPage() {
         orderBy: { createdAt: "desc" },
         include: {
             entries: {
-                orderBy: { loggedOn: "desc" },
-                take: 1,
+                orderBy: { loggedOn: "asc" },
             },
         },
     })

@@ -30,6 +30,12 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     deleteTask(id)
   }
 
+  function handleUpdate(id: string, updated: Partial<Task>) {
+    setTasks(current => 
+      current.map(t => t.id === id ? { ...t, ...updated } : t)
+    )
+  }
+
   function handleCreate(task: Task) {
     setTasks(current => [task, ...current])
   }
@@ -46,6 +52,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
             task={task}
             onToggle={handleToggle}
             onDelete={handleDelete}
+            onUpdate={handleUpdate}
             isPending={isPending}
           />
         ))}
@@ -64,6 +71,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
                 task={task}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onUpdate={handleUpdate}
                 isPending={isPending}
               />
             ))}

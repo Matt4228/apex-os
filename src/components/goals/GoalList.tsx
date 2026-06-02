@@ -45,6 +45,12 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
         updateGoalStatus(id, status)
     }
 
+    function handleUpdate(id: string, updated: Partial<Goal>) {
+        setGoals(current => 
+            current.map(g => g.id === id ? { ...g, ...updated } : g)
+        )
+    }
+
     function handleEntryLogged(goalId: string, entry: Entry) {
         setGoals(current =>
             current.map(g =>
@@ -67,6 +73,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
                         goal={goal}
                         onDelete={handleDelete}
                         onStatusChange={handleStatusChange}
+                        onUpdate={handleUpdate}
                         onEntryLogged={handleEntryLogged}
                     />
                 ))}
@@ -85,6 +92,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
                                 goal={goal}
                                 onDelete={handleDelete}
                                 onStatusChange={handleStatusChange}
+                                onUpdate={handleUpdate}
                                 onEntryLogged={handleEntryLogged}
                             />
                         ))}

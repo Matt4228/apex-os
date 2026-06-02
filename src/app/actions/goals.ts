@@ -82,3 +82,31 @@ export async function logGoalEntry(goalId: string, formData: FormData) {
 
     return { entry }
 }
+
+export async function updateGoal(goalId: string, formData: FormData) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+
+    const title = formData.get("title")
+    const description = formData.get("description")
+    const category = formData.get("category")
+    const targetDate = formData.get("targetDate")
+    const targetValue = formData.get("targetValue")
+    const unit = formData.get("unit")
+
+    if (!title) return { error: "Title is required" }
+
+    const goal = await prisma.goal.update({
+        where: { id: goalId, userId: session.user.id },
+        data: {
+            title: String(title),
+            description: description ? String(description) : null,
+            category: category ? String(category) : null,
+            targetDate: targetDate ? new Date(String(targetDate)) : null,
+            targetValue: targetValue ? parseFloat(String(targetValue)) : null,
+            unit: unit ? String(unit) : null,
+        },
+    })
+
+    return { goal }
+}
