@@ -5,6 +5,7 @@ import { signOut } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { startOfWeek, endOfWeek, isToday, format } from "date-fns"
+import DashboardTaskList from "@/components/dashboard/DashboardTaskList"
 
 export const dynamic = "force-dynamic"
 
@@ -20,8 +21,8 @@ export default async function DashboardPage() {
 
     const [tasks, goals, habits, competitions, scheduleBlocks] = await Promise.all([
         prisma.task.findMany({
-            where: { userId, status: "todo" },
-            orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+            where: { userId },
+            orderBy: [{ status: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
             take: 5,
         }),
         prisma.goal.findMany({
@@ -140,28 +141,10 @@ export default async function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-slate-900">Tasks</h3>
                         <Link href="/dashboard/tasks" className="text-xs text-slate-400 hover:text-slate-700">
-                            View all →
+                        View all →
                         </Link>
                     </div>
-                    {tasks.length === 0 ? (
-                        <p className="text-sm text-slate-400">No tasks remaining. Nice work.</p>
-                    ) : (
-                        <div className="space-y-2">
-                            {tasks.map(task => (
-                                <div key={task.id} className="flex items-center gap-3">
-                                    <div className="w-4 h-4 rounded-full border-2 border-slate-300 flex-shrink-0" />
-                                    <p className="text-sm text-slate-900 flex-1 truncate">{task.title}</p>
-                                    <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                        task.priority === "high" ? "bg-red-100 text-red-700" :
-                                        task.priority === "medium" ? "bg-amber-100 text-amber-700" :
-                                        "bg-green-100 text-green-700"
-                                    }`}>
-                                        {task.priority}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <DashboardTaskList initialTasks={tasks} />
                 </div>
 
                 {/* Habits */}
