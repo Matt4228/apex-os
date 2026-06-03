@@ -40,7 +40,7 @@ export default function LoginPage() {
         setError(null)
         const result = await signIn("credentials", {
             email: "demo@apex-os.app",
-            password: "demodemo",
+            password: "superP@ssword",
             redirect: false,
         })
 
