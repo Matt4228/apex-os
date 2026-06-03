@@ -30,6 +30,10 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[] }) {
     const [blocks, setBlocks] = useState<Block[]>(initialBlocks)
     const [editingBlock, setEditingBlock] = useState<Block | null>(null)
+    const [activeDay, setActiveDate] = useState(() => {
+        const today = new Date().getDay()
+        return DAYS[today]
+    })
 
     const sensors = useSensors(useSensor(PointerSensor))
 
@@ -95,12 +99,45 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                 </div>
             )}
 
+            {/* Mobile day picker */}
+            <div className="md:hidden flex gap-1 overflow-x-auto pb-2 mb-4">
+                {DAYS.map(day => (
+                    <button
+                        key={day}
+                        onClick={() => setActiveDate(day)}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            activeDay === day
+                                ? "bg-primary text-white"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                    >
+                        {day.slice(0,3)}
+                    </button>
+                ))}
+            </div>
+
             <DndContext 
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
             >
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-8">
+                {/* Mobile: single day view */}
+                <div className="md:hidden">
+                    <DayColumn
+                        key={activeDay}
+                        day={activeDay}
+                        blocks={blocks
+                            .filter(b => b.dayOfWeek === activeDay)
+                            .sort((a, b) => a.sortOrder - b.sortOrder)
+                        }
+                        onDelete={handleDelete}
+                        onEdit={handleEdit}
+                        onCreated={handleCreate}
+                    />
+                </div>
+
+                {/* Desktop: full grid */}
+                <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-7 gap-4">
                     {DAYS.map(day => {
                         const dayBlocks = blocks
                             .filter(b => b.dayOfWeek === day)
