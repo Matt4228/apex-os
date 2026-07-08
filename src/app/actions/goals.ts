@@ -66,6 +66,11 @@ export async function logGoalEntry(goalId: string, formData: FormData) {
     const session = await auth()
     if (!session?.user?.id) return { error: "Unauthorized" }
 
+    const goal = await prisma.goal.findFirst({
+        where: { id: goalId, userId: session.user.id },
+    })
+    if (!goal) return { error: "Not found" }
+
     const value = formData.get("value")
     const note = formData.get("note")
 

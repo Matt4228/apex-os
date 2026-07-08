@@ -51,6 +51,11 @@ export async function logCompetitionEntry(competitionId: string, formData: FormD
     const session = await auth()
     if (!session?.user?.id) return { error: "Unathorized" }
 
+    const competition = await prisma.competition.findFirst({
+        where: { id: competitionId, userId: session.user.id },
+    })
+    if (!competition) return { error: "Not found" }
+
     const weekNumber = formData.get("weekNumber")
     const value = formData.get("value")
     const metric = formData.get("metric")
