@@ -1,4 +1,4 @@
-// tests/actions/habits.test.ts
+// tests/actions/tasks.test.ts
 import { updateTaskStatus } from "@/app/actions/tasks"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
