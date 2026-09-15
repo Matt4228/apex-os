@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     DndContext,
-    closestCenter,
     PointerSensor,
     useSensor,
     useSensors,
     DragEndEvent,
 } from "@dnd-kit/core"
-import { arrayMove } from "@dnd-kit/sortable"
-import { deleteScheduleBlock, updateBlockOrder } from "@/app/actions/schedule"
+import { deleteScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
+import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGrid } from "@/lib/schedule-time"
+import HourLabels from "./HourLabels"
 import DayColumn from "./DayColumn"
 import BlockForm from "./BlockForm"
 
@@ -26,46 +26,23 @@ type Block = {
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+const PX_PER_MINUTE = 1
 
 export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[] }) {
     const [blocks, setBlocks] = useState<Block[]>(initialBlocks)
     const [editingBlock, setEditingBlock] = useState<Block | null>(null)
-    const [activeDay, setActiveDate] = useState(() => {
-        const today = new Date().getDay()
-        return DAYS[today]
-    })
+    const [createDraft, setCreateDraft] = useState<{ day: string; startTime: string; endTime: string } | null>(null)
+    const [activeDay, setActiveDate] = useState(() => DAYS[new Date().getDay()])
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const todayName = DAYS[new Date().getDay()]
 
-    const sensors = useSensors(useSensor(PointerSensor))
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+    )
 
-    function handleDragEnd(event: DragEndEvent) {
-        const { active, over } = event
-        if (!over || active.id === over.id) return
-
-        const activeBlock = blocks.find(b => b.id === active.id)
-        if (!activeBlock) return
-
-        const dayBlocks = blocks
-            .filter(b => b.dayOfWeek === activeBlock.dayOfWeek)
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-
-        const oldIndex = dayBlocks.findIndex(b => b.id === active.id)
-        const newIndex = dayBlocks.findIndex(b => b.id === over.id)
-
-        if (oldIndex === -1 || newIndex === -1) return
-
-        const reordered = arrayMove(dayBlocks, oldIndex, newIndex)
-
-        setBlocks(current => [
-            ...current.filter(b => b.dayOfWeek !== activeBlock.dayOfWeek),
-            ...reordered.map((b, i) => ({ ...b, sortOrder: i})),
-        ])
-
-        updateBlockOrder(reordered.map(b => b.id))
-    }
-
-    function handleCreate(block: Block) {
-        setBlocks(current => [...current, block])
-    }
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ top: SCROLL_TO_HOUR * 60 * PX_PER_MINUTE })
+    }, [])
 
     function handleDelete(id: string) {
         setBlocks(current => current.filter(b => b.id !== id))
@@ -77,23 +54,85 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
     }
 
     function handleUpdated(updated: Block) {
-        setBlocks(current => 
-            current.map(b => b.id === updated.id ? updated : b)
-        )
+        setBlocks(current => current.map(b => b.id === updated.id ? updated : b))
         setEditingBlock(null)
+    }
+
+    function handleCreated(block: Block) {
+        setBlocks(current => [...current, block])
+        setCreateDraft(null)
+    }
+
+    function handleCreateDraft(day: string, startMinutes: number, endMinutes: number) {
+        setCreateDraft({
+            day,
+            startTime: minutesToTime(startMinutes),
+            endTime: minutesToTime(endMinutes),
+        })
+    }
+
+    function persist(block: Block) {
+        const formData = new FormData()
+        formData.set("dayOfWeek", block.dayOfWeek)
+        formData.set("label", block.label)
+        formData.set("startTime", block.startTime)
+        formData.set("endTime", block.endTime)
+        formData.set("category", block.category ?? "")
+        formData.set("color", block.color ?? "")
+        updateScheduleBlock(block.id, formData)
+    }
+
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over, delta } = event
+        const block = blocks.find(b => b.id === active.id)
+        if (!block) return 
+
+        const duration = timeToMinutes(block.endTime) - timeToMinutes(block.startTime)
+        const rawStart = timeToMinutes(block.startTime) + pixelsToMinutes(delta.y, PX_PER_MINUTE)
+        const clampedStart = Math.min(Math.max(rawStart, 0), 24 * 60 - duration)
+        const newStartMinutes = snapToGrid(clampedStart, 5)
+        const newEndMinutes = newStartMinutes + duration
+        const newDayOfWeek = (over?.id as string) ?? block.dayOfWeek
+
+        const updated: Block = {
+            ...block,
+            dayOfWeek: newDayOfWeek,
+            startTime: minutesToTime(newStartMinutes),
+            endTime: minutesToTime(newEndMinutes),
+        }
+
+        setBlocks(current => current.map(b => (b.id === updated.id ? updated : b)))
+        persist(updated)
+    }
+
+    function handleResize(blockId: string, newEndTime: string) {
+        const block = blocks.find(b => b.id === blockId)
+        if (!block) return
+
+        const updated: Block = { ...block, endTime: newEndTime }
+        setBlocks(current => current.map(b => (b.id === updated.id ? updated : b)))
+        persist(updated)
     }
 
     return (
         <div>
-            {editingBlock && (
+            {(editingBlock || createDraft) && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-sm">
-                        <h3 className="text-sm font-semibold text-slate-900 mb-3">Edit Block</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                            {editingBlock ? "Edit Block" : "New Block"}
+                        </h3>
                         <BlockForm 
-                            day={editingBlock.dayOfWeek}
-                            block={editingBlock}
+                            day={editingBlock ? editingBlock.dayOfWeek : createDraft!.day}
+                            block={editingBlock ?? undefined}
+                            initialStartTime={createDraft?.startTime}
+                            initialEndTime={createDraft?.endTime}
+                            onCreated={handleCreated}
                             onUpdated={handleUpdated}
-                            onCancel={() => setEditingBlock(null)}
+                            onCancel={() => {
+                                setEditingBlock(null)
+                                setCreateDraft(null)
+                            }}
                         />
                     </div>
                 </div>
@@ -116,46 +155,54 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                 ))}
             </div>
 
-            <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-            >
-                {/* Mobile: single day view */}
-                <div className="md:hidden">
-                    <DayColumn
-                        key={activeDay}
-                        day={activeDay}
-                        blocks={blocks
-                            .filter(b => b.dayOfWeek === activeDay)
-                            .sort((a, b) => a.sortOrder - b.sortOrder)
-                        }
-                        onDelete={handleDelete}
-                        onEdit={handleEdit}
-                        onCreated={handleCreate}
-                    />
-                </div>
+            {/* Desktop day headers */}
+            <div className="hidden md:flex mb-2">
+                <div className="w-14 flex-shrink-0" />
+                {DAYS.map(day => (
+                    <div key={day} className="flex-1 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        {day.slice(0, 3)}
+                    </div>
+                ))}
+            </div>
 
-                {/* Desktop: full grid */}
-                <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-7 gap-4">
-                    {DAYS.map(day => {
-                        const dayBlocks = blocks
-                            .filter(b => b.dayOfWeek === day)
-                            .sort((a, b) => a.sortOrder - b.sortOrder )
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-slate-200 rounded-xl">
+                    <HourLabels pxPerMinute={PX_PER_MINUTE} />
 
-                        return (
-                            <DayColumn 
+                    {/* Mobile: singled day */}
+                    <div className="flex-1 md:hidden">
+                        <DayColumn
+                            day={activeDay}
+                            blocks={blocks.filter(b => b.dayOfWeek === activeDay)}
+                            pxPerMinute={PX_PER_MINUTE}
+                            isToday={activeDay === todayName}
+                            onDelete={handleDelete}
+                            onEdit={handleEdit}
+                            onResize={handleResize}
+                            onCreateDraft={handleCreateDraft}
+                        />
+                    </div>
+
+                    {/* Desktop: full week */}
+                    <div className="hidden md:flex flex-1">
+                        {DAYS.map(day => (
+                            <DayColumn
                                 key={day}
                                 day={day}
-                                blocks={dayBlocks}
+                                blocks={blocks.filter(b => b.dayOfWeek === day)}
+                                pxPerMinute={PX_PER_MINUTE}
+                                isToday={day === todayName}
                                 onDelete={handleDelete}
                                 onEdit={handleEdit}
-                                onCreated={handleCreate}
+                                onResize={handleResize}
+                                onCreateDraft={handleCreateDraft}
                             />
-                        )
-                    })}
+                        ))}
+                    </div>
                 </div>
             </DndContext>
+
+            
         </div>
     )
 }

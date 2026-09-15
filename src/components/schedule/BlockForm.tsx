@@ -22,15 +22,21 @@ const COLORS = [
   "#147a6f", "#b01e31",
 ]
 
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
 export default function BlockForm({
     day,
     block,
+    initialStartTime,
+    initialEndTime,
     onCreated,
     onUpdated,
     onCancel,
 }: {
     day: string
     block?: Block
+    initialStartTime?: string
+    initialEndTime?: string
     onCreated?: (block: Block) => void
     onUpdated?: (block: Block) => void
     onCancel: () => void
@@ -39,8 +45,9 @@ export default function BlockForm({
     const [error, setError] = useState<string | null>(null)
     const [color, setColor] = useState(block?.color ?? "#1a1a2e")
     const [label, setLabel] = useState(block?.label ?? "")
-    const [startTime, setStartTime] = useState(block?.startTime ?? "09:00")
-    const [endTime, setEndTime] = useState(block?.endTime ?? "10:00")
+    const [dayOfWeek, setDayOfWeek] = useState(block?.dayOfWeek ?? day)
+    const [startTime, setStartTime] = useState(block?.startTime ?? initialStartTime ?? "09:00")
+    const [endTime, setEndTime] = useState(block?.endTime ?? initialEndTime ?? "10:00")
     const [category, setCategory] = useState(block?.category ?? "")
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -49,14 +56,12 @@ export default function BlockForm({
         setError(null)
 
         const formData = new FormData()
-        formData.set("dayOfWeek", day)
+        formData.set("dayOfWeek", dayOfWeek)
         formData.set("label", label)
         formData.set("startTime", startTime)
         formData.set("endTime", endTime)
         formData.set("category", category)
         formData.set("color", color)
-
-        console.log("Submitting with dayOfWeek:", day, "label:", label)
         
         if (block) {
             const result = await updateScheduleBlock(block.id, formData)
@@ -81,6 +86,17 @@ export default function BlockForm({
                 required
                 autoFocus 
             />
+
+            <select
+                name="dayOfWeek"
+                value={dayOfWeek}
+                onChange={e => setDayOfWeek(e.target.value)}
+                className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm bg-white"
+            >
+                {DAYS.map(d => (
+                    <option key={d} value={d}>{d}</option> 
+                ))}
+            </select>
 
             <div className="flex gap-2">
                 <Input 

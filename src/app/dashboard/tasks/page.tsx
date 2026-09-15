@@ -21,7 +21,7 @@ export default async function TasksPage() {
     const {todoCount, doneCount} = countTaskStatuses(tasks)
 
     return (
-        <main className="max-w-2xl mx-auto px-6 py-10">
+        <main className="max-w-5xl mx-auto px-6 py-10">
             <div className="mb-8">
                 <h2 className="text-2xl font-semibold text-slate-900">Tasks</h2>
                 <p className="text-slate-500 text-sm mt-1">

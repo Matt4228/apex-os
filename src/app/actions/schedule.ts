@@ -63,20 +63,6 @@ export async function deleteScheduleBlock(blockId: string) {
     })
 }
 
-export async function updateBlockOrder(blockIds: string[]) {
-    const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
-
-    await Promise.all(
-    blockIds.map((id, index) =>
-      prisma.scheduleBlock.update({
-        where: { id, userId: session.user!.id },
-        data: { sortOrder: index },
-      })
-    )
-  )
-}
-
 export async function updateScheduleBlock(blockId: string, formData: FormData) {
     const session = await auth()
     if (!session?.user?.id) return { error: "Unathorized" }
