@@ -3,7 +3,6 @@ import { logCompetitionEntry } from "@/app/actions/competitions"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
-import { isWeekend } from "date-fns"
 
 function formDataFrom(entries: Record<string, string>): FormData {
     const formData = new FormData()

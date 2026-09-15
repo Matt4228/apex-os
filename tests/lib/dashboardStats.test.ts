@@ -1,6 +1,4 @@
 import { countGoalStatuses, countTaskStatuses } from "@/lib/dashboardStats"
-import { isDocumentScrollingElement } from "@dnd-kit/core/dist/utilities"
-import { tooltipReducer } from "recharts/types/state/tooltipSlice"
 import { describe, expect, it } from "vitest"
 
 describe("countTaskStatuses", () => {

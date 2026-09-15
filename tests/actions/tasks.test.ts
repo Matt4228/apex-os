@@ -21,7 +21,7 @@ describe("updateTaskStatus", () => {
     it("scopes the update to the caller and sets completedAt when marking done", async () => {
         mockedAuth.mockResolvedValue({ user: { id: "user-1" } }  as never)
 
-        const result = await updateTaskStatus("task-1", "done")
+        await updateTaskStatus("task-1", "done")
 
         expect(prismaMock.task.update).toHaveBeenCalledWith({
             where: { id: "task-1", userId: "user-1" },
@@ -32,7 +32,7 @@ describe("updateTaskStatus", () => {
     it("clears completedAt when moving a task back out of done", async () => {
         mockedAuth.mockResolvedValue({ user: { id: "user-1" } }  as never)
 
-        const result = await updateTaskStatus("task-1", "todo")
+        await updateTaskStatus("task-1", "todo")
 
         expect(prismaMock.task.update).toHaveBeenCalledWith({
             where: { id: "task-1", userId: "user-1" },

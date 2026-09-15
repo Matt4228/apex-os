@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import "@testing-library/jest-dom/vitest"
 import { prisma } from "@/lib/prisma"
 import { beforeEach, vi } from "vitest"
 import { mockReset } from "vitest-mock-extended"
