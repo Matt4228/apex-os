@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { minutesToTime, pixelsToMinutes, snapToGrid, timeToMinutes } from "@/lib/schedule-time" 
-import { SERVER_PROPS_EXPORT_ERROR } from "next/dist/lib/constants"
 
 type Block = {
     id: string
