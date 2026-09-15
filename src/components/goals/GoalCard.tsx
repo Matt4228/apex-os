@@ -169,7 +169,7 @@ export default function GoalCard({
                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-accent rounded-full transition-all"
-                            style={{ width: `${progress}` }}
+                            style={{ width: `${progress}%` }}
                         />
                     </div>
                 </div>

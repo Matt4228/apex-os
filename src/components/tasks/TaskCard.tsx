@@ -88,7 +88,7 @@ export default function TaskCard({
     }
 
     return (
-        <div className={`bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3 transition-opacity ${isDone ? "opactiy-60" : ""}`}>
+        <div className={`bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3 transition-opacity ${isDone ? "opacity-60" : ""}`}>
             <button 
                 onClick={() => onToggle(task.id, isDone ? "todo" : "done")}
                 disabled={isPending}
