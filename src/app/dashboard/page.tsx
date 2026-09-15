@@ -73,9 +73,9 @@ export default async function DashboardPage() {
         : 0
 
     return (
-        <main className="max-w-5x1 mx-auto px-6 py-10">
+        <main className="max-w-5xl mx-auto px-6 py-10">
             <div className="mb-8">
-                <h2 className="text-2x1 font-semibold text-slate-900">
+                <h2 className="text-2xl font-semibold text-slate-900">
                     {format(now, "EEEE, MMMM d")}
                 </h2>
                 <p className="text-slate-500 text-sm mt-1">
@@ -87,19 +87,19 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-400 mb-1">Tasks remaining</p>
-                    <p className="text-2x1 font-semibold text-slate-900">{todoCount}</p>
+                    <p className="text-2xl font-semibold text-slate-900">{todoCount}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-400 mb-1">Active goals</p>
-                    <p className="text-2x1 font-semibold text-slate-900">{goals.length}</p>
+                    <p className="text-2xl font-semibold text-slate-900">{goals.length}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-400 mb-1">Habit completion</p>
-                    <p className="text-2x1 font-semibold text-slate-900">{habitCompletionRate}</p>
+                    <p className="text-2xl font-semibold text-slate-900">{habitCompletionRate}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-400 mb-1">Active competitions</p>
-                    <p className="text-2x1 font-semibold text-slate-900">{competitions.length}</p>
+                    <p className="text-2xl font-semibold text-slate-900">{competitions.length}</p>
                 </div>
             </div>
 

@@ -15,9 +15,9 @@ export default async function SchedulePage() {
     })
 
     return (
-        <main className="max-w-3x1 mx-auto px-6 py-10">
+        <main className="max-w-3xl mx-auto px-6 py-10">
             <div className="mb-8">
-                <h2 className="text-2x1 font-semibold text-slate-900">Weekly Schedule</h2>
+                <h2 className="text-2xl font-semibold text-slate-900">Weekly Schedule</h2>
                 <p className="text-slate-500 text-sm mt-1">
                     Build your ideal week. Drag to reorder blocks within each day.
                 </p>

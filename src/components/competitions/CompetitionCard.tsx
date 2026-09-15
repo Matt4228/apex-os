@@ -105,8 +105,8 @@ export default function CompetitionCard({
             </div>
 
             {competition.entries.length > 0 && (
-                <div className="bg-4 space-y-1">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking wide mb-2">Recent entries</p>
+                <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Recent entries</p>
                     {competition.entries.slice(0, 3).map(entry => (
                         <div key={entry.id} className="flex items-center justify-between text-xs">
                             <span className="text-slate-500">Week {entry.weekNumber} - {entry.metric}</span>
@@ -137,7 +137,7 @@ export default function CompetitionCard({
             </div>
 
             {showLog && (
-                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-slate-100 spacec-y-3">
+                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-slate-100 space-y-3">
                     <div className="flex gap-2">
                         <Input 
                             name="metric"

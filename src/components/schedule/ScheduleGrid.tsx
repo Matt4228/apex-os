@@ -87,7 +87,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         <div>
             {editingBlock && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-x1 border border-slate-200 p-5 w-full max-w-sm">
+                    <div className="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-sm">
                         <h3 className="text-sm font-semibold text-slate-900 mb-3">Edit Block</h3>
                         <BlockForm 
                             day={editingBlock.dayOfWeek}
