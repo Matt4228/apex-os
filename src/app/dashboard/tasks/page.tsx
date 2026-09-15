@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import TaskList from "@/components/tasks/TaskList"
+import { countTaskStatuses } from "@/lib/dashboardStats"
 
 export const dynamic = "force-dynamic"
 
@@ -17,8 +18,7 @@ export default async function TasksPage() {
         ],
     })
 
-    const todoCount = tasks.filter((t: { status: string }) => t.status === "active").length
-    const doneCount = tasks.filter((t: { status: string }) => t.status === "completed").length
+    const {todoCount, doneCount} = countTaskStatuses(tasks)
 
     return (
         <main className="max-w-2x1 mx-auto px-6 py-10">

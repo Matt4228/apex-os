@@ -1,8 +1,7 @@
 import * as Reach from "react"
 import { cn } from "@/lib/utils"
 
-export interface InputProps
-    extends React.InputHTMLAttributes<HTMLInputElement> {}
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>
 
 const Input = Reach.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, ...props }, ref) => {

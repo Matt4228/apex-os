@@ -7,7 +7,7 @@ export default function NotFound() {
             <div className="bg-white border border-slate-200 rounded-x1 p-8 max-w-md w-full text-center">
                 <h2 className="text-lg font-semibold text-slate-900 mb-2">Page not found</h2>
                 <p className="text-sm text-slate-500 mb-6">
-                    The page you're looking for doesn't exist.
+                    The page you&apos;re looking for doesn&apos;t exist.
                 </p>
                 <Button asChild>
                     <Link href="/dashboard">Go to dashboard</Link>

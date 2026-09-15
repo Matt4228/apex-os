@@ -15,7 +15,7 @@ type Competition = {
     entries: never[]
 }
 
-export default function createCompetitionForm({
+export default function CreateCompetitionForm({
     onCreated,
 }: {
     onCreated: (competition: Competition) => void

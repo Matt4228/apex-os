@@ -22,7 +22,7 @@ export async function createGoal(formData: FormData) {
         description: formData.get("description") || undefined,
         category: formData.get("category") || undefined,
         targetDate: formData.get("targetDate") || undefined,
-        targetValue: formData.get("targetvalue") || undefined,
+        targetValue: formData.get("targetValue") || undefined,
         unit: formData.get("unit") || undefined,
     })
 

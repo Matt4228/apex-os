@@ -49,7 +49,7 @@ export async function deleteCompetition(competitionId: string) {
 
 export async function logCompetitionEntry(competitionId: string, formData: FormData) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     const competition = await prisma.competition.findFirst({
         where: { id: competitionId, userId: session.user.id },
@@ -82,6 +82,10 @@ export async function logCompetitionEntry(competitionId: string, formData: FormD
                 metric: String(metric),
                 weekComplete,
             },
+        })
+    } else {
+        entry = await prisma.competitionEntry.create({
+            data: { competitionId, weekNumber: parseInt(String(weekNumber)), value: parseFloat(String(value)), metric: String(metric), weekComplete },
         })
     }
 

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import GoalList from "@/components/goals/GoalList"
+import { countGoalStatuses } from "@/lib/dashboardStats"
 
 export const dynamic = "force-dynamic"
 
@@ -19,8 +20,7 @@ export default async function GoalsPage() {
         },
     })
 
-    const todoCount = goals.filter((g: { status: string }) => g.status === "active").length
-    const doneCount = goals.filter((g: { status: string }) => g.status === "completed").length
+    const {todoCount, doneCount} = countGoalStatuses(goals)
 
     return (
         <main className="max-w-2x1 mx-auto px-6 py-10">
