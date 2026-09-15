@@ -11,6 +11,10 @@ describe("countTaskStatuses", () => {
     it("returns zero for a status value that never occurs", () => {
         expect(countTaskStatuses([{ status: "todo" }])).toEqual({ todoCount: 1, doneCount: 0 })
     })
+
+    it("chore: verify CI gate blocks a failing check (throwaway)", () => {
+        expect(1).toBe(2)
+    })
 })
 
 describe("countGoalStatuses", () => {
