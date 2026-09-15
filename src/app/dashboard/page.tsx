@@ -108,7 +108,7 @@ export default async function DashboardPage() {
                 {/* Today's schedule */}
                 <div className="bg-white border border-slate-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Today's Schedule</h3>
+                        <h3 className="text-sm font-semibold text-slate-900">Today&apos;s Schedule</h3>
                         <Link href="/dashboard/schedule" className="text-xs text-slate-400 hover:text-slate-700">
                             Edit →
                         </Link>
