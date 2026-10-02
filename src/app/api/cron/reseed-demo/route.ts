@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         email: "demo@apex-os.app",
-        name: "Matt O'Donnell",
+        name: "Demo User",
         password: hashedPassword,
       },
     })
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     }))
 
     const awsEntries = [
-      { goalId: goals[4].id, value: 1, note: "Passed the exam — scored 847/1000", loggedOn: subMonths(now, 1) }
+      { goalId: goals[4].id, value: 1, note: "Passed the exam", loggedOn: subMonths(now, 1) }
     ]
 
     await prisma.goalEntry.createMany({
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
         { userId: user.id, title: "Review PR: add rate limiting to auth service", status: "todo", priority: "high", dueDate: addDays(now, 1) },
         { userId: user.id, title: "Solve 3 LeetCode graph problems", status: "todo", priority: "medium", dueDate: addDays(now, 2) },
         { userId: user.id, title: "Update resume with AWS cert", status: "todo", priority: "medium", dueDate: addDays(now, 7) },
-        { userId: user.id, title: "Schedule coffee chat with Sarah at Shopify", status: "todo", priority: "medium", dueDate: addDays(now, 5) },
+        { userId: user.id, title: "Schedule coffee chat with a senior engineer", status: "todo", priority: "medium", dueDate: addDays(now, 5) },
         { userId: user.id, title: "Read chapter 8 of Designing Data-Intensive Applications", status: "todo", priority: "low" },
         { userId: user.id, title: "Set up personal monitoring dashboard for side project", status: "todo", priority: "low" },
         { userId: user.id, title: "Submit expense report for AWS certification exam", status: "done", priority: "medium", completedAt: subDays(now, 2) },
