@@ -1,6 +1,6 @@
 // tests/lib/dates.test.ts
-import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
-import { describe, expect, it } from "vitest"
+import { formatDateOnly, parseDateOnly, toDateInputValue, dayRangeOf, weekRangeOf } from "@/lib/dates"
+import { describe, expect, it} from "vitest"
 
 describe("test timezone", () => {
     it("runs in New York time so timezone bugs show up on every machine", () => {
@@ -29,5 +29,21 @@ describe("formatDateOnly", () => {
 describe("toDateInputValue", () => {
     it("round-trips through a date input without drifting", () => {
         expect(toDateInputValue(parseDateOnly("2026-10-15"))).toBe("2026-10-15")
+    })
+})
+
+describe("dayRangeOf", () => {
+    it("covers exactly one calendar day in UTC", () => {
+        const { start, end } = dayRangeOf("2026-10-10")
+        expect(start.toISOString()).toBe("2026-10-10T00:00:00.000Z")
+        expect(end.toISOString()).toBe("2026-10-11T00:00:00.000Z")
+    })
+})
+
+describe("weekRangeOf", () => {
+    it("covers Sunday through Saturday of the week containing the day", () => {
+        const { start, end } = weekRangeOf("2026-10-15")
+        expect(start.toISOString()).toBe("2026-10-11T00:00:00.000Z")
+        expect(end.toISOString()).toBe("2026-10-18T00:00:00.000Z")
     })
 })

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { deleteCompetition, updateCompetitionStatus, logCompetitionEntry } from "@/app/actions/competitions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { format, differenceInWeeks } from "date-fns"
+import { differenceInWeeks } from "date-fns"
 import { formatDateOnly } from "@/lib/dates"
 
 type Entry = {

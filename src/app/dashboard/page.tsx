@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { signOut } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { startOfWeek, endOfWeek, isToday, format } from "date-fns"
+import { format } from "date-fns"
+import { weekRangeOf } from "@/lib/dates"
 import DashboardTaskList from "@/components/dashboard/DashboardTaskList"
 
 export const dynamic = "force-dynamic"
@@ -15,8 +16,7 @@ export default async function DashboardPage() {
 
     const userId = session.user.id
     const now = new Date()
-    const weekStart = startOfWeek(now, { weekStartsOn: 0 })
-    const weekEnd = endOfWeek(now, { weekStartsOn: 0 })
+    const { start: weekStart, end: weekEnd } = weekRangeOf(format(new Date(), "yyyy-MM-dd"))
     const dayOfWeek = format(now, "EEEE")
 
     const [tasks, goals, habits, competitions, scheduleBlocks] = await Promise.all([
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
             include: {
                 logs: {
                     where: {
-                        completedOn: { gte: weekStart, lte: weekEnd },
+                        completedOn: { gte: weekStart, lt: weekEnd },
                     },
                 },
             },

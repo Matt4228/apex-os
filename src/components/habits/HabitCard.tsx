@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { toggleHabitLog, deleteHabit } from "@/app/actions/habits"
 import { format, startOfWeek, addDays, isSameDay } from "date-fns"
+import { toDateInputValue } from "@/lib/dates"
 
 type HabitLog = {
   id: string
@@ -34,15 +35,10 @@ export default function HabitCard({
   const weekStart = startOfWeek(today, { weekStartsOn: 0 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
-  const isLoggedOnDay = (date: Date) =>
-    habit.logs.some(log => {
-      const logDate = new Date(log.completedOn)
-      return (
-        logDate.getFullYear() === date.getFullYear() &&
-        logDate.getMonth() === date.getMonth() &&
-        logDate.getDate() === date.getDate()
-      )
-    })
+  const isLoggedOnDay = (date: Date) => {
+    const day = format(date, "yyyy-MM-dd")
+    return habit.logs.some(log => toDateInputValue(log.completedOn) === day)
+  }
 
   const completedThisWeek = weekDays.filter(isLoggedOnDay).length
 
@@ -92,6 +88,8 @@ export default function HabitCard({
           return (
             <button
               key={dateStr}
+              aria-label={format(day, "EEEE, MMM d")}
+              aria-pressed={isLogged}
               onClick={() => !isFuture && handleDayClick(day)}
               disabled={isFuture || isLoadingDay}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${

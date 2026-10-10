@@ -20,3 +20,18 @@ export function formatDateOnly(date: Date | string, pattern: string): string {
     const d = new Date(date)
     return format(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), pattern)
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** The [start, end) range covering one calendar day, for database queries */
+export function dayRangeOf(day: string): { start: Date, end: Date } {
+    const start = parseDateOnly(day)
+    return { start, end: new Date(start.getTime() + DAY_MS)}
+}
+
+/** The [start, end) range for the Sunday-to-Saturday week containing `day` */
+export function weekRangeOf(day: string): { start: Date, end: Date } {
+    const date = parseDateOnly(day)
+    const start = new Date(date.getTime() - date.getUTCDay() * DAY_MS)
+    return { start, end: new Date(start.getTime() + 7 * DAY_MS)}
+}
