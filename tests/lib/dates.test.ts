@@ -1,5 +1,5 @@
 // tests/lib/dates.test.ts
-import { formatDateOnly, parseDateOnly, toDateInputValue, dayRangeOf, weekRangeOf } from "@/lib/dates"
+import { formatDateOnly, parseDateOnly, toDateInputValue, dayRangeOf, weekRangeOf, todayIn } from "@/lib/dates"
 import { describe, expect, it} from "vitest"
 
 describe("test timezone", () => {
@@ -45,5 +45,19 @@ describe("weekRangeOf", () => {
         const { start, end } = weekRangeOf("2026-10-15")
         expect(start.toISOString()).toBe("2026-10-11T00:00:00.000Z")
         expect(end.toISOString()).toBe("2026-10-18T00:00:00.000Z")
+    })
+})
+
+describe("todayIn", () => {
+    // 02:00 UTC on Oct 11 is still 10 PM on Oct 10 in New York
+    const lateEvening = new Date("2026-10-11T02:00:00Z")
+
+    it("returns the calendar day in the given timezone", () => {
+        expect(todayIn("America/New_York", lateEvening)).toBe("2026-10-10")
+        expect(todayIn("UTC", lateEvening)).toBe("2026-10-11")
+    })
+
+    it("falls back to UTC for an unknown timezone instead of crashing", () => {
+        expect(todayIn("Not/A_Zone", lateEvening)).toBe("2026-10-11")
     })
 })

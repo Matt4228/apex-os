@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { signOut } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { format } from "date-fns"
-import { weekRangeOf } from "@/lib/dates"
+import { formatDateOnly, parseDateOnly, weekRangeOf } from "@/lib/dates"
+import { getUserToday } from "@/lib/user-today"
 import DashboardTaskList from "@/components/dashboard/DashboardTaskList"
 
 export const dynamic = "force-dynamic"
@@ -15,9 +15,10 @@ export default async function DashboardPage() {
     if (!session?.user?.id) redirect("/login")
 
     const userId = session.user.id
-    const now = new Date()
-    const { start: weekStart, end: weekEnd } = weekRangeOf(format(new Date(), "yyyy-MM-dd"))
-    const dayOfWeek = format(now, "EEEE")
+    const today = await getUserToday()
+    const todayDate = parseDateOnly(today)
+    const { start: weekStart, end: weekEnd } = weekRangeOf(today)
+    const dayOfWeek = formatDateOnly(todayDate, "EEEE")
 
     const [tasks, goals, habits, competitions, scheduleBlocks] = await Promise.all([
         prisma.task.findMany({
@@ -76,7 +77,7 @@ export default async function DashboardPage() {
         <main className="max-w-5xl mx-auto px-6 py-10">
             <div className="mb-8">
                 <h2 className="text-2xl font-semibold text-slate-900">
-                    {format(now, "EEEE, MMMM d")}
+                    {formatDateOnly(todayDate, "EEEE, MMMM d")}
                 </h2>
                 <p className="text-slate-500 text-sm mt-1">
                     Welcome back, {session.user?.name?.split(" ")[0] ?? "there"}

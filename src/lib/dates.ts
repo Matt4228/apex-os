@@ -35,3 +35,21 @@ export function weekRangeOf(day: string): { start: Date, end: Date } {
     const start = new Date(date.getTime() - date.getUTCDay() * DAY_MS)
     return { start, end: new Date(start.getTime() + 7 * DAY_MS)}
 }
+
+/** Name of the cookie the browser users to tell the server its timezone */
+export const TIMEZONE_COOKIE = "tz"
+
+/** Today's calendar day ("2026-10-10") in an IANA timezone like "America/New_York" */
+export function todayIn(timeZone: string, now: Date = new Date()): string {
+    try {
+        return new Intl.DateTimeFormat("en-CA", {
+            timeZone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        }).format(now)
+    } catch {
+        // Unknown timezone (the cookie is user-controlled): use UTC rather than crash
+        return now.toISOString().slice(0,10)
+    }
+}
