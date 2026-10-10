@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
+import { parseDateOnly } from "@/lib/dates"
 
 const taskSchema = z.object({
   title: z.string().min(1),
@@ -30,7 +31,7 @@ export async function createTask(formData: FormData) {
       userId: session.user.id,
       title: parsed.data.title,
       priority: parsed.data.priority,
-      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      dueDate: parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null,
       goalId: parsed.data.goalId || null,
       status: "todo",
     },
@@ -79,7 +80,7 @@ export async function updateTask(taskId: string, formData: FormData) {
     data: {
       title: parsed.data.title,
       priority: parsed.data.priority,
-      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      dueDate: parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null,
       goalId: parsed.data.goalId || null,
     },
   })
