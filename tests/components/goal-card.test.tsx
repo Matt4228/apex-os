@@ -5,6 +5,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ComponentProps } from "react"
 import { describe, expect, it, vi } from "vitest"
+import { parseDateOnly } from "@/lib/dates"
 
 type Goal = ComponentProps<typeof GoalCard>["goal"]
 
@@ -53,5 +54,16 @@ describe("GoalCard", () => {
 
         expect(screen.getByDisplayValue("200")).toBeInTheDocument()
         expect(screen.getByDisplayValue("problems")).toBeInTheDocument()
+    })
+
+    it("shows and edits the target date as the saved calendar day", async () => {
+        const user = userEvent.setup()
+        renderCard({ ...baseGoal, targetDate: parseDateOnly("2026-12-31") })
+
+        expect(screen.getByText("Due Dec 31, 2026")).toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: "Edit" }))
+        
+        expect(screen.getByDisplayValue("2026-12-31")).toBeInTheDocument()
     })
 })

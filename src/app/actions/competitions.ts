@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
+import { parseDateOnly } from "@/lib/dates"
 
 const competitionSchema = z.object({
     title: z.string().min(1),
@@ -28,8 +29,8 @@ export async function createCompetition(formData: FormData) {
         data: {
             userId: session.user!.id,
             title: parsed.data.title,
-            startDate: new Date(parsed.data.startDate),
-            endDate: new Date(parsed.data.endDate),
+            startDate: parseDateOnly(parsed.data.startDate),
+            endDate: parseDateOnly(parsed.data.endDate),
             rulesJson: parsed.data.rulesJson ||  null,
             status: "active",
         },

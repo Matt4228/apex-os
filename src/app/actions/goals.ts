@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
+import { parseDateOnly } from "@/lib/dates"
 
 const goalSchema = z.object({
     title: z.string().min(1),
@@ -34,7 +35,7 @@ export async function createGoal(formData: FormData) {
             title: parsed.data.title,
             description: parsed.data.description || null,
             category: parsed.data.category || null,
-            targetDate: parsed.data.targetDate ? new Date(parsed.data.targetDate) : null,
+            targetDate: parsed.data.targetDate ? parseDateOnly(parsed.data.targetDate) : null,
             targetValue: parsed.data.targetValue ? parseFloat(parsed.data.targetValue) : null,
             unit: parsed.data.unit || null,
             status: "active",
@@ -108,7 +109,7 @@ export async function updateGoal(goalId: string, formData: FormData) {
             title: String(title),
             description: description ? String(description) : null,
             category: category ? String(category) : null,
-            targetDate: targetDate ? new Date(String(targetDate)) : null,
+            targetDate: targetDate ? parseDateOnly(String(targetDate)) : null,
             targetValue: targetValue ? parseFloat(String(targetValue)) : null,
             unit: unit ? String(unit) : null,
         },

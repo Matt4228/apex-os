@@ -5,6 +5,7 @@ import { deleteGoal, updateGoalStatus, logGoalEntry, updateGoal } from "@/app/ac
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
+import { formatDateOnly, toDateInputValue } from "@/lib/dates"
 import GoalProgressChart from "./GoalProgressChart"
 
 type Entry = {
@@ -108,7 +109,7 @@ export default function GoalCard({
                 <Input name="description" placeholder="Description (optional)" defaultValue={goal.description ?? ""} className="flex-1" />
                 <div className="flex gap-2">
                     <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""} className="flex-1" />
-                    <Input name="targetDate" type="date" defaultValue={goal.targetDate ? format(new Date(goal.targetDate), "yyyy-MM-dd") : ""} className="flex-1" />
+                    <Input name="targetDate" type="date" defaultValue={goal.targetDate ? toDateInputValue(goal.targetDate) : ""} className="flex-1" />
                 </div>
                 <div className="flex gap-2">
                     <Input 
@@ -199,7 +200,7 @@ export default function GoalCard({
             <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3 text-xs text-slate-500">
                     {goal.targetDate && (
-                        <span>Due {format(new Date(goal.targetDate), "MMM d, yyyy")}</span>
+                        <span>Due {formatDateOnly(goal.targetDate, "MMM d, yyyy")}</span>
                     )}
                     {latestEntry && (
                         <span>Last Logged {format(new Date(latestEntry.loggedOn), "MMM d")}</span>
