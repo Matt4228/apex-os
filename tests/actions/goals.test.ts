@@ -48,6 +48,16 @@ describe("createGoal", () => {
             data: expect.objectContaining({ targetValue: 26.2 }),
         })
     })
+
+    it("persists the unit from the form", async () => {
+        mockedAuth.mockResolvedValue({ user: {id: "user-1" } } as never)
+        
+        await createGoal(formDataFrom({ title: "Run more", unit: "km" }))
+
+        expect(prismaMock.goal.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ unit: "km" }),
+        })
+    })
 })
 
 describe("logGoalEntry", () => {
