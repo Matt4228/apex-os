@@ -36,6 +36,7 @@ export async function createGoal(formData: FormData) {
             category: parsed.data.category || null,
             targetDate: parsed.data.targetDate ? new Date(parsed.data.targetDate) : null,
             targetValue: parsed.data.targetValue ? parseFloat(parsed.data.targetValue) : null,
+            unit: parsed.data.unit || null,
             status: "active",
         },
     })

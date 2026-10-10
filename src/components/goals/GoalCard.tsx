@@ -45,7 +45,11 @@ export default function GoalCard({
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const latestEntry = goal.entries[0]
+    const latestEntry = goal.entries.reduce<Entry | undefined>(
+        (latest, entry) => 
+            !latest || new Date(entry.loggedOn) > new Date(latest.loggedOn) ? entry : latest,
+        undefined
+    )
     const progress = goal.targetValue && latestEntry
         ? Math.min((latestEntry.value / goal.targetValue)  * 100, 100)
         : null
@@ -106,6 +110,22 @@ export default function GoalCard({
                     <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""} className="flex-1" />
                     <Input name="targetDate" type="date" defaultValue={goal.targetDate ? format(new Date(goal.targetDate), "yyyy-MM-dd") : ""} className="flex-1" />
                 </div>
+                <div className="flex gap-2">
+                    <Input 
+                        name="targetValue"
+                        type="number"
+                        step="any"
+                        placeholder="Target value (optional)"
+                        defaultValue={goal.targetValue ?? ""}
+                        className="flex-1"
+                    />
+                    <Input 
+                        name="unit"
+                        placeholder="Unit e.g. km, lbs"
+                        defaultValue={goal.unit ?? ""}
+                        className="flex-1"
+                    />
+                </div>
                 {error && <p role="alert" className="text-xs text-danger">{error}</p>}
                 <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving}>
@@ -157,7 +177,7 @@ export default function GoalCard({
                 
             </div>
 
-            {progress !== null && (
+            {progress !== null && latestEntry && (
                 <div className="mb-3">
                     <div className="flex justify-between text-xs text-slate-500 mb-1">
                         <span>
