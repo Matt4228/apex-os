@@ -86,7 +86,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
 
             {inactive.length > 0 && (
                 <div>
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
                         Inactive
                     </p>
                     <div className="space-y-3">

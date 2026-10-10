@@ -30,20 +30,20 @@ export default function RegisterPage() {
 
             <form action={handleSubmit} className="space-y-4">
                 <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Name</label>
-                <Input name="name" placeholder="Matthew" required />
+                <label htmlFor="name" className="text-sm font-medium text-slate-700 block mb-1.5">Name</label>
+                <Input id="name" name="name" autoComplete="name" placeholder="Matthew" required />
                 </div>
                 <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
-                <Input name="email" type="email" placeholder="you@example.com" required />
+                <label htmlFor="email" className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
+                <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
                 </div>
                 <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
-                <Input name="password" type="password" placeholder="Min. 8 characters" required />
+                <label htmlFor="password" className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
+                <Input id="password" name="password" type="password" autoComplete="new-password" placeholder="Min. 8 characters" required />
                 </div>
 
                 {error && (
-                <p className="text-sm text-red-500">{error}</p>
+                <p role="alert" className="text-sm text-danger">{error}</p>
                 )}
 
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
             <p className="text-sm text-slate-500 text-center mt-6">
                 Already have an account?{" "}
-                <Link href="/login" className="text-slate-900 font-medium hover:underline">
+                <Link href="/login" className="text-accent-dark font-medium hover:underline">
                 Sign in
                 </Link>
             </p>

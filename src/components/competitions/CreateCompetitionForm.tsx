@@ -50,7 +50,7 @@ export default function CreateCompetitionForm({
         return (
             <button
                 onClick={() => setOpen(true)}
-                className="w-full border border-dashed slate-300 rounded-lg p-3 text-sm text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors text-left"
+                className="w-full border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors text-left"
             >
                 + Add a competition
             </button>
@@ -58,27 +58,27 @@ export default function CreateCompetitionForm({
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white border-slate-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
             <Input name="title" placeholder="Competition title e.g. Race to Witch Mountain" required autoFocus />
 
             <div className="flex gap-2">
                 <div className="flex-1">
-                    <label className="text-xs text-slate-500 mb-1 block">Start date</label>
-                    <Input name="startDate" type="date" required />
+                    <label htmlFor="startDate" className="text-xs text-slate-500 mb-1 block">Start date</label>
+                    <Input id="startDate" name="startDate" type="date" required />
                 </div>
                 <div className="flex-1">
-                    <label className="text-xs text-slate-500 mb-1 block">End date</label>
-                    <Input name="endDate" type="date" required />
+                    <label htmlFor="endDate" className="text-xs text-slate-500 mb-1 block">End date</label>
+                    <Input id="endDate" name="endDate" type="date" required />
                 </div>
             </div>
 
             <textarea 
                 name="rulesJson"
                 placeholder="Rules (optional) - describe how the competition works"
-                className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 min-h-[80px] resize-none"
+                className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 min-h-[80px] resize-none"
             />
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={loading}>

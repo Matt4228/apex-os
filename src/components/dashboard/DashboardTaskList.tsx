@@ -38,7 +38,7 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
     return (
         <div className="space-y-2">
             {visible.length === 0 ? (
-                <p className="text-sm text-slate-400">No tasks remaining. Nice work.</p>
+                <p className="text-sm text-slate-500">No tasks remaining. Nice work.</p>
             ) : (
                 visible.map(task => {
                     const isDone = task.status === "done"

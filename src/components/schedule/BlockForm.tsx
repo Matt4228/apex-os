@@ -43,7 +43,7 @@ export default function BlockForm({
 }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [color, setColor] = useState(block?.color ?? "#1a1a2e")
+    const [color, setColor] = useState(block?.color ?? "#2E294E")
     const [label, setLabel] = useState(block?.label ?? "")
     const [dayOfWeek, setDayOfWeek] = useState(block?.dayOfWeek ?? day)
     const [startTime, setStartTime] = useState(block?.startTime ?? initialStartTime ?? "09:00")
@@ -130,13 +130,15 @@ export default function BlockForm({
                         key={c}
                         type="button"
                         onClick={() => setColor(c)}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-slate-900 scale 110" : "border-transparent"}`}
+                        aria-label={`Color ${c}`}
+                        aria-pressed={color === c}
+                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-slate-900 scale-110" : "border-transparent"}`}
                         style={{ backgroundColor: c }}
                     />
                 ))}
             </div>
 
-            { error && <p className="text-xs text-red-500">{error}</p> }
+            { error && <p role="alert" className="text-xs text-danger">{error}</p> }
             
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={loading}>

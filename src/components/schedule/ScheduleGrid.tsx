@@ -44,6 +44,23 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         scrollRef.current?.scrollTo({ top: SCROLL_TO_HOUR * 60 * PX_PER_MINUTE })
     }, [])
 
+    
+    function closeDialog() {
+        setEditingBlock(null)
+        setCreateDraft(null)
+    }
+
+    const dialogOpen = editingBlock !== null || createDraft !== null
+
+    useEffect(() => {
+        if (!dialogOpen) return
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") closeDialog()
+        }
+        window.addEventListener("keydown", onKeyDown)
+        return () => window.removeEventListener("keydown", onKeyDown)
+    }, [dialogOpen])
+
     function handleDelete(id: string) {
         setBlocks(current => current.filter(b => b.id !== id))
         deleteScheduleBlock(id)
@@ -118,8 +135,13 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         <div>
             {(editingBlock || createDraft) && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-sm">
-                        <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                    <div 
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="block-dialog-title"
+                        className="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-sm"
+                    >
+                        <h3 id="block-dialog-title" className="text-sm font-semibold text-slate-900 mb-3">
                             {editingBlock ? "Edit Block" : "New Block"}
                         </h3>
                         <BlockForm 
@@ -129,10 +151,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                             initialEndTime={createDraft?.endTime}
                             onCreated={handleCreated}
                             onUpdated={handleUpdated}
-                            onCancel={() => {
-                                setEditingBlock(null)
-                                setCreateDraft(null)
-                            }}
+                            onCancel={closeDialog}
                         />
                     </div>
                 </div>

@@ -106,7 +106,7 @@ export default function GoalCard({
                     <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""} className="flex-1" />
                     <Input name="targetDate" type="date" defaultValue={goal.targetDate ? format(new Date(goal.targetDate), "yyyy-MM-dd") : ""} className="flex-1" />
                 </div>
-                {error && <p className="text-xs text-red-500">{error}</p>}
+                {error && <p role="alert" className="text-xs text-danger">{error}</p>}
                 <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving}>
                         {saving ? "Saving..." : "Save"}
@@ -134,21 +134,22 @@ export default function GoalCard({
                         )}
                     </div>
                     {goal.description && (
-                        <p className="text-xs text-slate-400 mt-1">{goal.description}</p>
+                        <p className="text-xs text-slate-500 mt-1">{goal.description}</p>
                     )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     {!isComplete && (
                         <button 
                             onClick={() => setEditing(true)}
-                            className="text-xs text-slate-400 hover:text-accent transition-colors leading-none"
+                            className="text-xs text-slate-500 hover:text-accent transition-colors leading-none"
                         >
                             Edit
                         </button>
                     )}
                     <button
                         onClick={() => onDelete(goal.id)}
-                        className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+                        className="text-slate-500 hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+                        aria-label={`Delete ${goal.title}`}
                     >
                         ×
                     </button>
@@ -158,7 +159,7 @@ export default function GoalCard({
 
             {progress !== null && (
                 <div className="mb-3">
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <div className="flex justify-between text-xs text-slate-500 mb-1">
                         <span>
                             {latestEntry.value} {goal.unit ?? ""}
                         </span>
@@ -176,7 +177,7 @@ export default function GoalCard({
             )}
 
             <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3 text-xs text-slate-400">
+                <div className="flex items-center gap-3 text-xs text-slate-500">
                     {goal.targetDate && (
                         <span>Due {format(new Date(goal.targetDate), "MMM d, yyyy")}</span>
                     )}
@@ -225,7 +226,7 @@ export default function GoalCard({
                     </Button>
                 </form>
             )}
-            {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+            {error && <p role="alert" className="text-xs text-danger mt-2">{error}</p>}
 
             {goal.entries.length > 0 && (
                 <GoalProgressChart 

@@ -108,7 +108,7 @@ export default function TaskCard({
                         {task.priority}
                     </span>
                     {task.dueDate && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500">
                             Due {format(new Date(task.dueDate), "MMM d")}
                         </span>
                     )}
@@ -119,7 +119,7 @@ export default function TaskCard({
                 {!isDone && (
                     <button 
                         onClick={() => setEditing(true)}
-                        className="text-xs text-slate-400 hover:text-accent transition-colors leading-none"
+                        className="text-xs text-slate-500 hover:text-accent transition-colors leading-none"
                     >
                         Edit
                     </button>
@@ -127,7 +127,8 @@ export default function TaskCard({
                 <button
                     onClick={() => onDelete(task.id)}
                     disabled={isPending}
-                    className="text-slate-300 hover:text-danger transition-colors text-lg leading-none"
+                    className="text-slate-500 hover:text-danger transition-colors text-lg leading-none"
+                    aria-label={`Delete ${task.title}`}
                 >
                     ×
                 </button>

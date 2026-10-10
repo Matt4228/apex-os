@@ -48,7 +48,7 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
         return (
             <button
                 onClick={() => setOpen(true)}
-                className="w-full border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-400 hover:border-slate-400 hover:text-slate-500 transition-colors text-left"
+                className="w-full border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors text-left"
             >
                 + Add a goal
             </button>
@@ -70,7 +70,7 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
                 <Input name="targetDate" type="date" className="flex-1" />
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={loading}>
