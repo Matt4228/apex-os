@@ -68,13 +68,14 @@ export default function HabitCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             {completedThisWeek} / {habit.targetPerWeek} this week
           </p>
         </div>
         <button
           onClick={() => onDelete(habit.id)}
-          className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+          className="text-slate-500 hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+          aria-label={`Delete ${habit.title}`}
         >
           ×
         </button>
@@ -95,7 +96,7 @@ export default function HabitCard({
               disabled={isFuture || isLoadingDay}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${
                 isFuture
-                  ? "border-slate-100 text-slate-300 cursor-not-allowed"
+                  ? "border-slate-100 text-slate-500 cursor-not-allowed"
                   : isLogged
                   ? "bg-accent border-accent text-white"
                   : isToday

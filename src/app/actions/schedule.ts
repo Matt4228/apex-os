@@ -46,7 +46,7 @@ export async function createScheduleBlock(formData: FormData) {
             endTime: parsed.data.endTime,
             label: parsed.data.label,
             category: parsed.data.category || null,
-            color: parsed.data.color || "#1a1a2e",
+            color: parsed.data.color || "#2E294E",
             sortOrder: (lastBlock?.sortOrder ?? -1) + 1,
         },
     })
@@ -86,7 +86,7 @@ export async function updateScheduleBlock(blockId: string, formData: FormData) {
             endTime: parsed.data.endTime,
             label: parsed.data.label,
             category: parsed.data.category || null,
-            color: parsed.data.color || "#1a1a2e",
+            color: parsed.data.color || "#2E294E",
         },
     })
 

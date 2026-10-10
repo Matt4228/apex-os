@@ -24,22 +24,3 @@
   }
 }
 
-@layer components {
-  .badge-high {
-    @apply text-xs font-medium px-2 py-0.5 rounded-full;
-    background-color: color-mix(in srgb, #D7263D 15%, transparent);
-    color: #D7263D;
-  }
-
-  .badge-medium {
-    @apply text-xs font-medium px-2 py-0.5 rounded-full;
-    background-color: color-mix(in srgb, #F46036 15%, transparent);
-    color: #F46046;
-  }
-
-  .badge-low {
-    @apply text-xs font-medium px-2 py-0.5 rounded-full;
-    background-color: color-mix(in srgb, #C5D86D 15%, transparent);
-    color: #F46036;
-  }
-}

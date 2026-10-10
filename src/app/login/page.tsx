@@ -63,16 +63,16 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
-            <Input name="email" type="email" placeholder="you@example.com" required />
+            <label htmlFor="email" className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
+            <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
-            <Input name="password" type="password" placeholder="Your password" required />
+            <label htmlFor="password" className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
+            <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Your password" required />
           </div>
 
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <p role="alert" className="text-sm text-danger">{error}</p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -85,7 +85,7 @@ export default function LoginPage() {
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-2 text-slate-400">or</span>
+            <span className="bg-white px-2 text-slate-500">or</span>
           </div>
         </div>
 
@@ -99,13 +99,13 @@ export default function LoginPage() {
           {demoLoading ? "Loading demo..." : "Try the demo"}
         </Button>
 
-        <p className="text-xs text-slate-400 text-center mt-3">
+        <p className="text-xs text-slate-500 text-center mt-3">
           Demo account resets nightly. Data may be modified by other visitors.
         </p>
 
         <p className="text-sm text-slate-500 text-center mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent font-medium hover:underline">
+          <Link href="/register" className="text-accent-dark font-medium hover:underline">
             Create one
           </Link>
         </p>

@@ -78,21 +78,22 @@ export default function CompetitionCard({
             <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
                     <h3 className="text-sm font-medium text-slate-900">{competition.title}</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                         {format(new Date(competition.startDate), "MMM d")} - {format(new Date(competition.endDate), "MMM d, yyyy")}
                         {isActive && ` · Week ${currentWeek} of ${totalWeeks}`}
                     </p>
                 </div>
                 <button
                     onClick={() => onDelete(competition.id)}
-                    className="text-slate-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0"
+                    className="text-slate-500 hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+                    aria-label={`Delete ${competition.title}`}
                 >
                     ×
                 </button>
             </div>
 
             <div className="mb-4">
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
                     <span>{completedWeeks} weeks complete</span>
                     <span>{totalWeeks} total</span>
                 </div>
@@ -167,7 +168,7 @@ export default function CompetitionCard({
                             Week complete
                         </label>
                     </div>
-                    {error && <p className="text-xs text-red-500">{error}</p>}
+                    {error && <p role="alert" className="text-xs text-danger">{error}</p>}
                     <Button type="submit" size="sm" disabled={logging}>
                         {logging ? "Saving..." : "Save entry"}
                     </Button>

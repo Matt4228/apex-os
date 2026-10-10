@@ -30,6 +30,7 @@ export default function Navbar({ userName }: { userName?: string | null }) {
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
                   pathname === link.href
                     ? "bg-white/20 text-white font-medium"
@@ -55,6 +56,8 @@ export default function Navbar({ userName }: { userName?: string | null }) {
             onClick={() => setMenuOpen(v => !v)}
             className="md:hidden text-white/80 hover:text-white p-1"
             aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
           >
             {menuOpen ? (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -73,12 +76,13 @@ export default function Navbar({ userName }: { userName?: string | null }) {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-1">
+        <div id="mobile-menu" className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-1">
           {links.map(link => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
+              aria-current={pathname === link.href ? "page" : undefined}
               className={`px-3 py-2 rounded-md text-sm transition-colors ${
                 pathname === link.href
                   ? "bg-white/20 text-white font-medium"

@@ -95,7 +95,7 @@ export default function TimeBlock({
                 height: previewHeight,
                 left: `${leftPct}%`,
                 width: `calc(${widthPct}% - 4px)`,
-                backgroundColor: block.color ?? "#1a1a2e",
+                backgroundColor: block.color ?? "#2E294E",
                 transform: CSS.Translate.toString(transform),
                 opacity: isDragging ? 0.6 : 1,
                 zIndex: isDragging || resizing ? 20 : 1,
@@ -111,7 +111,8 @@ export default function TimeBlock({
                     e.stopPropagation()
                     onDelete(block.id)
                 }}
-                className="absolute top-0.5 right-1 text-white/60 hover:text-white opactiy-0 group-hover:opacity-100 transition-opacity text-sm leading-none"
+                className="absolute top-0.5 right-1 text-white/60 hover:text-white opacity-0 focus-visible:opacity-100 group-hover:opacity-100 transition-opacity text-sm leading-none"
+                aria-label={`Delete ${block.label}`}
             >
                 ×
             </button>

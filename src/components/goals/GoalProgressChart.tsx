@@ -30,7 +30,7 @@ export default function GoalProgressChart({
 }) {
     if (entries.length === 0) {
         return (
-            <p className="text-xs text-slate-400 py-4 text-center">
+            <p className="text-xs text-slate-500 py-4 text-center">
                 No entries logged yet. Log your first progress entry to see the chart.
             </p>
         )

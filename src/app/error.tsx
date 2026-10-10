@@ -21,8 +21,8 @@ export default function Error({
                 <p className="text-sm text-slate-500 mb-6">
                     An unexpected error occurred. Try again or refresh page.
                 </p>
+                <Button onClick={reset}>Try again</Button>
             </div>
-            <Button onClick={reset}>Try again</Button>
         </div>
     )
 }

@@ -86,19 +86,19 @@ export default async function DashboardPage() {
             {/* Stats row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-400 mb-1">Tasks remaining</p>
+                    <p className="text-xs text-slate-500 mb-1">Tasks remaining</p>
                     <p className="text-2xl font-semibold text-slate-900">{todoCount}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-400 mb-1">Active goals</p>
+                    <p className="text-xs text-slate-500 mb-1">Active goals</p>
                     <p className="text-2xl font-semibold text-slate-900">{goals.length}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-400 mb-1">Habit completion</p>
-                    <p className="text-2xl font-semibold text-slate-900">{habitCompletionRate}</p>
+                    <p className="text-xs text-slate-500 mb-1">Habit completion</p>
+                    <p className="text-2xl font-semibold text-slate-900">{habitCompletionRate}%</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-400 mb-1">Active competitions</p>
+                    <p className="text-xs text-slate-500 mb-1">Active competitions</p>
                     <p className="text-2xl font-semibold text-slate-900">{competitions.length}</p>
                 </div>
             </div>
@@ -109,24 +109,24 @@ export default async function DashboardPage() {
                 <div className="bg-white border border-slate-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-slate-900">Today&apos;s Schedule</h3>
-                        <Link href="/dashboard/schedule" className="text-xs text-slate-400 hover:text-slate-700">
+                        <Link href="/dashboard/schedule" className="text-xs text-slate-500 hover:text-slate-700">
                             Edit →
                         </Link>
                     </div>
                     {scheduleBlocks.length === 0 ? (
-                        <p className="text-sm text-slate-400">No blocks scheduled for today.</p>
+                        <p className="text-sm text-slate-500">No blocks scheduled for today.</p>
                     ) : (
                         <div className="space-y-2">
                             {scheduleBlocks.map(block => (
                                 <div key={block.id} className="flex items-center gap-3">
                                     <div
                                         className="w-2 h-2 rounded-full flex-shrink-0"
-                                        style={{ backgroundColor: block.color ?? "#1a1a2e" }}
+                                        style={{ backgroundColor: block.color ?? "#2E294E" }}
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-slate-900 truncate">{block.label}</p>
                                     </div>
-                                    <p className="text-xs text-slate-400 flex-shrink-0">
+                                    <p className="text-xs text-slate-500 flex-shrink-0">
                                         {block.startTime}
                                     </p>
                                 </div>
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
                 <div className="bg-white border border-slate-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-slate-900">Tasks</h3>
-                        <Link href="/dashboard/tasks" className="text-xs text-slate-400 hover:text-slate-700">
+                        <Link href="/dashboard/tasks" className="text-xs text-slate-500 hover:text-slate-700">
                         View all →
                         </Link>
                     </div>
@@ -151,12 +151,12 @@ export default async function DashboardPage() {
                 <div className="bg-white border border-slate-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-slate-900">Habits this week</h3>
-                        <Link href="/dashboard/habits" className="text-xs text-slate-400 hover:text-slate-700">
+                        <Link href="/dashboard/habits" className="text-xs text-slate-500 hover:text-slate-700">
                             View all →
                         </Link>
                     </div>
                     {habits.length === 0 ? (
-                        <p className="text-sm text-slate-400">No habits tracked yet.</p>
+                        <p className="text-sm text-slate-500">No habits tracked yet.</p>
                     ) : (
                         <div className="space-y-3">
                             {habits.map(habit => {
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
                                     <div key={habit.id}>
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="text-slate-700 font-medium truncate">{habit.title}</span>
-                                            <span className="text-slate-400 flex-shrink-0 ml-2">{completed}/{habit.targetPerWeek}</span>
+                                            <span className="text-slate-500 flex-shrink-0 ml-2">{completed}/{habit.targetPerWeek}</span>
                                         </div>
                                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                             <div
@@ -185,12 +185,12 @@ export default async function DashboardPage() {
                 <div className="bg-white border border-slate-200 rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold text-slate-900">Active goals</h3>
-                        <Link href="/dashboard/goals" className="text-xs text-slate-400 hover:text-slate-700">
+                        <Link href="/dashboard/goals" className="text-xs text-slate-500 hover:text-slate-700">
                             View all →
                         </Link>
                     </div>
                     {goals.length === 0 ? (
-                        <p className="text-sm text-slate-400">No active goals.</p>
+                        <p className="text-sm text-slate-500">No active goals.</p>
                     ) : (
                         <div className="space-y-3">
                             {goals.map(goal => {
@@ -203,7 +203,7 @@ export default async function DashboardPage() {
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="text-slate-700 font-medium truncate">{goal.title}</span>
                                             {pct !== null && (
-                                                <span className="text-slate-400 flex-shrink-0 ml-2">{Math.round(pct)}%</span>
+                                                <span className="text-slate-500 flex-shrink-0 ml-2">{Math.round(pct)}%</span>
                                             )}
                                         </div>
                                         {pct !== null && (
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
                                             </div>
                                         )}
                                         {pct === null && (
-                                            <p className="text-xs text-slate-400">No progress logged yet</p>
+                                            <p className="text-xs text-slate-500">No progress logged yet</p>
                                         )}
                                     </div>
                                 )
@@ -229,7 +229,7 @@ export default async function DashboardPage() {
                     <div className="bg-white border border-slate-200 rounded-lg p-5 md:col-span-2">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold text-slate-900">Active competitions</h3>
-                            <Link href="/dashboard/competitions" className="text-xs text-slate-400 hover:text-slate-700">
+                            <Link href="/dashboard/competitions" className="text-xs text-slate-500 hover:text-slate-700">
                                 View all →
                             </Link>
                         </div>
@@ -239,7 +239,7 @@ export default async function DashboardPage() {
                                 return (
                                     <div key={competition.id} className="border border-slate-100 rounded-lg p-3">
                                         <p className="text-sm font-medium text-slate-900 mb-1">{competition.title}</p>
-                                        <p className="text-xs text-slate-400">{completedWeeks} weeks complete</p>
+                                        <p className="text-xs text-slate-500">{completedWeeks} weeks complete</p>
                                     </div>
                                 )
                             })}
