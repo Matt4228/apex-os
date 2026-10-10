@@ -12,22 +12,26 @@ async function main() {
   console.log("Seeding demo user...")
 
   // Clean up existing demo user
-  await prisma.user.deleteMany({ where: { email: "demo@apex-os.app" } })
 
   const hashedPassword = await bcrypt.hash("superP@ssword", 12)
-
-  const user = await prisma.user.create({
-    data: {
-      email: "demo@apex-os.app",
-      name: "Demo User",
-      password: hashedPassword,
-    },
-  })
-
-  console.log("Created user:", user.email)
-
   const now = new Date()
   const fourMonthsAgo = subMonths(now, 4)
+
+  const user = await prisma.user.upsert({
+    where: { email: "demo@apex-os.app" },
+    update: { name: "Demo User", password: hashedPassword },
+    create: { email: "demo@apex-os.app", name: "Demo User", password: hashedPassword },
+  })
+
+  await prisma.$transaction([
+    prisma.task.deleteMany({ where: { userId: user.id } }),
+    prisma.goal.deleteMany({ where: { userId: user.id } }),
+    prisma.habit.deleteMany({ where: { userId: user.id } }),
+    prisma.competition.deleteMany({ where: { userId: user.id } }),
+    prisma.scheduleBlock.deleteMany({ where: { userId: user.id } }),
+  ])
+
+  
 
   // ── SCHEDULE BLOCKS ────────────────────────────────────────────────────────
   const scheduleData = [
