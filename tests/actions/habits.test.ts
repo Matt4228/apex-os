@@ -78,4 +78,25 @@ describe("toggleHabitLog", () => {
         expect(result).toEqual({ action: "removed", date: "2026-09-02"})
         expect(prismaMock.habitLog.delete).toHaveBeenCalledWith({ where: { id: "log-1" } })
     })
+
+    it("stores the check-in as the calendar day, whatever the server's timezone", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
+        prismaMock.habitLog.findFirst.mockResolvedValue(null)
+
+        await toggleHabitLog("habit-1", "2026-09-02")
+
+        expect(prismaMock.habitLog.findFirst).toHaveBeenCalledWith({
+            where: {
+                habitId: "habit-1",
+                completedOn: {
+                    gte: new Date("2026-09-02T00:00:00Z"),
+                    lt: new Date("2026-09-03T00:00:00Z"),
+                },
+            },
+        })
+        expect(prismaMock.habitLog.create).toHaveBeenCalledWith({
+            data: { habitId: "habit-1", completedOn: new Date("2026-09-02T00:00:00Z") },
+        })
+    })
 })

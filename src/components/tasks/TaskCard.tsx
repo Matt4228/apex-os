@@ -1,6 +1,6 @@
 "use client"
 
-import { format } from "date-fns"
+import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
 import { useState } from "react"
 import { updateTaskStatus, deleteTask, updateTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,7 @@ export default function TaskCard({
             onUpdate(task.id, {
                 title: String(formData.get("title")),
                 priority: String(formData.get("priority")),
-                dueDate: formData.get("dueDate") ? new Date(String(formData.get("dueDate"))) : null,
+                dueDate: formData.get("dueDate") ? parseDateOnly(String(formData.get("dueDate"))) : null,
             })
             setEditing(false)
         }
@@ -71,7 +71,7 @@ export default function TaskCard({
                     <Input 
                         name="dueDate"
                         type="date"
-                        defaultValue={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
+                        defaultValue={task.dueDate ? toDateInputValue(task.dueDate) : ""}
                         className="flex-1"
                     />
                 </div>
@@ -109,7 +109,7 @@ export default function TaskCard({
                     </span>
                     {task.dueDate && (
                         <span className="text-xs text-slate-500">
-                            Due {format(new Date(task.dueDate), "MMM d")}
+                            Due {formatDateOnly(task.dueDate, "MMM d")}
                         </span>
                     )}
                 </div>

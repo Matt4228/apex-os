@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import HabitList from "@/components/habits/HabitList"
-import { startOfWeek, endOfWeek } from "date-fns"
+import { format } from "date-fns"
+import { weekRangeOf } from "@/lib/dates"
 
 export const dynamic = "force-dynamic"
 
@@ -10,8 +11,7 @@ export default async function HabitsPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
     
-    const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 })
-    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 })
+    const { start: weekStart, end: weekEnd } = weekRangeOf(format(new Date(), "yyyy-MM-dd"))
 
     const habits = await prisma.habit.findMany({
         where: { userId: session.user.id },
@@ -21,7 +21,7 @@ export default async function HabitsPage() {
                 where: {
                     completedOn: {
                         gte: weekStart,
-                        lte: weekEnd,
+                        lt: weekEnd,
                     },
                 },
             },

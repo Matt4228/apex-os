@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
+import { dayRangeOf } from "@/lib/dates"
 
 const habitSchema = z.object({
   title: z.string().min(1),
@@ -56,18 +57,12 @@ export async function toggleHabitLog(habitId: string, date: string) {
   })
   if (!habit) return { error: "Not found" }
 
-  const [year, month, day] = date.split("-").map(Number)
-  const targetDate = new Date(year, month - 1, day)
-  const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
-  const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+  const { start, end } = dayRangeOf(date)
 
   const existing = await prisma.habitLog.findFirst({
     where: {
       habitId,
-      completedOn: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
+      completedOn: { gte: start, lt: end},
     },
   })
 
@@ -78,7 +73,7 @@ export async function toggleHabitLog(habitId: string, date: string) {
     const log = await prisma.habitLog.create({
       data: {
         habitId,
-        completedOn: targetDate,
+        completedOn: start,
       },
     })
     return { action: "added", date, log }

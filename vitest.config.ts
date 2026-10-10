@@ -11,6 +11,7 @@ export default defineConfig({
     },
     test: {
         environment: "node",
+        env: { TZ: "America/New_York" },
         setupFiles: ["./tests/setup.ts"],
         include: ["tests/**/*.test.{ts,tsx}"],
         coverage: {

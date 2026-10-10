@@ -4,7 +4,7 @@ import { useState } from "react"
 import { deleteHabit } from "@/app/actions/habits"
 import HabitCard from "./HabitCard"
 import CreateHabitForm from "./CreateHabitForm"
-import { format } from "date-fns"
+import { parseDateOnly, toDateInputValue } from "@/lib/dates"
 
 type HabitLog = {
     id: string
@@ -40,25 +40,16 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                 if (action === "removed") {
                     return {
                         ...h,
-                        logs: h.logs.filter(l => {
-                            const logDate = new Date(l.completedOn)
-                            const [year, month, day] = date.split("-").map(Number)
-                            return !(
-                                logDate.getFullYear() === year &&
-                                logDate.getMonth() === month - 1 &&
-                                logDate.getDate() === day
-                            )
-                        }),
+                        logs: h.logs.filter(l => toDateInputValue(l.completedOn) !== date),
                     }
                 } else {
-                    const [year, month, day] = date.split("-").map(Number)
                     return {
                         ...h,
                         logs: [
                             ...h.logs,
                             { 
                                 id: crypto.randomUUID(),
-                                completedOn: new Date(year, month - 1, day), 
+                                completedOn: parseDateOnly(date), 
                             },
                         ],
                     }

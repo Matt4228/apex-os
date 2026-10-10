@@ -4,7 +4,8 @@ import { useState } from "react"
 import { deleteCompetition, updateCompetitionStatus, logCompetitionEntry } from "@/app/actions/competitions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { format, differenceInWeeks } from "date-fns"
+import { differenceInWeeks } from "date-fns"
+import { formatDateOnly } from "@/lib/dates"
 
 type Entry = {
     id: string
@@ -79,7 +80,7 @@ export default function CompetitionCard({
                 <div>
                     <h3 className="text-sm font-medium text-slate-900">{competition.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                        {format(new Date(competition.startDate), "MMM d")} - {format(new Date(competition.endDate), "MMM d, yyyy")}
+                        {formatDateOnly(competition.startDate, "MMM d")} - {formatDateOnly(competition.endDate, "MMM d, yyyy")}
                         {isActive && ` · Week ${currentWeek} of ${totalWeeks}`}
                     </p>
                 </div>
