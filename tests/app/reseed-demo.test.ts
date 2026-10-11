@@ -25,4 +25,16 @@ describe("reseed-demo cron", () => {
             expect.objectContaining({ where: { email: "demo@apex-os.app" } })
         )
     })
+
+    it("refuses every request when CRON_SECRET isn't set", async () => {
+        delete process.env.CRON_SECRET
+        const request = new NextRequest("http://localhost/api/cron/reseed-demo", {
+            headers: { authorization: "Bearer undefined" },
+        })
+
+        const response = await GET(request)
+
+        expect(response.status).toBe(401)
+        expect(prismaMock.user.upsert).not.toHaveBeenCalled()
+    })
 })
