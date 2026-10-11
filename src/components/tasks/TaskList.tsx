@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { updateTaskStatus, deleteTask } from "@/app/actions/tasks"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
 import TaskCard from "./TaskCard"
 import CreateTaskForm from "./CreateTaskForm"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { UndoToast } from "../ui/undo-toast"
 
 type Task = {
   id: string
@@ -19,6 +21,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteTask, setError)
 
   async function handleToggle(id: string, newStatus: string) {
     const oldStatus = tasks.find(t => t.id === id)?.status
@@ -32,17 +35,11 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     }
   }
 
-  async function handleDelete(id: string) {
-    const index = tasks.findIndex(t => t.id === id)
-    const task = tasks[index]
+  function handleDelete(id: string) {
+    const task = tasks.find(t => t.id === id)
     if (!task) return
     setError(null)
-    setTasks(current => current.filter(t => t.id !== id))
-
-    if (!(await succeeded(deleteTask(id)))) {
-      setTasks(current => restoreAt(current, task, index))
-      setError(`Couldn't delete "${task.title}". Check your connection and try again.`)
-    }
+    requestDelete(id, task.title)
   }
 
   function handleUpdate(id: string, updated: Partial<Task>) {
@@ -55,8 +52,9 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
     setTasks(current => [task, ...current])
   }
 
-  const todo = tasks.filter(t => t.status === "todo")
-  const done = tasks.filter(t => t.status === "done")
+  const visibleTasks = tasks.filter(t => !isHidden(t.id))
+  const todo = visibleTasks.filter(t => t.status === "todo")
+  const done = visibleTasks.filter(t => t.status === "done")
 
   return (
     <div>
@@ -94,6 +92,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
           </div>
         </div>
       )}
+      {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
     </div>
   )
 }

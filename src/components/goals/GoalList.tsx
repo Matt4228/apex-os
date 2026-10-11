@@ -4,7 +4,9 @@ import { useState } from "react"
 import { deleteGoal, updateGoalStatus } from "@/app/actions/goals"
 import GoalCard from "./GoalCard"
 import CreateGoalForm from "./CreateGoalForm"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { UndoToast } from "@/components/ui/undo-toast"
 
 type Entry = {
     id: string
@@ -28,22 +30,17 @@ type Goal = {
 export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
     const [goals, setGoals] = useState<Goal[]>(initialGoals)
     const [error, setError] = useState<string | null>(null)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteGoal, setError)
 
     function handleCreate(goal: Goal) {
         setGoals(current => [goal, ...current])
     }
    
-    async function handleDelete(id: string) {
-        const index = goals.findIndex(g => g.id === id)
-        const goal = goals[index]
-        if (!goal) return
-        setError(null)
-        setGoals(current => current.filter(g => g.id !== id))
-
-        if (!(await succeeded(deleteGoal(id)))) {
-            setGoals(current => restoreAt(current, goal, index))
-            setError(`Couldn't delete "${goal.title}". Check your connection and try again.`)
-        }
+    function handleDelete(id: string) {
+      const goal = goals.find(g => g.id === id)
+      if (!goal) return
+      setError(null)
+      requestDelete(id, goal.title)
     }
 
     async function handleStatusChange(id: string, status: string) {
@@ -74,8 +71,9 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
         )
     }
 
-    const active = goals.filter(g => g.status === "active")
-    const complete = goals.filter(g => g.status === "complete")
+    const visibleGoals = goals.filter(g => !isHidden(g.id))
+    const active = visibleGoals.filter(g => g.status === "active")
+    const complete = visibleGoals.filter(g => g.status === "complete")
 
     return (
         <div>
@@ -113,6 +111,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
                     </div>
                 </div>
             )}
+            {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>
     )
 }

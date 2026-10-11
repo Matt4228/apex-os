@@ -5,7 +5,9 @@ import { deleteHabit } from "@/app/actions/habits"
 import HabitCard from "./HabitCard"
 import CreateHabitForm from "./CreateHabitForm"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { UndoToast } from "@/components/ui/undo-toast"
 
 type HabitLog = {
     id: string
@@ -25,22 +27,17 @@ type Habit ={
 export default function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
     const [habits, setHabits] = useState<Habit[]>(initialHabits)
     const [error, setError] = useState<string | null>(null)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteHabit, setError)
 
     function handleCreate(habit: Habit) {
         setHabits(current => [habit, ...current])
     }
 
-    async function handleDelete(id: string) {
-        const index = habits.findIndex(h => h.id === id)
-        const habit = habits[index]
-        if (!habit) return
-        setError(null)
-        setHabits(current => current.filter(h => h.id !== id))
-
-        if (!(await succeeded(deleteHabit(id)))) {
-            setHabits(current => restoreAt(current, habit, index))
-            setError(`Couldn't delete "${habit.title}". Check your connection and try again.`)
-        }
+    function handleDelete(id: string) {
+      const habit = habits.find(h => h.id === id)
+      if (!habit) return
+      setError(null)
+      requestDelete(id, habit.title)
     }
 
     function handleLogToggle(habitId: string, date: string, action: "added" | "removed") {
@@ -68,8 +65,9 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
         )
     }
 
-    const active = habits.filter(h => h.isActive)
-    const inactive = habits.filter(h => !h.isActive)
+    const visibleHabits = habits.filter(h => !isHidden(h.id))
+    const active = visibleHabits.filter(h => h.isActive)
+    const inactive = visibleHabits.filter(h => !h.isActive)
 
     return (
         <div>
@@ -103,6 +101,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                     </div>
                 </div>
             )}
+            {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>
     )
 }
