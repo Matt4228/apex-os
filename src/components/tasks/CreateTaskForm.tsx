@@ -11,17 +11,20 @@ export default function CreateTaskForm({
   onCreated,
   goalId,
   goals,
+  planToday,
 }: {
   onCreated: (task: Task) => void
   /** Creates the task as a step of this goal */
   goalId?: string
   /** Goals to offer in a picker; leave out to hide it */
   goals?: GoalOption[]
+  /** Plans the new task for today */
+  planToday?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const noun = goalId ? "step" : "task"
+  const noun = goalId ? "step" : planToday ? "task for today" : "task"
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -59,6 +62,7 @@ export default function CreateTaskForm({
   return (
     <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-lg p-4 space-y-3">
       {goalId && <input type="hidden" name="goalId" value={goalId} />}
+      {planToday && <input type="hidden" name="plannedFor" value="today" />}
       <Input
         name="title"
         placeholder={goalId ? "Step title" : "Task title"}

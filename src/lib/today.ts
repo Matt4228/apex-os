@@ -1,7 +1,7 @@
 // src/lib/today.ts
 import { sortTasksByPriority } from "./dashboardStats"
-import { toDateInputValue } from "./dates"
-import { goalProgress, type Step } from "./goalProgress"
+import { formatDateOnly, parseDateOnly, toDateInputValue } from "./dates"
+import { sortSteps, type Step } from "./goalProgress"
 
 export type TodayTask = Step & { priority: string; plannedFor: Date | null }
 
@@ -48,13 +48,26 @@ export function buildToday<T extends TodayTask>({
     )
     urgent.forEach(t => shown.add(t.id))
 
+    // Each goal suggests its first open step that isn't already on the page,
+    // so planning a goal's next step brings up the one after it
     const goalSteps = goals
         .filter(g => g.status === "active")
         .flatMap(g => {
-            const progress = goalProgress(g)
-            const step = progress.kind === "steps" ? progress.nextStep : null
-            return step && !shown.has(step.id) ? [{ goal: { id: g.id, title: g.title }, step }] : []
+            const step = sortSteps(g.tasks).find(t => isOpen(t) && !shown.has(t.id))
+            return step ? [{ goal: { id: g.id, title: g.title }, step }] : []
         })
 
     return { plan, unfinished, urgent, goalSteps }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** How a due date reads on the today page: "due today", "due tomorrow", "2 days overdue", "due Oct 20" */
+export function dueLabel(dueDate: Date, today: string): string {
+    const days = Math.round((parseDateOnly(toDateInputValue(dueDate)).getTime() - parseDateOnly(today).getTime()) / DAY_MS)
+    if (days === 0) return "due today"
+    if (days === 1) return "due tomorrow"
+    if (days === -1) return "1 day overdue"
+    if (days < 0) return `${-days} days overdue`
+    return `due ${formatDateOnly(dueDate, "MMM d")}`
 }
