@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import TaskList from "@/components/tasks/TaskList"
-import { countTaskStatuses } from "@/lib/dashboardStats"
+import { countTaskStatuses, sortTasksByPriority } from "@/lib/dashboardStats"
 
 export const dynamic = "force-dynamic"
 
@@ -10,13 +10,11 @@ export default async function TasksPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const tasks = await prisma.task.findMany({
-        where: { userId: session.user.id },
-        orderBy: [
-            { priority: "desc"},
-            { createdAt: "desc" },
-        ],
-    })
+    const tasks = sortTasksByPriority(
+        await prisma.task.findMany({
+            where: { userId: session.user.id }
+        })
+    )
 
     const {todoCount, doneCount} = countTaskStatuses(tasks)
 

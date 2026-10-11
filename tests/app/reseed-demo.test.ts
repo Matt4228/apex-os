@@ -2,7 +2,7 @@
 import { GET } from "@/app/api/cron/reseed-demo/route"
 import { NextRequest } from "next/server"
 import { beforeEach, describe, expect, it} from "vitest"
-import { prismaMock } from "../../../mocks/prismaMock"
+import { prismaMock } from "../mocks/prismaMock"
 
 function cronRequest() {
     return new NextRequest("http://localhost/api/cron/reseed-demo", {
