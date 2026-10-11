@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import Navbar from "@/components/layout/Navbar"
+import Sidebar from "@/components/layout/Sidebar"
 import TimezoneCookie from "@/components/layout/TimezoneCookie"
 import { cookies } from "next/headers"
 import { THEME_COOKIE, parseTheme } from "@/lib/theme"
@@ -16,10 +16,10 @@ export default async function DashboardLayout({
     const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value)
 
     return (
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-screen bg-canvas md:flex">
             <TimezoneCookie />
-            <Navbar userName={session.user?.name ?? session.user?.email} theme={theme} />
-            {children}
+            <Sidebar userName={session.user?.name ?? session.user?.email} theme={theme} />
+            <div className="flex-1 min-w-0">{children}</div>
         </div>
     )
 }

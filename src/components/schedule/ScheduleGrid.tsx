@@ -178,7 +178,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                         onClick={() => setActiveDate(day)}
                         className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                             activeDay === day
-                                ? "bg-primary text-white"
+                                ? "bg-primary-ink text-canvas"
                                 : "bg-sunken text-ink-soft hover:bg-sunken-strong"
                         }`}
                     >
