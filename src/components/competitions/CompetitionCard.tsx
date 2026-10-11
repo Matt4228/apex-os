@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { differenceInWeeks } from "date-fns"
 import { formatDateOnly } from "@/lib/dates"
+import { countCompletedWeeks } from "@/lib/dashboardStats"
 
 type Entry = {
     id: string
@@ -44,7 +45,7 @@ export default function CompetitionCard({
     const isActive = competition.status === "active"
     const currentWeek = differenceInWeeks(new Date(), new Date(competition.startDate)) + 1
     const totalWeeks = differenceInWeeks(new Date(competition.endDate), new Date(competition.startDate))
-    const completedWeeks = competition.entries.filter(e => e.weekComplete).length
+    const completedWeeks = countCompletedWeeks(competition.entries)
     const progress = totalWeeks > 0 ? Math.min((completedWeeks / totalWeeks) * 100, 100) : 0
 
     async function handleLogEntry(e: React.FormEvent<HTMLFormElement>) {

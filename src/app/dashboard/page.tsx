@@ -1,12 +1,11 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { signOut } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { formatDateOnly, parseDateOnly, weekRangeOf } from "@/lib/dates"
 import { getUserToday } from "@/lib/user-today"
 import DashboardTaskList from "@/components/dashboard/DashboardTaskList"
+import { countCompletedWeeks, sortTasksByPriority } from "@/lib/dashboardStats"
 
 export const dynamic = "force-dynamic"
 
@@ -20,11 +19,10 @@ export default async function DashboardPage() {
     const { start: weekStart, end: weekEnd } = weekRangeOf(today)
     const dayOfWeek = formatDateOnly(todayDate, "EEEE")
 
-    const [tasks, goals, habits, competitions, scheduleBlocks] = await Promise.all([
+    const [todoTasks, goals, activeGoalCount, habits, competitions, scheduleBlocks] = await Promise.all([
+        // All open tasks: sorted in code (see sortTasksByPriority), and count for the stat
         prisma.task.findMany({
-            where: { userId },
-            orderBy: [{ status: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
-            take: 5,
+            where: { userId, status: "todo" },
         }),
         prisma.goal.findMany({
             where: { userId, status: "active" },
@@ -36,6 +34,10 @@ export default async function DashboardPage() {
                     take: 1,
                 },
             },
+        }),
+        // The panel shows 4 goals, but the stat needs the real total
+        prisma.goal.count({
+            where: { userId, status: "active" },
         }),
         prisma.habit.findMany({
             where: { userId, isActive: true },
@@ -50,19 +52,21 @@ export default async function DashboardPage() {
         prisma.competition.findMany({
             where: { userId, status: "active" },
             include: {
+                // Every entry is needed to count completed weeks; only two small fields
                 entries: {
-                    orderBy: { weekNumber: "desc" },
-                    take: 3,
+                    select: { weekNumber: true, weekComplete: true },
                 },
             },
         }),
         prisma.scheduleBlock.findMany({
             where: { userId, dayOfWeek },
-            orderBy: { sortOrder: "asc" },
+            // "HH:MM" text sorts in time order because hours arae zero padded
+            orderBy: { startTime: "asc" },
         }),
     ])
 
-    const todoCount = tasks.length
+    const todoCount = todoTasks.length
+    const topTasks = sortTasksByPriority(todoTasks).slice(0, 5)
     const habitCompletionRate = habits.length > 0
         ?  Math.round(
             (habits.reduce((acc, h) => {
@@ -92,7 +96,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-500 mb-1">Active goals</p>
-                    <p className="text-2xl font-semibold text-slate-900">{goals.length}</p>
+                    <p className="text-2xl font-semibold text-slate-900">{activeGoalCount}</p>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
                     <p className="text-xs text-slate-500 mb-1">Habit completion</p>
@@ -145,7 +149,7 @@ export default async function DashboardPage() {
                         View all →
                         </Link>
                     </div>
-                    <DashboardTaskList initialTasks={tasks} />
+                    <DashboardTaskList initialTasks={topTasks} />
                 </div>
 
                 {/* Habits */}
@@ -236,7 +240,7 @@ export default async function DashboardPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {competitions.map(competition => {
-                                const completedWeeks = competition.entries.filter(e => e.weekComplete).length
+                                const completedWeeks = countCompletedWeeks(competition.entries)
                                 return (
                                     <div key={competition.id} className="border border-slate-100 rounded-lg p-3">
                                         <p className="text-sm font-medium text-slate-900 mb-1">{competition.title}</p>
