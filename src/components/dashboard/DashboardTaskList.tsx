@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { updateTaskStatus } from "@/app/actions/tasks"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
 
 type Task = {
     id: string

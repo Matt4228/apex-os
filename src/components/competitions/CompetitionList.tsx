@@ -4,7 +4,9 @@ import { useState } from "react"
 import { deleteCompetition, updateCompetitionStatus } from "@/app/actions/competitions"
 import CompetitionCard from "./CompetitionCard"
 import CreateCompetitionForm from "./CreateCompetitionForm"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { UndoToast } from "@/components/ui/undo-toast"
 
 type Entry = {
     id: string
@@ -31,22 +33,17 @@ export default function CompetitionList({
 }) {
     const [competitions, setCompetitions] = useState<Competition[]>(initialCompetitions)
     const [error, setError] = useState<string | null>(null)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteCompetition, setError)
 
     function handleCreate(competition: Competition) {
         setCompetitions(current => [competition, ...current])
     }
 
-    async function handleDelete(id: string) {
-        const index = competitions.findIndex(c => c.id === id)
-        const competition = competitions[index]
-        if (!competition) return
-        setError(null)
-        setCompetitions(current => current.filter(c => c.id !== id))
-
-        if (!(await succeeded(deleteCompetition(id)))) {
-            setCompetitions(current => restoreAt(current, competition, index))
-            setError(`Couldn't delete "${competition.title}". Check your connection and try again.`)
-        }
+    function handleDelete(id: string) {
+      const competition = competitions.find(c => c.id === id)
+      if (!competition) return
+      setError(null)
+      requestDelete(id, competition.title)
     }
 
     async function handleStatusChange(id: string, status: string) {
@@ -79,8 +76,10 @@ export default function CompetitionList({
         )
     }
 
-    const active = competitions.filter(c => c.status === "active")
-    const complete = competitions.filter(c => c.status === "complete")
+
+    const visibleCompetitions = competitions.filter(c => !isHidden(c.id))
+    const active = visibleCompetitions.filter(c => c.status === "active")
+    const complete = visibleCompetitions.filter(c => c.status === "complete")
 
     return (
         <div>
@@ -116,6 +115,7 @@ export default function CompetitionList({
                     </div>
                 </div>
             )}
+            {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>
     )
 }

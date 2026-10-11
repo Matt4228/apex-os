@@ -9,11 +9,3 @@ export async function succeeded(action: Promise<unknown>): Promise<boolean> {
         return false
     }
 }
-
-/** Put an item back at its old position after a failed delete. Does nothing if it's already there. */
-export function restoreAt<T extends { id: string }>(list: T[], item: T, index: number): T[] {
-    if (list.some(x => x.id === item.id)) return list
-    const copy = [...list]
-    copy.splice(Math.min(index, copy.length), 0, item)
-    return copy
-}

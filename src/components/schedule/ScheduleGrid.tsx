@@ -13,7 +13,9 @@ import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGr
 import HourLabels from "./HourLabels"
 import DayColumn from "./DayColumn"
 import BlockForm from "./BlockForm"
-import { restoreAt, succeeded } from "@/lib/optimistic"
+import { succeeded } from "@/lib/optimistic"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { UndoToast } from "@/components/ui/undo-toast"
 
 type Block = {
     id: string
@@ -37,6 +39,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
     const scrollRef = useRef<HTMLDivElement>(null)
     const todayName = DAYS[new Date().getDay()]
     const [error, setError] = useState<string | null>(null)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteScheduleBlock, setError)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -63,17 +66,11 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         return () => window.removeEventListener("keydown", onKeyDown)
     }, [dialogOpen])
 
-    async function handleDelete(id: string) {
-        const index = blocks.findIndex(b => b.id === id)
-        const block = blocks[index]
-        if (!block) return
-        setError(null)
-        setBlocks(current => current.filter(b => b.id !== id))
-
-        if (!(await succeeded(deleteScheduleBlock(id)))) {
-            setBlocks(current => restoreAt(current, block, index))
-            setError(`Couldn't delete "${block.label}". Check your connection and try again.`)
-        }
+    function handleDelete(id: string) {
+      const block = blocks.find(b => b.id === id)
+      if (!block) return
+      setError(null)
+      requestDelete(id, block.label)
     }
 
     function handleEdit(block: Block) {
@@ -208,7 +205,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                     <div className="flex-1 md:hidden">
                         <DayColumn
                             day={activeDay}
-                            blocks={blocks.filter(b => b.dayOfWeek === activeDay)}
+                            blocks={blocks.filter(b => b.dayOfWeek === activeDay && !isHidden(b.id))}
                             pxPerMinute={PX_PER_MINUTE}
                             isToday={activeDay === todayName}
                             onDelete={handleDelete}
@@ -224,7 +221,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                             <DayColumn
                                 key={day}
                                 day={day}
-                                blocks={blocks.filter(b => b.dayOfWeek === day)}
+                                blocks={blocks.filter(b => b.dayOfWeek === day && !isHidden(b.id))}
                                 pxPerMinute={PX_PER_MINUTE}
                                 isToday={day === todayName}
                                 onDelete={handleDelete}
@@ -237,7 +234,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                 </div>
             </DndContext>
 
-            
+            {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>
     )
 }
