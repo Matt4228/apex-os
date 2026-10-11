@@ -4,6 +4,7 @@ import { useState } from "react"
 import { deleteCompetition, updateCompetitionStatus } from "@/app/actions/competitions"
 import CompetitionCard from "./CompetitionCard"
 import CreateCompetitionForm from "./CreateCompetitionForm"
+import { restoreAt, succeeded } from "@/lib/optimistic"
 
 type Entry = {
     id: string
@@ -29,21 +30,35 @@ export default function CompetitionList({
     initialCompetitions: Competition[]
 }) {
     const [competitions, setCompetitions] = useState<Competition[]>(initialCompetitions)
+    const [error, setError] = useState<string | null>(null)
 
     function handleCreate(competition: Competition) {
         setCompetitions(current => [competition, ...current])
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
+        const index = competitions.findIndex(c => c.id === id)
+        const competition = competitions[index]
+        if (!competition) return
+        setError(null)
         setCompetitions(current => current.filter(c => c.id !== id))
-        deleteCompetition(id)
+
+        if (!(await succeeded(deleteCompetition(id)))) {
+            setCompetitions(current => restoreAt(current, competition, index))
+            setError(`Couldn't delete "${competition.title}". Check your connection and try again.`)
+        }
     }
 
-    function handleStatusChange(id: string, status: string){
-        setCompetitions(current =>
-            current.map(c => c.id === id ? { ...c, status } : c)
-        )
-        updateCompetitionStatus(id, status)
+    async function handleStatusChange(id: string, status: string) {
+        const oldStatus = competitions.find(c => c.id === id)?.status
+        if (!oldStatus) return
+        setError(null)
+        setCompetitions(current => current.map(c => c.id === id ? { ...c, status } : c))
+
+        if (!(await succeeded(updateCompetitionStatus(id, status)))) {
+            setCompetitions(current => current.map(c => c.id === id ? { ...c, status: oldStatus } : c))
+            setError("Couldn't update that goal. Check your connection and try again.")
+        }
     }
 
     function handleEntryLogged(competitionId: string, entry: Entry) {
@@ -69,6 +84,7 @@ export default function CompetitionList({
 
     return (
         <div>
+            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             <div className="space-y-4 mb-6">
                 {active.map(competition => (
                     <CompetitionCard 

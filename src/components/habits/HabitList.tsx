@@ -5,6 +5,7 @@ import { deleteHabit } from "@/app/actions/habits"
 import HabitCard from "./HabitCard"
 import CreateHabitForm from "./CreateHabitForm"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { restoreAt, succeeded } from "@/lib/optimistic"
 
 type HabitLog = {
     id: string
@@ -23,14 +24,23 @@ type Habit ={
 
 export default function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
     const [habits, setHabits] = useState<Habit[]>(initialHabits)
+    const [error, setError] = useState<string | null>(null)
 
     function handleCreate(habit: Habit) {
         setHabits(current => [habit, ...current])
     }
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
+        const index = habits.findIndex(h => h.id === id)
+        const habit = habits[index]
+        if (!habit) return
+        setError(null)
         setHabits(current => current.filter(h => h.id !== id))
-        deleteHabit(id)
+
+        if (!(await succeeded(deleteHabit(id)))) {
+            setHabits(current => restoreAt(current, habit, index))
+            setError(`Couldn't delete "${habit.title}". Check your connection and try again.`)
+        }
     }
 
     function handleLogToggle(habitId: string, date: string, action: "added" | "removed") {
@@ -63,6 +73,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
 
     return (
         <div>
+            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             <div className="space-y-3 mb-6">
                 {active.map(habit => (
                     <HabitCard
