@@ -1,19 +1,14 @@
 "use client"
 
-import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
+import Link from "next/link"
 import { useState } from "react"
-import { updateTaskStatus, deleteTask, updateTask } from "@/app/actions/tasks"
+import { Target } from "lucide-react"
+import { updateTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-type Task = {
-    id: string
-    title: string
-    status: string
-    priority: string
-    dueDate: Date | null
-    completedAt: Date | null
-}
+import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
+import GoalSelect from "./GoalSelect"
+import type { GoalOption, Task } from "./types"
 
 const priorityStyles = {
     high: "bg-danger/10 text-danger-ink",
@@ -23,58 +18,77 @@ const priorityStyles = {
 
 export default function TaskCard({
     task,
+    goals,
     onToggle,
     onDelete,
     onUpdate,
     isPending,
-}: { 
+}: {
     task: Task
+    /** Goals to offer in the edit form; leave out to hide the goal picker */
+    goals?: GoalOption[]
     onToggle: (id: string, status: string) => void
     onDelete: (id: string) => void
-    onUpdate: (id: string, udpated: Partial<Task>) => void
+    onUpdate: (id: string, updated: Partial<Task>) => void
     isPending: boolean
 }) {
     const [editing, setEditing] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const isDone = task.status === "done"
 
     async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setLoading(true)
+        setError(null)
         const formData = new FormData(e.currentTarget)
         const result = await updateTask(task.id, formData)
-        if (!result?.error) {
-            onUpdate(task.id, {
-                title: String(formData.get("title")),
-                priority: String(formData.get("priority")),
-                dueDate: formData.get("dueDate") ? parseDateOnly(String(formData.get("dueDate"))) : null,
-            })
-            setEditing(false)
-        }
         setLoading(false)
-    }
+
+        if (result?.error) {
+            setError(result.error)
+            return
+        }
+
+        const updated: Partial<Task> = {
+            title: String(formData.get("title")),
+            priority: String(formData.get("priority")),
+            dueDate: formData.get("dueDate") ? parseDateOnly(String(formData.get("dueDate"))) : null,
+        }
+        if (goals) {
+            const goalId = String(formData.get("goalId") ?? "")
+            updated.goalId = goalId || null
+            // The current goal can be missing from `goals` when it is no longer active
+            updated.goal = goalId ? (goals.find(g => g.id === goalId) ?? task.goal ?? null) : null
+        }
+        onUpdate(task.id, updated)
+        setEditing(false)
+    }   
 
     if (editing) {
         return (
             <form onSubmit={handleEdit} className="bg-surface border border-accent rounded-lg p-4 space-y-3">
                 <Input name="title" defaultValue={task.title} required autoFocus />
                 <div className="flex gap-2">
-                    <select 
+                    <select
                         name="priority"
                         defaultValue={task.priority}
-                        className="flex h-10 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="flex h-10 rounded-md border border-line bg-surface px-3 py-2 text-sm
+focus:outline-none focus:ring-2 focus:ring-accent"
                     >
                         <option value="low">Low priority</option>
                         <option value="medium">Medium priority</option>
                         <option value="high">High priority</option>
                     </select>
-                    <Input 
+                    <Input
                         name="dueDate"
                         type="date"
                         defaultValue={task.dueDate ? toDateInputValue(task.dueDate) : ""}
                         className="flex-1"
                     />
                 </div>
+                {goals && <GoalSelect goals={goals} current={task.goal} />}
+                {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
                 <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={loading}>
                         {loading ? "Saving..." : "Save"}
@@ -89,7 +103,7 @@ export default function TaskCard({
 
     return (
         <div className={`bg-surface border border-line rounded-lg p-4 flex items-start gap-3 transition-opacity ${isDone ? "opacity-60" : ""}`}>
-            <button 
+            <button
                 role="checkbox"
                 aria-checked={isDone}
                 aria-label={task.title}
@@ -106,7 +120,7 @@ export default function TaskCard({
                 <p className={`text-sm font-medium text-ink transition-all ${isDone ? "line-through" : ""}`}>
                     {task.title}
                 </p>
-                <div className="flex flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityStyles[task.priority as keyof typeof priorityStyles]}`}>
                         {task.priority}
                     </span>
@@ -115,12 +129,21 @@ export default function TaskCard({
                             Due {formatDateOnly(task.dueDate, "MMM d")}
                         </span>
                     )}
+                    {task.goal && (
+                        <Link
+                            href={`/dashboard/goals/${task.goal.id}`}
+                            className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink-soft transition-colors"
+                        >
+                            <Target size={12} aria-hidden="true" />
+                            {task.goal.title}
+                        </Link>
+                    )}
                 </div>
             </div>
-            
+
             <div className="flex items-center gap-1 flex-shrink-0">
                 {!isDone && (
-                    <button 
+                    <button
                         onClick={() => setEditing(true)}
                         className="text-xs text-ink-muted hover:text-accent-ink transition-colors leading-none"
                     >

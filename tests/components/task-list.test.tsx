@@ -1,7 +1,8 @@
 // tests/components/task-list.test.tsx
 // @vitest-environment jsdom
 import TaskList from "@/components/tasks/TaskList"
-import { deleteTask, updateTaskStatus } from "@/app/actions/tasks"
+import { createTask, deleteTask, updateTaskStatus } from "@/app/actions/tasks"
+import { parseDateOnly } from "@/lib/dates"
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest"
@@ -21,6 +22,7 @@ const task = {
     priority: "high",
     dueDate: null,
     completedAt: null,
+    createdAt: new Date("2026-10-01")
 }
 
 describe("TaskList when the server says no", () => {
@@ -84,5 +86,55 @@ describe("TaskList when the server says no", () => {
         await act(() => vi.advanceTimersByTimeAsync(UNDO_WINDOW_MS))
         expect(deleteTask).toHaveBeenCalledWith("task-1")
         expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
+    })
+})
+
+describe("TaskList on a goal's page", () => {
+    const step = (id: string, title: string, dueDate: string | null) => ({
+        id,
+        title,
+        status: "todo",
+        priority: "medium",
+        dueDate: dueDate ? parseDateOnly(dueDate) : null,
+        completedAt: null,
+        createdAt: new Date("2026-10-01"),
+        goalId: "goal-1",
+    })
+
+    beforeEach(() => {
+        vi.mocked(createTask).mockReset()
+        vi.mocked(updateTaskStatus).mockReset()
+    })
+
+    it("creates new tasks as steps of the goal and keeps deadline order", async () => {
+        const user = userEvent.setup()
+        vi.mocked(createTask).mockResolvedValue({ task: step("s2", "Update resume", "2026-10-10") } as never)
+        render(<TaskList initialTasks={[step("s1", "Apply to 10 companies", "2026-10-20")]} goalId="goal-1" />)
+
+        await user.click(screen.getByRole("button", { name: "+ Add a step" }))
+        await user.type(screen.getByPlaceholderText("Step title"), "Update resume")
+        await user.click(screen.getByRole("button", { name: "Add step" }))
+        await screen.findByRole("checkbox", { name: "Update resume" })
+
+        expect(vi.mocked(createTask).mock.calls[0][0].get("goalId")).toBe("goal-1")
+        const order = screen.getAllByRole("checkbox").map(c => c.getAttribute("aria-label"))
+        expect(order).toEqual(["Update resume", "Apply to 10 companies"])
+    })
+
+    it("gives the header the current tasks, so it updates when one is checked", async () => {
+        const user = userEvent.setup()
+        vi.mocked(updateTaskStatus).mockResolvedValue(undefined)
+        render(
+            <TaskList
+                initialTasks={[step("s1", "Apply to 10 companies", null)]}
+                goalId="goal-1"
+                header={tasks => <p>{tasks.filter(t => t.status === "done").length} done</p>}
+            />
+        )
+        expect(screen.getByText("0 done")).toBeInTheDocument()
+
+        await user.click(screen.getByRole("checkbox", { name: "Apply to 10 companies" }))
+
+        expect(screen.getByText("1 done")).toBeInTheDocument()
     })
 })
