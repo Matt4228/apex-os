@@ -15,10 +15,10 @@ export default function Error({
     }, [error])
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <div className="bg-white border border-slate-200 rounded-xl p-8 max-w-md w-full text-center">
-                <h2 className="text-lg font-semibold text-slate-900 mb-2">Something went wrong</h2>
-                <p className="text-sm text-slate-500 mb-6">
+        <div className="min-h-screen bg-canvas flex items-center justify-center">
+            <div className="bg-surface border border-line rounded-xl p-8 max-w-md w-full text-center">
+                <h2 className="text-lg font-semibold text-ink mb-2">Something went wrong</h2>
+                <p className="text-sm text-ink-muted mb-6">
                     An unexpected error occurred. Try again or refresh page.
                 </p>
                 <Button onClick={reset}>Try again</Button>

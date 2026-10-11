@@ -152,9 +152,9 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="block-dialog-title"
-                        className="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-sm"
+                        className="bg-surface rounded-xl border border-line p-5 w-full max-w-sm"
                     >
-                        <h3 id="block-dialog-title" className="text-sm font-semibold text-slate-900 mb-3">
+                        <h3 id="block-dialog-title" className="text-sm font-semibold text-ink mb-3">
                             {editingBlock ? "Edit Block" : "New Block"}
                         </h3>
                         <BlockForm 
@@ -179,7 +179,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                         className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                             activeDay === day
                                 ? "bg-primary text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                : "bg-sunken text-ink-soft hover:bg-sunken-strong"
                         }`}
                     >
                         {day.slice(0,3)}
@@ -191,14 +191,14 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
             <div className="hidden md:flex mb-2">
                 <div className="w-14 flex-shrink-0" />
                 {DAYS.map(day => (
-                    <div key={day} className="flex-1 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    <div key={day} className="flex-1 text-center text-xs font-semibold text-ink-muted uppercase tracking-wide">
                         {day.slice(0, 3)}
                     </div>
                 ))}
             </div>
 
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-slate-200 rounded-xl">
+                <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-line rounded-xl">
                     <HourLabels pxPerMinute={PX_PER_MINUTE} />
 
                     {/* Mobile: singled day */}

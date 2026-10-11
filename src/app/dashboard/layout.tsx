@@ -12,7 +12,7 @@ export default async function DashboardLayout({
     if (!session?.user?.id) redirect("/login")
     
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-canvas">
             <TimezoneCookie />
             <Navbar userName={session.user?.name ?? session.user?.email} />
             {children}

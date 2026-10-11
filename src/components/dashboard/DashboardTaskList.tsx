@@ -45,7 +45,7 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
         <div className="space-y-2">
             {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             {visible.length === 0 ? (
-                <p className="text-sm text-slate-500">No tasks remaining. Nice work.</p>
+                <p className="text-sm text-ink-muted">No tasks remaining. Nice work.</p>
             ) : (
                 visible.map(task => {
                     const isDone = task.status === "done"
@@ -62,10 +62,10 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
                                 className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${
                                     isDone
                                         ? "bg-accent border-accent"
-                                        : "border-slate-300 hover:border-accent"
+                                        : "border-line-strong hover:border-accent"
                                 }`}
                             />
-                            <p className={`text-sm text-slate-900 flex-1 truncate ${isDone ? "line-through" : ""}`}>
+                            <p className={`text-sm text-ink flex-1 truncate ${isDone ? "line-through" : ""}`}>
                                 {task.title}
                             </p>
                             <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${priorityStyles[task.priority as keyof typeof priorityStyles]}`}>

@@ -119,13 +119,13 @@ export default function DayColumn({
         <div 
             ref={setRefs}
             onPointerDown={handlePointerDown}
-            className="relative flex-1 border-l border-slate-100 touch-none"
+            className="relative flex-1 border-l border-line touch-none"
             style={{ height: 24 * 60 * pxPerMinute}}
         >
             {HOURS.map(hour => (
                 <div 
                     key={hour}
-                    className="absolute inset-x-0 border-t border-slate-100 pointer-events-none"
+                    className="absolute inset-x-0 border-t border-line pointer-events-none"
                     style={{ top: hour * 60 * pxPerMinute }}
                 />
             ))}

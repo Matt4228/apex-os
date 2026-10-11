@@ -48,7 +48,7 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
         return (
             <button
                 onClick={() => setOpen(true)}
-                className="w-full border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors text-left"
+                className="w-full border border-dashed border-line-strong rounded-lg p-3 text-sm text-ink-muted hover:border-ink-muted hover:text-ink-soft transition-colors text-left"
             >
                 + Add a goal
             </button>
@@ -56,7 +56,7 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-lg p-4 space-y-3">
             <Input name="title" placeholder="Goal title" required autoFocus />
             <Input name="description" placeholder="Description (optional)" />
 

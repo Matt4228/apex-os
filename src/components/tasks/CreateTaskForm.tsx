@@ -45,7 +45,7 @@ export default function CreateTaskForm({ onCreated }: { onCreated: (task: Task) 
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors text-left"
+        className="w-full border border-dashed border-line-strong rounded-lg p-3 text-sm text-ink-muted hover:border-ink-muted hover:text-ink-soft transition-colors text-left"
       >
         + Add a task
       </button>
@@ -53,7 +53,7 @@ export default function CreateTaskForm({ onCreated }: { onCreated: (task: Task) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+    <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-lg p-4 space-y-3">
       <Input
         name="title"
         placeholder="Task title"
@@ -65,7 +65,7 @@ export default function CreateTaskForm({ onCreated }: { onCreated: (task: Task) 
         <select
           name="priority"
           defaultValue="medium"
-          className="flex h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="flex h-10 rounded-md border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="low">Low priority</option>
           <option value="medium">Medium priority</option>

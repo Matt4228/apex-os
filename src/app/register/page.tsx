@@ -22,23 +22,23 @@ export default function RegisterPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-primary py-10">
-            <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 p-8">
+            <div className="w-full max-w-md bg-surface rounded-xl border border-line p-8">
             <div className="mb-8">
-                <h1 className="text-2xl font-semibold text-slate-900">Create your account</h1>
-                <p className="text-slate-500 text-sm mt-1">Start tracking your goals and building better habits</p>
+                <h1 className="text-2xl font-semibold text-ink">Create your account</h1>
+                <p className="text-ink-muted text-sm mt-1">Start tracking your goals and building better habits</p>
             </div>
 
             <form action={handleSubmit} className="space-y-4">
                 <div>
-                <label htmlFor="name" className="text-sm font-medium text-slate-700 block mb-1.5">Name</label>
+                <label htmlFor="name" className="text-sm font-medium text-ink-soft block mb-1.5">Name</label>
                 <Input id="name" name="name" autoComplete="name" placeholder="Matthew" required />
                 </div>
                 <div>
-                <label htmlFor="email" className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
+                <label htmlFor="email" className="text-sm font-medium text-ink-soft block mb-1.5">Email</label>
                 <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
                 </div>
                 <div>
-                <label htmlFor="password" className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
+                <label htmlFor="password" className="text-sm font-medium text-ink-soft block mb-1.5">Password</label>
                 <Input id="password" name="password" type="password" autoComplete="new-password" placeholder="Min. 8 characters" required />
                 </div>
 
@@ -51,7 +51,7 @@ export default function RegisterPage() {
                 </Button>
             </form>
 
-            <p className="text-sm text-slate-500 text-center mt-6">
+            <p className="text-sm text-ink-muted text-center mt-6">
                 Already have an account?{" "}
                 <Link href="/login" className="text-accent-dark font-medium hover:underline">
                 Sign in

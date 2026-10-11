@@ -53,24 +53,24 @@ export default function HabitCard({
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4">
+    <div className="bg-surface border border-line rounded-lg p-4">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium text-slate-900">{habit.title}</h3>
+            <h3 className="text-sm font-medium text-ink">{habit.title}</h3>
             {habit.category && (
-              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-sunken text-ink-soft px-2 py-0.5 rounded-full">
                 {habit.category}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-ink-muted mt-0.5">
             {completedThisWeek} / {habit.targetPerWeek} this week
           </p>
         </div>
         <button
           onClick={() => onDelete(habit.id)}
-          className="text-slate-500 hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+          className="text-ink-muted hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
           aria-label={`Delete ${habit.title}`}
         >
           ×
@@ -94,12 +94,12 @@ export default function HabitCard({
               disabled={isFuture || isLoadingDay}
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${
                 isFuture
-                  ? "border-slate-100 text-slate-500 cursor-not-allowed"
+                  ? "border-line text-ink-muted cursor-not-allowed"
                   : isLogged
                   ? "bg-accent border-accent text-white"
                   : isToday
-                  ? "border-slate-400 bg-slate-50 hover:bg-slate-100 text-slate-700"
-                  : "border-slate-200 hover:border-accent hover:bg-slate-50 text-slate-600"
+                  ? "border-ink-muted bg-canvas hover:bg-sunken text-ink-soft"
+                  : "border-line hover:border-accent hover:bg-canvas text-ink-soft"
               }`}
             >
               <span className="text-xs font-medium">
@@ -114,7 +114,7 @@ export default function HabitCard({
       </div>
 
       <div className="mt-3">
-        <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-1 bg-sunken rounded-full overflow-hidden">
           <div
             className="h-full bg-accent rounded-full transition-all"
             style={{

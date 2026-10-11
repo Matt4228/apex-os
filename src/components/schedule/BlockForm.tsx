@@ -77,7 +77,7 @@ export default function BlockForm({
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+        <form onSubmit={handleSubmit} className="bg-canvas border border-line rounded-lg p-3 space-y-2">
             <Input
                 name="label"
                 placeholder="Block label"
@@ -91,7 +91,7 @@ export default function BlockForm({
                 name="dayOfWeek"
                 value={dayOfWeek}
                 onChange={e => setDayOfWeek(e.target.value)}
-                className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm bg-white"
+                className="w-full rounded-md border border-line px-2 py-1.5 text-sm bg-surface"
             >
                 {DAYS.map(d => (
                     <option key={d} value={d}>{d}</option> 
@@ -132,7 +132,7 @@ export default function BlockForm({
                         onClick={() => setColor(c)}
                         aria-label={`Color ${c}`}
                         aria-pressed={color === c}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-slate-900 scale-110" : "border-transparent"}`}
+                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-ink scale-110" : "border-transparent"}`}
                         style={{ backgroundColor: c }}
                     />
                 ))}

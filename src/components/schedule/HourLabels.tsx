@@ -12,7 +12,7 @@ export default function HourLabels({ pxPerMinute }: { pxPerMinute: number}) {
             {HOURS.map(hour => (
                 <div 
                     key={hour}
-                    className="absolute right-2 -translate-y-1/2 text-xs text-slate-500"
+                    className="absolute right-2 -translate-y-1/2 text-xs text-ink-muted"
                     style={{ top: hour * 60 * pxPerMinute }}
                 >
                     {formatHour(hour)}

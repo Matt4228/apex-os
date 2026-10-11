@@ -55,19 +55,19 @@ export default function LoginPage() {
 
     return (
     <div className="min-h-screen flex items-center justify-center bg-primary">
-      <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 p-8">
+      <div className="w-full max-w-md bg-surface rounded-xl border border-line p-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in to your Apex OS account</p>
+          <h1 className="text-2xl font-semibold text-ink">Welcome back</h1>
+          <p className="text-ink-muted text-sm mt-1">Sign in to your Apex OS account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="text-sm font-medium text-slate-700 block mb-1.5">Email</label>
+            <label htmlFor="email" className="text-sm font-medium text-ink-soft block mb-1.5">Email</label>
             <Input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required />
           </div>
           <div>
-            <label htmlFor="password" className="text-sm font-medium text-slate-700 block mb-1.5">Password</label>
+            <label htmlFor="password" className="text-sm font-medium text-ink-soft block mb-1.5">Password</label>
             <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Your password" required />
           </div>
 
@@ -82,10 +82,10 @@ export default function LoginPage() {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
+            <div className="w-full border-t border-line" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-2 text-slate-500">or</span>
+            <span className="bg-surface px-2 text-ink-muted">or</span>
           </div>
         </div>
 
@@ -99,11 +99,11 @@ export default function LoginPage() {
           {demoLoading ? "Loading demo..." : "Try the demo"}
         </Button>
 
-        <p className="text-xs text-slate-500 text-center mt-3">
+        <p className="text-xs text-ink-muted text-center mt-3">
           Demo account resets nightly. Data may be modified by other visitors.
         </p>
 
-        <p className="text-sm text-slate-500 text-center mt-6">
+        <p className="text-sm text-ink-muted text-center mt-6">
           Don&apos;t have an account?{" "}
           <Link href="/register" className="text-accent-dark font-medium hover:underline">
             Create one
