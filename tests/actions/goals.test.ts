@@ -1,5 +1,5 @@
 // tests/actions/goals.tests.ts
-import { createGoal, logGoalEntry } from "@/app/actions/goals"
+import { createGoal, logGoalEntry, updateGoalStatus } from "@/app/actions/goals"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
@@ -117,5 +117,16 @@ describe("logGoalEntry", () => {
             data: expect.objectContaining({ goalId: "goal-1", value: 5 }),
         })
         expect(result).toHaveProperty("entry")
+    })
+})
+
+describe("updateGoalStatus", () => {
+    it("rejects a status that isn't active or complete", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+
+        const result = await updateGoalStatus("goal-1", "banana")
+
+        expect(result).toEqual({ error: "Invalid status" })
+        expect(prismaMock.goal.update).not.toHaveBeenCalled()
     })
 })

@@ -39,4 +39,13 @@ describe("updateTaskStatus", () => {
             data: { status: "todo", completedAt: null },
         })
     })
+
+    it("rejects a status that isn't todo or done", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+
+        const result = await updateTaskStatus("task-1", "banana")
+
+        expect(result).toEqual({ error: "Invalid status" })
+        expect(prismaMock.task.update).not.toHaveBeenCalled()
+    })
 })

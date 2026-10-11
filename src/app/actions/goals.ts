@@ -14,6 +14,8 @@ const goalSchema = z.object({
     unit: z.string().optional(),
 })
 
+const goalStatusSchema = z.enum(["active", "complete"])
+
 export async function createGoal(formData: FormData) {
     const session = await auth()
     if (!session?.user?.id) return { error: "Unathorized" }
@@ -58,9 +60,12 @@ export async function updateGoalStatus(goalId: string, status: string) {
     const session = await auth()
     if (!session?.user?.id) return { error: "Unathorized" }
 
+    const parsed = goalStatusSchema.safeParse(status)
+    if (!parsed.success) return { error: "Invalid status" }
+
     await prisma.goal.update({
         where: { id: goalId, userId: session.user.id },
-        data: { status },
+        data: { status: parsed.data },
     })
 }
 
