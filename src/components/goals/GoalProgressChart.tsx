@@ -30,7 +30,7 @@ export default function GoalProgressChart({
 }) {
     if (entries.length === 0) {
         return (
-            <p className="text-xs text-slate-500 py-4 text-center">
+            <p className="text-xs text-ink-muted py-4 text-center">
                 No entries logged yet. Log your first progress entry to see the chart.
             </p>
         )
@@ -47,8 +47,8 @@ export default function GoalProgressChart({
     }))
 
     return (
-        <div className="mt-4 pt-4 border-t border-slate-100">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
+        <div className="mt-4 pt-4 border-t border-line">
+            <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-3">
                 Progress over tiime {unit && `(${unit})`}
             </p>
             <ResponsiveContainer width="100%" height={160}>

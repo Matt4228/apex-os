@@ -104,7 +104,7 @@ export default function GoalCard({
 
     if (editing) {
         return (
-            <form onSubmit={handleEdit} className="bg-white border border-accent rounded-lg p-5 space-y-3">
+            <form onSubmit={handleEdit} className="bg-surface border border-accent rounded-lg p-5 space-y-3">
                 <Input name="title" defaultValue={goal.title} required autoFocus />
                 <Input name="description" placeholder="Description (optional)" defaultValue={goal.description ?? ""} className="flex-1" />
                 <div className="flex gap-2">
@@ -141,35 +141,35 @@ export default function GoalCard({
     }
 
     return (
-        <div className={`bg-white border border-slate-200 rounded-lg p-5 ${isComplete ? "opacity-60" : ""}`}>
+        <div className={`bg-surface border border-line rounded-lg p-5 ${isComplete ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-sm font-medium text-slate-900 ${isComplete ? "line-through" : ""}`}>
+                        <h3 className={`text-sm font-medium text-ink ${isComplete ? "line-through" : ""}`}>
                             {goal.title}
                         </h3>
                         {goal.category && (
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-sunken text-ink-soft px-2 py-0.5 rounded-full">
                                 {goal.category}
                             </span>
                         )}
                     </div>
                     {goal.description && (
-                        <p className="text-xs text-slate-500 mt-1">{goal.description}</p>
+                        <p className="text-xs text-ink-muted mt-1">{goal.description}</p>
                     )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     {!isComplete && (
                         <button 
                             onClick={() => setEditing(true)}
-                            className="text-xs text-slate-500 hover:text-accent transition-colors leading-none"
+                            className="text-xs text-ink-muted hover:text-accent transition-colors leading-none"
                         >
                             Edit
                         </button>
                     )}
                     <button
                         onClick={() => onDelete(goal.id)}
-                        className="text-slate-500 hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+                        className="text-ink-muted hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
                         aria-label={`Delete ${goal.title}`}
                     >
                         ×
@@ -180,7 +180,7 @@ export default function GoalCard({
 
             {progress !== null && latestEntry && (
                 <div className="mb-3">
-                    <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <div className="flex justify-between text-xs text-ink-muted mb-1">
                         <span>
                             {latestEntry.value} {goal.unit ?? ""}
                         </span>
@@ -188,7 +188,7 @@ export default function GoalCard({
                             {goal.targetValue} {goal.unit ?? ""}
                         </span>
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-sunken rounded-full overflow-hidden">
                         <div
                             className="h-full bg-accent rounded-full transition-all"
                             style={{ width: `${progress}%` }}
@@ -198,7 +198,7 @@ export default function GoalCard({
             )}
 
             <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3 text-xs text-slate-500">
+                <div className="flex items-center gap-3 text-xs text-ink-muted">
                     {goal.targetDate && (
                         <span>Due {formatDateOnly(goal.targetDate, "MMM d, yyyy")}</span>
                     )}
@@ -227,7 +227,7 @@ export default function GoalCard({
             </div>
 
             {showLog && (
-                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-line flex gap-2">
                     <Input
                         name="value"
                         type="number"

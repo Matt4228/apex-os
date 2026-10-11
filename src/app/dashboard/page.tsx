@@ -80,46 +80,46 @@ export default async function DashboardPage() {
     return (
         <main className="max-w-5xl mx-auto px-6 py-10">
             <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-slate-900">
+                <h2 className="text-2xl font-semibold text-ink">
                     {formatDateOnly(todayDate, "EEEE, MMMM d")}
                 </h2>
-                <p className="text-slate-500 text-sm mt-1">
+                <p className="text-ink-muted text-sm mt-1">
                     Welcome back, {session.user?.name?.split(" ")[0] ?? "there"}
                 </p>
             </div>
 
             {/* Stats row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 mb-1">Tasks remaining</p>
-                    <p className="text-2xl font-semibold text-slate-900">{todoCount}</p>
+                <div className="bg-surface border border-line rounded-lg p-4">
+                    <p className="text-xs text-ink-muted mb-1">Tasks remaining</p>
+                    <p className="text-2xl font-semibold text-ink">{todoCount}</p>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 mb-1">Active goals</p>
-                    <p className="text-2xl font-semibold text-slate-900">{activeGoalCount}</p>
+                <div className="bg-surface border border-line rounded-lg p-4">
+                    <p className="text-xs text-ink-muted mb-1">Active goals</p>
+                    <p className="text-2xl font-semibold text-ink">{activeGoalCount}</p>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 mb-1">Habit completion</p>
-                    <p className="text-2xl font-semibold text-slate-900">{habitCompletionRate}%</p>
+                <div className="bg-surface border border-line rounded-lg p-4">
+                    <p className="text-xs text-ink-muted mb-1">Habit completion</p>
+                    <p className="text-2xl font-semibold text-ink">{habitCompletionRate}%</p>
                 </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 mb-1">Active competitions</p>
-                    <p className="text-2xl font-semibold text-slate-900">{competitions.length}</p>
+                <div className="bg-surface border border-line rounded-lg p-4">
+                    <p className="text-xs text-ink-muted mb-1">Active competitions</p>
+                    <p className="text-2xl font-semibold text-ink">{competitions.length}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Today's schedule */}
-                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                <div className="bg-surface border border-line rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Today&apos;s Schedule</h3>
-                        <Link href="/dashboard/schedule" className="text-xs text-slate-500 hover:text-slate-700">
+                        <h3 className="text-sm font-semibold text-ink">Today&apos;s Schedule</h3>
+                        <Link href="/dashboard/schedule" className="text-xs text-ink-muted hover:text-ink-soft">
                             Edit →
                         </Link>
                     </div>
                     {scheduleBlocks.length === 0 ? (
-                        <p className="text-sm text-slate-500">No blocks scheduled for today.</p>
+                        <p className="text-sm text-ink-muted">No blocks scheduled for today.</p>
                     ) : (
                         <div className="space-y-2">
                             {scheduleBlocks.map(block => (
@@ -129,9 +129,9 @@ export default async function DashboardPage() {
                                         style={{ backgroundColor: block.color ?? "#2E294E" }}
                                     />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-slate-900 truncate">{block.label}</p>
+                                        <p className="text-sm text-ink truncate">{block.label}</p>
                                     </div>
-                                    <p className="text-xs text-slate-500 flex-shrink-0">
+                                    <p className="text-xs text-ink-muted flex-shrink-0">
                                         {block.startTime}
                                     </p>
                                 </div>
@@ -142,10 +142,10 @@ export default async function DashboardPage() {
 
 
                 {/* Tasks */}
-                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                <div className="bg-surface border border-line rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Tasks</h3>
-                        <Link href="/dashboard/tasks" className="text-xs text-slate-500 hover:text-slate-700">
+                        <h3 className="text-sm font-semibold text-ink">Tasks</h3>
+                        <Link href="/dashboard/tasks" className="text-xs text-ink-muted hover:text-ink-soft">
                         View all →
                         </Link>
                     </div>
@@ -153,15 +153,15 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Habits */}
-                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                <div className="bg-surface border border-line rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Habits this week</h3>
-                        <Link href="/dashboard/habits" className="text-xs text-slate-500 hover:text-slate-700">
+                        <h3 className="text-sm font-semibold text-ink">Habits this week</h3>
+                        <Link href="/dashboard/habits" className="text-xs text-ink-muted hover:text-ink-soft">
                             View all →
                         </Link>
                     </div>
                     {habits.length === 0 ? (
-                        <p className="text-sm text-slate-500">No habits tracked yet.</p>
+                        <p className="text-sm text-ink-muted">No habits tracked yet.</p>
                     ) : (
                         <div className="space-y-3">
                             {habits.map(habit => {
@@ -170,10 +170,10 @@ export default async function DashboardPage() {
                                 return (
                                     <div key={habit.id}>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-slate-700 font-medium truncate">{habit.title}</span>
-                                            <span className="text-slate-500 flex-shrink-0 ml-2">{completed}/{habit.targetPerWeek}</span>
+                                            <span className="text-ink-soft font-medium truncate">{habit.title}</span>
+                                            <span className="text-ink-muted flex-shrink-0 ml-2">{completed}/{habit.targetPerWeek}</span>
                                         </div>
-                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-1.5 bg-sunken rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-accent rounded-full transition-all"
                                                 style={{ width: `${pct}%`}}
@@ -187,15 +187,15 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Goals */}
-                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                <div className="bg-surface border border-line rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Active goals</h3>
-                        <Link href="/dashboard/goals" className="text-xs text-slate-500 hover:text-slate-700">
+                        <h3 className="text-sm font-semibold text-ink">Active goals</h3>
+                        <Link href="/dashboard/goals" className="text-xs text-ink-muted hover:text-ink-soft">
                             View all →
                         </Link>
                     </div>
                     {goals.length === 0 ? (
-                        <p className="text-sm text-slate-500">No active goals.</p>
+                        <p className="text-sm text-ink-muted">No active goals.</p>
                     ) : (
                         <div className="space-y-3">
                             {goals.map(goal => {
@@ -206,13 +206,13 @@ export default async function DashboardPage() {
                                 return (
                                     <div key={goal.id}>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-slate-700 font-medium truncate">{goal.title}</span>
+                                            <span className="text-ink-soft font-medium truncate">{goal.title}</span>
                                             {pct !== null && (
-                                                <span className="text-slate-500 flex-shrink-0 ml-2">{Math.round(pct)}%</span>
+                                                <span className="text-ink-muted flex-shrink-0 ml-2">{Math.round(pct)}%</span>
                                             )}
                                         </div>
                                         {pct !== null && (
-                                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-1.5 bg-sunken rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full bg-accent rounded-full transition-all"
                                                     style={{ width: `${pct}%` }}
@@ -220,7 +220,7 @@ export default async function DashboardPage() {
                                             </div>
                                         )}
                                         {pct === null && (
-                                            <p className="text-xs text-slate-500">No progress logged yet</p>
+                                            <p className="text-xs text-ink-muted">No progress logged yet</p>
                                         )}
                                     </div>
                                 )
@@ -231,10 +231,10 @@ export default async function DashboardPage() {
 
                 {/* Competitions */}
                 {competitions.length > 0 && (
-                    <div className="bg-white border border-slate-200 rounded-lg p-5 md:col-span-2">
+                    <div className="bg-surface border border-line rounded-lg p-5 md:col-span-2">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-slate-900">Active competitions</h3>
-                            <Link href="/dashboard/competitions" className="text-xs text-slate-500 hover:text-slate-700">
+                            <h3 className="text-sm font-semibold text-ink">Active competitions</h3>
+                            <Link href="/dashboard/competitions" className="text-xs text-ink-muted hover:text-ink-soft">
                                 View all →
                             </Link>
                         </div>
@@ -242,9 +242,9 @@ export default async function DashboardPage() {
                             {competitions.map(competition => {
                                 const completedWeeks = countCompletedWeeks(competition.entries)
                                 return (
-                                    <div key={competition.id} className="border border-slate-100 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-slate-900 mb-1">{competition.title}</p>
-                                        <p className="text-xs text-slate-500">{completedWeeks} weeks complete</p>
+                                    <div key={competition.id} className="border border-line rounded-lg p-3">
+                                        <p className="text-sm font-medium text-ink mb-1">{competition.title}</p>
+                                        <p className="text-xs text-ink-muted">{completedWeeks} weeks complete</p>
                                     </div>
                                 )
                             })}

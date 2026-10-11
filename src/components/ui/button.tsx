@@ -11,8 +11,8 @@ const buttonVariants = cva(
         default: "bg-accent text-white hover:bg-accent-dark focus-visible:ring-accent",
         primary: "bg-primary text-white hover:bg-primary-dark focus-visible:ring-primary",
         danger: "bg-danger text-white hover:bg-danger-dark focus-visible:ring-danger",
-        outline: "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
-        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+        outline: "border border-line bg-surface text-ink-soft hover:bg-canvas hover:border-line-strong",
+        ghost: "text-ink-soft hover:bg-sunken hover:text-ink",
       },
       size: {
         default: "h-10 px-4 py-2",
