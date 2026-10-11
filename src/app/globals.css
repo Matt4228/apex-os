@@ -4,9 +4,9 @@
   --color-primary: #2E294E;
   --color-primary-light: #3d375f;
   --color-primary-dark: #1e1b33;
-  --color-accent: #1B998B;
+  --color-accent: oklch(0.55 0.1 182);
   --color-accent-light: #22b8a8;
-  --color-accent-dark: #147a6f;
+  --color-accent-dark: oklch(0.48 0.09 182);
   --color-danger: #D7263D;
   --color-danger-light: #e8364d;
   --color-danger-dark: #b01e31;
@@ -28,12 +28,41 @@
   --color-ink: oklch(0.22 0.02 290);             /* primary text */
   --color-ink-soft: oklch(0.38 0.02 290);        /* secondary text */
   --color-ink-muted: oklch(0.5 0.018 290);       /* captions, placeholders, metadata */
+
+  /* Colored text. Separate from the fill colors because text needs more contrast than a badge tint or a border. */
+  --color-accent-ink: #147a6f;
+  --color-danger-ink: oklch(0.5 0.19 25);
+  --color-warning-ink: oklch(0.53 0.15 45);
+  --color-success-ink: oklch(0.5 0.12 125);
 }
 
 /* next/font defines these variables on the html element; "inline" makes the utilities read them there */
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  
+} 
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Same roles, new values. Left outside any @layer so it overrides Tailwind's theme layer. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: oklch(0.17 0.012 290);
+  --color-surface: oklch(0.205 0.014 290);
+  --color-sunken: oklch(0.245 0.016 290);
+  --color-sunken-strong: oklch(0.29 0.018 290);
+  --color-line: oklch(0.28 0.016 290);
+  --color-line-strong: oklch(0.42 0.02 290);
+  --color-ink: oklch(0.94 0.008 290);
+  --color-ink-soft: oklch(0.8 0.012 290);
+  --color-ink-muted: oklch(0.68 0.014 290);
+  --color-accent-ink: #22b8a8;
+  --color-danger-ink: oklch(0.7 0.17 22);
+  --color-warning-ink: #F46034;
+  --color-success-ink: #C5D86D;
 }
 
 @layer base {

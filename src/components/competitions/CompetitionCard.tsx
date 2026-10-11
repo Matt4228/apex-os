@@ -87,7 +87,7 @@ export default function CompetitionCard({
                 </div>
                 <button
                     onClick={() => onDelete(competition.id)}
-                    className="text-ink-muted hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+                    className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none flex-shrink-0"
                     aria-label={`Delete ${competition.title}`}
                 >
                     ×
@@ -170,7 +170,7 @@ export default function CompetitionCard({
                             Week complete
                         </label>
                     </div>
-                    {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+                    {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
                     <Button type="submit" size="sm" disabled={logging}>
                         {logging ? "Saving..." : "Save entry"}
                     </Button>

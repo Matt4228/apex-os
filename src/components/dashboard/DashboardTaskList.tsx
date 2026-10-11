@@ -14,9 +14,9 @@ type Task = {
 }
 
 const priorityStyles = {
-    high: "bg-danger/10 text-danger",
-    medium: "bg-warning/10 text-warning",
-    low: "bg-success/10 text-success-dark",
+    high: "bg-danger/10 text-danger-ink",
+    medium: "bg-warning/10 text-warning-ink",
+    low: "bg-success/10 text-success-ink",
 }
 
 export default function DashboardTaskList({ initialTasks }: { initialTasks: Task[] }) {
@@ -43,7 +43,7 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
 
     return (
         <div className="space-y-2">
-            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
             {visible.length === 0 ? (
                 <p className="text-sm text-ink-muted">No tasks remaining. Nice work.</p>
             ) : (

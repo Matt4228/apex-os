@@ -145,7 +145,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
 
     return (
         <div>
-            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
             {(editingBlock || createDraft) && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
                     <div 

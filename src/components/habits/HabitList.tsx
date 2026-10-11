@@ -71,7 +71,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
 
     return (
         <div>
-            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
             <div className="space-y-3 mb-6">
                 {active.map(habit => (
                     <HabitCard

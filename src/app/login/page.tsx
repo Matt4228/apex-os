@@ -72,7 +72,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-danger">{error}</p>
+            <p role="alert" className="text-sm text-danger-ink">{error}</p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -105,7 +105,7 @@ export default function LoginPage() {
 
         <p className="text-sm text-ink-muted text-center mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent-dark font-medium hover:underline">
+          <Link href="/register" className="text-accent-ink font-medium hover:underline">
             Create one
           </Link>
         </p>
