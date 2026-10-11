@@ -1,0 +1,111 @@
+// tests/lib/today.test.ts
+import { buildToday } from "@/lib/today"
+import { parseDateOnly } from "@/lib/dates"
+import { describe, expect, it } from "vitest"
+
+const TODAY = "2026-10-11"
+
+type Options = { status?: string; priority?: string; dueDate?: string; plannedFor?: string; createdAt?: string }
+
+const task = (id: string, o: Options = {}) => ({
+    id,
+    title: `Task ${id}`,
+    status: o.status ?? "todo",
+    priority: o.priority ?? "medium",
+    dueDate: o.dueDate ? parseDateOnly(o.dueDate) : null,
+    plannedFor: o.plannedFor ? parseDateOnly(o.plannedFor) : null,
+    createdAt: new Date(o.createdAt ?? "2026-10-01"),
+})
+
+type T = ReturnType<typeof task>
+
+const goal = (id: string, tasks: T[], status = "active") => ({
+    id,
+    title: `Goal ${id}`,
+    status,
+    targetValue: null,
+    entries: [],
+    tasks,
+})
+
+const ids = (list: { id: string }[]) => list.map(t => t.id)
+
+describe("buildToday", () => {
+    it("puts tasks planned for today in the plan, open ones before done ones", () => {
+        const today = buildToday({
+            tasks: [task("done", { status: "done", plannedFor: TODAY }), task("open", { plannedFor: TODAY })],
+            goals: [],
+            today: TODAY,
+        })
+        expect(ids(today.plan)).toEqual(["open", "done"])
+    })
+
+    it("lists open tasks planned for an earlier day as unfinished, but not done ones", () => {
+        const today = buildToday({
+            tasks: [task("missed", { plannedFor: "2026-10-10" }), task("finished", { status: "done", plannedFor:
+"2026-10-10" })],
+            goals: [],
+            today: TODAY,
+        })
+        expect(ids(today.unfinished)).toEqual(["missed"])
+    })
+
+    it("suggests open tasks due today or overdue as urgent, high priority first", () => {
+        const today = buildToday({
+            tasks: [
+                task("due-today", { priority: "medium", dueDate: TODAY }),
+                task("overdue-high", { priority: "high", dueDate: "2026-10-09" }),
+                task("future", { priority: "high", dueDate: "2026-10-12" }),
+                task("done-overdue", { status: "done", dueDate: "2026-10-09" }),
+            ],
+            goals: [],
+            today: TODAY,
+        })
+        expect(ids(today.urgent)).toEqual(["overdue-high", "due-today"])
+    })
+
+    it("shows an overdue task planned for today only in the plan", () => {
+        const today = buildToday({
+            tasks: [task("both", { dueDate: "2026-10-09", plannedFor: TODAY })],
+            goals: [],
+            today: TODAY,
+        })
+        expect(ids(today.plan)).toEqual(["both"])
+        expect(today.urgent).toEqual([])
+    })
+
+    it("shows an overdue task left from an earlier plan only as unfinished", () => {
+        const today = buildToday({
+            tasks: [task("both", { dueDate: "2026-10-09", plannedFor: "2026-10-10" })],
+            goals: [],
+            today: TODAY,
+        })
+        expect(ids(today.unfinished)).toEqual(["both"])
+        expect(today.urgent).toEqual([])
+    })
+
+    it("suggests each active goal's next step with the goal's name", () => {
+        const steps = [task("s1", { status: "done" }), task("s2", { dueDate: "2026-10-20" }), task("s3")]
+        const today = buildToday({ tasks: steps, goals: [goal("g1", steps)], today: TODAY })
+        expect(today.goalSteps).toEqual([{ goal: { id: "g1", title: "Goal g1" }, step: steps[1] }])
+    })
+
+    it("shows an overdue next step once, under urgent", () => {
+        const steps = [task("late", { dueDate: "2026-10-01" })]
+        const today = buildToday({ tasks: steps, goals: [goal("g1", steps)], today: TODAY })
+        expect(ids(today.urgent)).toEqual(["late"])
+        expect(today.goalSteps).toEqual([])
+    })
+
+    it("doesn't suggest a next step that is already planned for today", () => {
+        const steps = [task("planned", { plannedFor: TODAY })]
+        const today = buildToday({ tasks: steps, goals: [goal("g1", steps)], today: TODAY })
+        expect(today.goalSteps).toEqual([])
+    })
+
+    it("doesn't suggest steps from a completed goal", () => {
+        const steps = [task("s1")]
+        const today = buildToday({ tasks: steps, goals: [goal("g1", steps, "complete")], today: TODAY })
+        expect(today.goalSteps).toEqual([])
+    })
+})
