@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useState } from "react"
+import ThemeToggle from "@/components/layout/ThemeToggle"
+import type { Theme } from "@/lib/theme"
 
 const links = [
   { href: "/dashboard", label: "Home" },
@@ -14,7 +16,7 @@ const links = [
   { href: "/dashboard/competitions", label: "Competitions" },
 ]
 
-export default function Navbar({ userName }: { userName?: string | null }) {
+export default function Navbar({ userName, theme }: { userName?: string | null; theme: Theme }) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -43,6 +45,7 @@ export default function Navbar({ userName }: { userName?: string | null }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle initialTheme={theme} />
           {userName && (
             <span className="text-sm text-white/60 hidden md:block">{userName}</span>
           )}

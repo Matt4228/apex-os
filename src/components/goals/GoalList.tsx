@@ -77,7 +77,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
 
     return (
         <div>
-            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
             <div className="space-y-3 mb-6">
                 {active.map(goal => (
                     <GoalCard

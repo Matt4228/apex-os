@@ -79,7 +79,7 @@ export default function CreateTaskForm({ onCreated }: { onCreated: (task: Task) 
         />
       </div>
 
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={loading}>

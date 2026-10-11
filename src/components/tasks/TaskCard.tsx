@@ -16,9 +16,9 @@ type Task = {
 }
 
 const priorityStyles = {
-    high: "bg-danger/10 text-danger",
-    medium: "bg-warning/10 text-warning",
-    low: "bg-success/10 text-success-dark",
+    high: "bg-danger/10 text-danger-ink",
+    medium: "bg-warning/10 text-warning-ink",
+    low: "bg-success/10 text-success-ink",
 }
 
 export default function TaskCard({
@@ -122,7 +122,7 @@ export default function TaskCard({
                 {!isDone && (
                     <button 
                         onClick={() => setEditing(true)}
-                        className="text-xs text-ink-muted hover:text-accent transition-colors leading-none"
+                        className="text-xs text-ink-muted hover:text-accent-ink transition-colors leading-none"
                     >
                         Edit
                     </button>
@@ -130,7 +130,7 @@ export default function TaskCard({
                 <button
                     onClick={() => onDelete(task.id)}
                     disabled={isPending}
-                    className="text-ink-muted hover:text-danger transition-colors text-lg leading-none"
+                    className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none"
                     aria-label={`Delete ${task.title}`}
                 >
                     ×

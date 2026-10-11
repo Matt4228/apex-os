@@ -70,7 +70,7 @@ export default function HabitCard({
         </div>
         <button
           onClick={() => onDelete(habit.id)}
-          className="text-ink-muted hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+          className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none flex-shrink-0"
           aria-label={`Delete ${habit.title}`}
         >
           ×

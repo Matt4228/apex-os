@@ -127,7 +127,7 @@ export default function GoalCard({
                         className="flex-1"
                     />
                 </div>
-                {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+                {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
                 <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving}>
                         {saving ? "Saving..." : "Save"}
@@ -162,14 +162,14 @@ export default function GoalCard({
                     {!isComplete && (
                         <button 
                             onClick={() => setEditing(true)}
-                            className="text-xs text-ink-muted hover:text-accent transition-colors leading-none"
+                            className="text-xs text-ink-muted hover:text-accent-ink transition-colors leading-none"
                         >
                             Edit
                         </button>
                     )}
                     <button
                         onClick={() => onDelete(goal.id)}
-                        className="text-ink-muted hover:text-danger transition-colors text-lg leading-none flex-shrink-0"
+                        className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none flex-shrink-0"
                         aria-label={`Delete ${goal.title}`}
                     >
                         ×
@@ -247,7 +247,7 @@ export default function GoalCard({
                     </Button>
                 </form>
             )}
-            {error && <p role="alert" className="text-xs text-danger mt-2">{error}</p>}
+            {error && <p role="alert" className="text-xs text-danger-ink mt-2">{error}</p>}
 
             {goal.entries.length > 0 && (
                 <GoalProgressChart 

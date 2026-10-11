@@ -83,7 +83,7 @@ export default function CompetitionList({
 
     return (
         <div>
-            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
             <div className="space-y-4 mb-6">
                 {active.map(competition => (
                     <CompetitionCard 

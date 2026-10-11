@@ -58,7 +58,7 @@ export default function TaskList({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <div>
-      {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
       <div className="space-y-2 mb-6">
         {todo.map(task => (
           <TaskCard

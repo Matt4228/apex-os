@@ -138,7 +138,7 @@ export default function BlockForm({
                 ))}
             </div>
 
-            { error && <p role="alert" className="text-xs text-danger">{error}</p> }
+            { error && <p role="alert" className="text-xs text-danger-ink">{error}</p> }
             
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={loading}>
