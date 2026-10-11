@@ -13,10 +13,10 @@ export default function TimezoneCookie() {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
         const current = document.cookie
             .split("; ")
-            .find(c => c.startsWith(`{TIMEZONE_COOKIE}=`))
+            .find(c => c.startsWith(`${TIMEZONE_COOKIE}=`))
             ?.split("=")[1]
 
-        if (current != encodeURIComponent(timeZone)) {
+        if (current !== encodeURIComponent(timeZone)) {
             document.cookie = `${TIMEZONE_COOKIE}=${encodeURIComponent(timeZone)}; path=/; max-age=31536000; samesite=lax`
             router.refresh()
         }
