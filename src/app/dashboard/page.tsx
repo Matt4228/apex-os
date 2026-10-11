@@ -6,6 +6,8 @@ import { formatDateOnly, parseDateOnly, weekRangeOf } from "@/lib/dates"
 import { getUserToday } from "@/lib/user-today"
 import DashboardTaskList from "@/components/dashboard/DashboardTaskList"
 import { countCompletedWeeks, sortTasksByPriority } from "@/lib/dashboardStats"
+import { goalProgress } from "@/lib/goalProgress"
+import { ProgressBar } from "@/components/ui/progress-bar"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +35,7 @@ export default async function DashboardPage() {
                     orderBy: { loggedOn: "desc" },
                     take: 1,
                 },
+                tasks: true,
             },
         }),
         // The panel shows 4 goals, but the stat needs the real total
@@ -199,28 +202,28 @@ export default async function DashboardPage() {
                     ) : (
                         <div className="space-y-3">
                             {goals.map(goal => {
-                                const latest = goal.entries[0]
-                                const pct = goal.targetValue && latest
-                                    ? Math.min((latest.value / goal.targetValue) * 100, 100)
-                                    : null
+                                const progress = goalProgress(goal)
                                 return (
                                     <div key={goal.id}>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-ink-soft font-medium truncate">{goal.title}</span>
-                                            {pct !== null && (
-                                                <span className="text-ink-muted flex-shrink-0 ml-2">{Math.round(pct)}%</span>
+                                            <Link
+                                                href={`/dashboard/goals/${goal.id}`}
+                                                className="text-ink-soft font-medium truncate hover:text-ink"
+                                            >
+                                                {goal.title}
+                                            </Link>
+                                            {progress.kind !== "none" && (
+                                                <span className="text-ink-muted flex-shrink-0 ml-2">
+                                                    {progress.kind === "steps"
+                                                        ? `${progress.done}/${progress.total} steps`
+                                                        : `${progress.percent}%`}
+                                                </span>
                                             )}
                                         </div>
-                                        {pct !== null && (
-                                            <div className="h-1.5 bg-sunken rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-accent rounded-full transition-all"
-                                                    style={{ width: `${pct}%` }}
-                                                />
-                                            </div>
-                                        )}
-                                        {pct === null && (
+                                        {progress.kind === "none" ? (
                                             <p className="text-xs text-ink-muted">No progress logged yet</p>
+                                        ) : (
+                                            <ProgressBar percent={progress.percent} label={`${goal.title} progress`}/>
                                         )}
                                     </div>
                                 )

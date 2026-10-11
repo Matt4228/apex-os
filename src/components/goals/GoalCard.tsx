@@ -1,31 +1,15 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
-import { deleteGoal, updateGoalStatus, logGoalEntry, updateGoal } from "@/app/actions/goals"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
-import { formatDateOnly, toDateInputValue } from "@/lib/dates"
-import GoalProgressChart from "./GoalProgressChart"
-
-type Entry = {
-    id: string
-    value: number
-    note: string | null
-    loggedOn: Date
-}
-
-type Goal = {
-    id: string
-    title: string
-    description: string | null
-    category: string | null
-    status: string
-    targetDate: Date | null
-    targetValue: number | null
-    unit: string | null
-    entries: Entry[]
-}
+import { Button } from "@/components/ui/button"
+import { ProgressBar } from "@/components/ui/progress-bar"
+import { formatDateOnly } from "@/lib/dates"
+import { goalProgress } from "@/lib/goalProgress"
+import GoalEditForm from "./GoalEditForm"
+import LogEntryForm from "./LogEntryForm"
+import type { Entry, Goal } from "./types"
 
 export default function GoalCard({
     goal,
@@ -42,101 +26,22 @@ export default function GoalCard({
 }) {
     const [showLog, setShowLog] = useState(false)
     const [editing, setEditing] = useState(false)
-    const [logging, setLogging] = useState(false)
-    const [saving, setSaving] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
-    const latestEntry = goal.entries.reduce<Entry | undefined>(
-        (latest, entry) => 
-            !latest || new Date(entry.loggedOn) > new Date(latest.loggedOn) ? entry : latest,
-        undefined
-    )
-    const progress = goal.targetValue && latestEntry
-        ? Math.min((latestEntry.value / goal.targetValue)  * 100, 100)
-        : null
-
+    const progress = goalProgress(goal)
     const isComplete = goal.status === "complete"
-
-    async function handleLogEntry(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault()
-        setLogging(true)
-        setError(null)
-
-        const formData = new FormData(e.currentTarget)
-        const result = await logGoalEntry(goal.id, formData)
-
-        if (result?.error) {
-            setError(result.error)
-            setLogging(false)
-            return
-        }
-
-        if (result?.entry) {
-            onEntryLogged(goal.id, result.entry)
-        }
-        
-        setLogging(false)
-        setShowLog(false)
-        ;(e.target as HTMLFormElement).reset()
-    }
-
-    async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault()
-        setSaving(true)
-        setError(null)
-
-        const formData = new FormData(e.currentTarget)
-        const result = await updateGoal(goal.id, formData)
-
-        if (result?.error) {
-            setError(result.error)
-            setSaving(false)
-            return
-        }
-        
-        if (result?.goal) {
-            onUpdate(goal.id, result.goal)
-        }
-
-        setSaving(false)
-        setEditing(false)
-    }
 
     if (editing) {
         return (
-            <form onSubmit={handleEdit} className="bg-surface border border-accent rounded-lg p-5 space-y-3">
-                <Input name="title" defaultValue={goal.title} required autoFocus />
-                <Input name="description" placeholder="Description (optional)" defaultValue={goal.description ?? ""} className="flex-1" />
-                <div className="flex gap-2">
-                    <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""} className="flex-1" />
-                    <Input name="targetDate" type="date" defaultValue={goal.targetDate ? toDateInputValue(goal.targetDate) : ""} className="flex-1" />
-                </div>
-                <div className="flex gap-2">
-                    <Input 
-                        name="targetValue"
-                        type="number"
-                        step="any"
-                        placeholder="Target value (optional)"
-                        defaultValue={goal.targetValue ?? ""}
-                        className="flex-1"
-                    />
-                    <Input 
-                        name="unit"
-                        placeholder="Unit e.g. km, lbs"
-                        defaultValue={goal.unit ?? ""}
-                        className="flex-1"
-                    />
-                </div>
-                {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
-                <div className="flex gap-2">
-                    <Button type="submit" size="sm" disabled={saving}>
-                        {saving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                        Cancel
-                    </Button>
-                </div>
-            </form>
+            <div className="bg-surface border border-accent rounded-lg p-5">
+                <GoalEditForm
+                    goal={goal}
+                    onSaved={updated => {
+                        onUpdate(goal.id, updated)
+                        setEditing(false)
+                    }}
+                    onCancel={() => setEditing(false)}
+                />
+            </div>
         )
     }
 
@@ -146,7 +51,10 @@ export default function GoalCard({
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                         <h3 className={`text-sm font-medium text-ink ${isComplete ? "line-through" : ""}`}>
-                            {goal.title}
+                            <Link href={`/dashboard/goals/${goal.id}`} className="hover:text-accent-ink
+transition-colors">
+                                {goal.title}
+                            </Link>
                         </h3>
                         {goal.category && (
                             <span className="text-xs bg-sunken text-ink-soft px-2 py-0.5 rounded-full">
@@ -160,7 +68,7 @@ export default function GoalCard({
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     {!isComplete && (
-                        <button 
+                        <button
                             onClick={() => setEditing(true)}
                             className="text-xs text-ink-muted hover:text-accent-ink transition-colors leading-none"
                         >
@@ -169,31 +77,32 @@ export default function GoalCard({
                     )}
                     <button
                         onClick={() => onDelete(goal.id)}
-                        className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none flex-shrink-0"
+                        className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none
+flex-shrink-0"
                         aria-label={`Delete ${goal.title}`}
                     >
                         ×
                     </button>
                 </div>
-                
             </div>
 
-            {progress !== null && latestEntry && (
+            {progress.kind === "steps" && (
                 <div className="mb-3">
                     <div className="flex justify-between text-xs text-ink-muted mb-1">
-                        <span>
-                            {latestEntry.value} {goal.unit ?? ""}
-                        </span>
-                        <span>
-                            {goal.targetValue} {goal.unit ?? ""}
-                        </span>
+                        <span>{progress.done} of {progress.total} steps</span>
+                        <span>{progress.percent}%</span>
                     </div>
-                    <div className="h-1.5 bg-sunken rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-accent rounded-full transition-all"
-                            style={{ width: `${progress}%` }}
-                        />
+                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
+                </div>
+            )}
+
+            {progress.kind === "numeric" && (
+                <div className="mb-3">
+                    <div className="flex justify-between text-xs text-ink-muted mb-1">
+                        <span>{progress.value} {goal.unit ?? ""}</span>
+                        <span>{goal.targetValue} {goal.unit ?? ""}</span>
                     </div>
+                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
                 </div>
             )}
 
@@ -202,17 +111,14 @@ export default function GoalCard({
                     {goal.targetDate && (
                         <span>Due {formatDateOnly(goal.targetDate, "MMM d, yyyy")}</span>
                     )}
-                    {latestEntry && (
-                        <span>Last Logged {format(new Date(latestEntry.loggedOn), "MMM d")}</span>
+                    {progress.kind === "numeric" && (
+                        <span>Last logged {format(new Date(progress.loggedOn), "MMM d")}</span>
                     )}
                 </div>
                 <div className="flex gap-2">
-                    {!isComplete && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setShowLog(v => !v)}
-                        >
+                    {/* Steps measure progress once a goal has any, so logging numbers would do nothing */}
+                    {!isComplete && progress.kind !== "steps" && (
+                        <Button size="sm" variant="outline" onClick={() => setShowLog(v => !v)}>
                             Log progress
                         </Button>
                     )}
@@ -227,34 +133,16 @@ export default function GoalCard({
             </div>
 
             {showLog && (
-                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-line flex gap-2">
-                    <Input
-                        name="value"
-                        type="number"
-                        step="any"
-                        placeholder={goal.unit ? `Value (${goal.unit})` : "Value"}
-                        required
-                        className="flex-1"
-                        autoFocus
+                <div className="mt-4 pt-4 border-t border-line">
+                    <LogEntryForm
+                        goalId={goal.id}
+                        unit={goal.unit}
+                        onLogged={entry => {
+                            onEntryLogged(goal.id, entry)
+                            setShowLog(false)
+                        }}
                     />
-                    <Input
-                        name="note"
-                        placeholder="Note (optional)"
-                        className="flex-1"
-                    />
-                    <Button type="submit" size="sm" disabled={logging}>
-                        {logging ? "Saving..." : "Save"}
-                    </Button>
-                </form>
-            )}
-            {error && <p role="alert" className="text-xs text-danger-ink mt-2">{error}</p>}
-
-            {goal.entries.length > 0 && (
-                <GoalProgressChart 
-                    entries={goal.entries}
-                    targetValue={goal.targetValue}
-                    unit={goal.unit}
-                />
+                </div>
             )}
         </div>
     )

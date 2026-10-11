@@ -1,8 +1,12 @@
 # Apex OS
 
 ## What it is
-A personal operating system for goals, habits, tasks, a weekly schedule, and competitions.
-One place to plan the week and see whether you're following through.
+A to-do app with long-term tracking, used top down:
+1. Define the goals and habits you want.
+2. Build a weekly schedule around your appointments, with work blocks for getting things done.
+3. Create tasks from your goals, habits, schedule and competitions. Standalone tasks are allowed, but tasks that come
+from something bigger are the point.
+4. Compete with friends toward shared goals.
 
 ## Who it's for
 Portfolio first: recruiters and engineers clicking through the demo for a few minutes.

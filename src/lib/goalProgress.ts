@@ -4,7 +4,7 @@ export type Step = { id: string; title: string; status: string; dueDate: Date | 
 
 export type GoalProgress<T extends Step = Step> =
     | { kind: "steps"; done: number; total: number; percent: number; nextStep: T | null }
-    | { kind: "numeric"; percent: number }
+    | { kind: "numeric"; percent: number; value: number; loggedOn: Date }
     | { kind: "none" }
 
 type ProgressGoal<T extends Step> = {
@@ -43,5 +43,10 @@ export function goalProgress<T extends Step>(goal: ProgressGoal<T>): GoalProgres
         new Date(e.loggedOn).getTime() > new Date(newest.loggedOn).getTime() ? e : newest
     )
     const percent = Math.round((latest.value / goal.targetValue) * 100)
-    return { kind: "numeric", percent: Math.min(Math.max(percent, 0), 100) }
+    return {
+        kind: "numeric",
+        percent: Math.min(Math.max(percent, 0), 100),
+        value: latest.value,
+        loggedOn: latest.loggedOn,
+    }
 }

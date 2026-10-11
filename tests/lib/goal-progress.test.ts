@@ -88,14 +88,14 @@ describe("goalProgress", () => {
             entries: [entry(5, "2026-10-05"), entry(2, "2026-10-01")],
             tasks: [],
         })
-        expect(progress).toEqual({ kind: "numeric", percent: 25 })
+        expect(progress).toEqual({ kind: "numeric", percent: 25, value: 5, loggedOn: new Date("2026-10-05") })
     })
 
     it("caps numeric progress at 100 and floors it at 0", () => {
         expect(goalProgress({ targetValue: 10, entries: [entry(15, "2026-10-01")], tasks: [] }))
-            .toEqual({ kind: "numeric", percent: 100 })
+            .toMatchObject({ kind: "numeric", percent: 100 })
         expect(goalProgress({ targetValue: 10, entries: [entry(-3, "2026-10-01")], tasks: [] }))
-            .toEqual({ kind: "numeric", percent: 0 })
+            .toMatchObject({ kind: "numeric", percent: 0 })
     })
 
     it("has no progress without steps, a target, or any entries", () => {
