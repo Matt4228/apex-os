@@ -49,18 +49,25 @@ A personal growth CRM built for daily use. Track goals, habits, tasks, and compe
 # Install dependencies
 npm install
 
-# Add environment variables
+# Environment: copy the example and fill in your DEVELOPMENT database URLs
 cp .env.example .env.local
-# Fill in DATABASE_URL, DIRECT_URL, NEXT_PUBLIC_SUPABASE_URL,
-# NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXTAUTH_SECRET, NEXTAUTH_URL
 
-# Push database schema
-npx prisma migrate dev
+# Create the schema in the dev database, then add the demo account
+npx prisma migrate deploy
+npm run seed
 
 # Start dev server
 npm run dev
 ```
+## Database environments
 
+| | Development | Production |
+|---|---|---|
+| Database | Separate Supabase project | Production Supabase project |
+| Connection strings | `.env.local` | Vercel environment variables, plus a local `.env.prod` used only by the scripts
+below |
+| Schema changes | `npx prisma migrate dev --name <change>` | `npm run db:migrate:prod` (runs `prisma migrate deploy`)
+|
 ---
 
 ## Database schema
