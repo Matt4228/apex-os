@@ -3,17 +3,27 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
+import { timeToMinutes } from "@/lib/schedule-time"
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const
 
-const blockSchema = z.object({
-    dayOfWeek: z.string(),
-    startTime: z.string(),
-    endTime: z.string(),
-    label: z.string().min(1),
-    category: z.string().optional(),
-    color: z.string().optional(),
-})
+// 00:00 to 23:59. End times may also be 24:00, which is where a block dragged to the bottom of the grid ends.
+const START_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
+const END_TIME = /^(([01]\d|2[0-3]):[0-5]\d|24:00)$/
+
+const blockSchema = z
+    .object({
+        dayOfWeek: z.enum(DAYS, { error: "Pick a day of the week" }),
+        startTime: z.string().regex(START_TIME, "Start time must be HH:MM"),
+        endTime: z.string().regex(END_TIME, "End time must be HH:MM"),
+        label: z.string().min(1, "Give the block a label"),
+        category: z.string().optional(),
+        color: z.string().optional(),
+    })
+    .refine(b => timeToMinutes(b.endTime) > timeToMinutes(b.startTime), {
+        error: "End time must be after start time",
+        path: ["endTime"],
+    })
 
 export async function createScheduleBlock(formData: FormData) {
     const session = await auth()
@@ -28,10 +38,7 @@ export async function createScheduleBlock(formData: FormData) {
         color: formData.get("color") ? String(formData.get("color")) : undefined,
     })
 
-    if (!parsed.success) {
-        console.log("Zod validation failed:", JSON.stringify(parsed.error.issues, null, 2))
-        return { error: "Invalid input"}
-    }
+    if (!parsed.success) return { error: parsed.error.issues[0].message }
 
     const lastBlock = await prisma.scheduleBlock.findFirst({
         where: { userId: session.user.id, dayOfWeek: parsed.data.dayOfWeek },
@@ -76,7 +83,7 @@ export async function updateScheduleBlock(blockId: string, formData: FormData) {
         color: formData.get("color") || undefined,
     })
 
-    if (!parsed.success) return { error: "Schedule Component: Invalid input" }
+    if (!parsed.success) return { error: parsed.error.issues[0].message }
 
     const block = await prisma.scheduleBlock.update({
         where: { id: blockId, userId: session.user.id },

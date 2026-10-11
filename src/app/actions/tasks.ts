@@ -13,6 +13,8 @@ const taskSchema = z.object({
   goalId: z.string().optional(),
 })
 
+const taskStatusSchema = z.enum(["todo", "done"])
+
 export async function createTask(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
@@ -44,11 +46,15 @@ export async function updateTaskStatus(taskId: string, status: string) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
+  const parsed = taskStatusSchema.safeParse(status)
+
+  if (!parsed.success) return { error: "Invalid status" }
+
   await prisma.task.update({
     where: { id: taskId, userId: session.user.id },
     data: {
-      status,
-      completedAt: status === "done" ? new Date() : null,
+      status: parsed.data,
+      completedAt: parsed.data === "done" ? new Date() : null,
     },
   })
 }

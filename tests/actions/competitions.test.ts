@@ -1,5 +1,5 @@
 // tests/actions/competitions.test.ts
-import { logCompetitionEntry } from "@/app/actions/competitions"
+import { logCompetitionEntry, updateCompetitionStatus } from "@/app/actions/competitions"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
@@ -92,5 +92,16 @@ describe("logCompetitionEntry", () => {
             data: { competitionId: "comp-1", weekNumber: 1, value: 12, metric: "reps", weekComplete: false },
         })
         expect(prismaMock.competitionEntry.create).not.toHaveBeenCalled()
+    })
+})
+
+describe("updateCompetitionStatus", () => {
+    it("rejects a status that isn't active or complete", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+
+        const result = await updateCompetitionStatus("competition-1", "banana")
+
+        expect(result).toEqual({ error: "Invalid status" })
+        expect(prismaMock.competition.update).not.toHaveBeenCalled()
     })
 })
