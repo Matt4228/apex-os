@@ -4,8 +4,7 @@ import { useState } from "react"
 import { deleteGoal, updateGoalStatus } from "@/app/actions/goals"
 import GoalCard from "./GoalCard"
 import CreateGoalForm from "./CreateGoalForm"
-import { StringToBoolean } from "class-variance-authority/types"
-import { handleClientScriptLoad } from "next/script"
+import { restoreAt, succeeded } from "@/lib/optimistic"
 
 type Entry = {
     id: string
@@ -28,21 +27,35 @@ type Goal = {
 
 export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
     const [goals, setGoals] = useState<Goal[]>(initialGoals)
+    const [error, setError] = useState<string | null>(null)
 
     function handleCreate(goal: Goal) {
         setGoals(current => [goal, ...current])
     }
    
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
+        const index = goals.findIndex(g => g.id === id)
+        const goal = goals[index]
+        if (!goal) return
+        setError(null)
         setGoals(current => current.filter(g => g.id !== id))
-        deleteGoal(id)
+
+        if (!(await succeeded(deleteGoal(id)))) {
+            setGoals(current => restoreAt(current, goal, index))
+            setError(`Couldn't delete "${goal.title}". Check your connection and try again.`)
+        }
     }
 
-    function handleStatusChange(id: string, status: string) {
-        setGoals(current =>
-            current.map(g => g.id === id ? { ...g, status } : g)
-        )
-        updateGoalStatus(id, status)
+    async function handleStatusChange(id: string, status: string) {
+        const oldStatus = goals.find(g => g.id === id)?.status
+        if (!oldStatus) return
+        setError(null)
+        setGoals(current => current.map(g => g.id === id ? { ...g, status } : g))
+
+        if (!(await succeeded(updateGoalStatus(id, status)))) {
+            setGoals(current => current.map(g => g.id === id ? { ...g, status: oldStatus } : g))
+            setError("Couldn't update that goal. Check your connection and try again.")
+        }
     }
 
     function handleUpdate(id: string, updated: Partial<Goal>) {
@@ -66,6 +79,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
 
     return (
         <div>
+            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             <div className="space-y-3 mb-6">
                 {active.map(goal => (
                     <GoalCard

@@ -13,6 +13,7 @@ import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGr
 import HourLabels from "./HourLabels"
 import DayColumn from "./DayColumn"
 import BlockForm from "./BlockForm"
+import { restoreAt, succeeded } from "@/lib/optimistic"
 
 type Block = {
     id: string
@@ -35,6 +36,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
     const [activeDay, setActiveDate] = useState(() => DAYS[new Date().getDay()])
     const scrollRef = useRef<HTMLDivElement>(null)
     const todayName = DAYS[new Date().getDay()]
+    const [error, setError] = useState<string | null>(null)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -61,9 +63,17 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         return () => window.removeEventListener("keydown", onKeyDown)
     }, [dialogOpen])
 
-    function handleDelete(id: string) {
+    async function handleDelete(id: string) {
+        const index = blocks.findIndex(b => b.id === id)
+        const block = blocks[index]
+        if (!block) return
+        setError(null)
         setBlocks(current => current.filter(b => b.id !== id))
-        deleteScheduleBlock(id)
+
+        if (!(await succeeded(deleteScheduleBlock(id)))) {
+            setBlocks(current => restoreAt(current, block, index))
+            setError(`Couldn't delete "${block.label}". Check your connection and try again.`)
+        }
     }
 
     function handleEdit(block: Block) {
@@ -88,15 +98,20 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         })
     }
 
-    function persist(block: Block) {
+    async function persist(updated: Block, previous: Block) {
         const formData = new FormData()
-        formData.set("dayOfWeek", block.dayOfWeek)
-        formData.set("label", block.label)
-        formData.set("startTime", block.startTime)
-        formData.set("endTime", block.endTime)
-        formData.set("category", block.category ?? "")
-        formData.set("color", block.color ?? "")
-        updateScheduleBlock(block.id, formData)
+        formData.set("dayOfWeek", updated.dayOfWeek)
+        formData.set("label", updated.label)
+        formData.set("startTime", updated.startTime)
+        formData.set("endTime", updated.endTime)
+        formData.set("category", updated.category ?? "")
+        formData.set("color", updated.color ?? "")
+        setError(null)
+
+        if (!(await succeeded(updateScheduleBlock(updated.id, formData)))) {
+            setBlocks(current => current.map(b => b.id === previous.id ? previous : b))
+            setError(`Couldn't move "${previous.label}". It's back where it was.`)
+        }
     }
 
     function handleDragEnd(event: DragEndEvent) {
@@ -119,7 +134,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         }
 
         setBlocks(current => current.map(b => (b.id === updated.id ? updated : b)))
-        persist(updated)
+        persist(updated, block)
     }
 
     function handleResize(blockId: string, newEndTime: string) {
@@ -128,11 +143,12 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
 
         const updated: Block = { ...block, endTime: newEndTime }
         setBlocks(current => current.map(b => (b.id === updated.id ? updated : b)))
-        persist(updated)
+        persist(updated, block)
     }
 
     return (
         <div>
+            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             {(editingBlock || createDraft) && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
                     <div 

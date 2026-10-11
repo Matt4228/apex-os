@@ -90,6 +90,9 @@ export default function TaskCard({
     return (
         <div className={`bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3 transition-opacity ${isDone ? "opacity-60" : ""}`}>
             <button 
+                role="checkbox"
+                aria-checked={isDone}
+                aria-label={task.title}
                 onClick={() => onToggle(task.id, isDone ? "todo" : "done")}
                 disabled={isPending}
                 className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { updateTaskStatus } from "@/app/actions/tasks"
+import { restoreAt, succeeded } from "@/lib/optimistic"
 
 type Task = {
     id: string
@@ -20,15 +21,20 @@ const priorityStyles = {
 
 export default function DashboardTaskList({ initialTasks }: { initialTasks: Task[] }) {
     const [tasks, setTasks] = useState<Task[]>(initialTasks)
+    const [error, setError] = useState<string | null>(null)
 
-    function handleToggle(id: string) {
+    async function handleToggle(id: string) {
         const task = tasks.find(t => t.id === id)
         if (!task) return
-        const newStatus = task.status === "done" ? "todo" : "done"
-        setTasks(current =>
-            current.map(t => t.id === id ? { ...t, status: newStatus } : t)
-        )
-        updateTaskStatus(id, newStatus)
+        const oldStatus = task.status
+        const newStatus = oldStatus === "done" ? "todo" : "done"
+        setError(null)
+        setTasks(current => current.map(t => t.id === id ? { ...t, status: newStatus } : t))
+
+        if (!(await succeeded(updateTaskStatus(id, newStatus)))) {
+            setTasks(current => current.map(t => t.id === id ? { ...t, status: oldStatus } : t))
+            setError("Couldn't update that task. Check your connection and try again.")
+        }
     }
 
     const todo = tasks.filter(t => t.status === "todo")
@@ -37,6 +43,7 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
 
     return (
         <div className="space-y-2">
+            {error && <p role="alert" className="text-sm text-danger mb-3">{error}</p>}
             {visible.length === 0 ? (
                 <p className="text-sm text-slate-500">No tasks remaining. Nice work.</p>
             ) : (
@@ -48,6 +55,9 @@ export default function DashboardTaskList({ initialTasks }: { initialTasks: Task
                             className={`flex items-center gap-3 transition-opacity ${isDone ? "opacity-50" : ""}`}
                         >
                             <button
+                                role="checkbox"
+                                aria-checked={isDone}
+                                aria-label={task.title}
                                 onClick={() => handleToggle(task.id)}
                                 className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${
                                     isDone
