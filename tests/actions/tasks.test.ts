@@ -1,11 +1,15 @@
 // tests/actions/tasks.test.ts
-import { createTask, updateTask, updateTaskStatus } from "@/app/actions/tasks"
+import { createTask, planTask, updateTask, updateTaskStatus } from "@/app/actions/tasks"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
+import { parseDateOnly } from "@/lib/dates"
 
 // revalidatePath needs a Next request context, which tests don't have
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+
+// getUserToday reads request cookies; tests pin the user's today instead
+vi.mock("@/lib/user-today", () => ({ getUserToday: vi.fn(async () => "2026-10-11") }))
 
 function formDataFrom(entries: Record<string, string>): FormData {
     const formData = new FormData()
@@ -152,5 +156,65 @@ describe("updateTask", () => {
             where: { id: "task-1", userId: "user-1" },
             data: expect.objectContaining({ goalId: "goal-1" }),
         })
+    })
+})
+
+describe("planTask", () => {
+    beforeEach(() => {
+        mockedAuth.mockReset()
+    })
+
+    it("returns Unauthorized when there is no session", async () => {
+        mockedAuth.mockResolvedValue(null)
+
+        expect(await planTask("task-1", true)).toEqual({ error: "Unauthorized" })
+        expect(prismaMock.task.update).not.toHaveBeenCalled()
+    })
+
+    it("plans the caller's task for the user's today", async () => {
+        signedIn()
+
+        await planTask("task-1", true)
+
+        expect(prismaMock.task.update).toHaveBeenCalledWith({
+            where: { id: "task-1", userId: "user-1" },
+            data: { plannedFor: parseDateOnly("2026-10-11") },
+        })
+    })
+
+    it("clears the plan when unplanning", async () => {
+        signedIn()
+
+        await planTask("task-1", false)
+
+        expect(prismaMock.task.update).toHaveBeenCalledWith({
+            where: { id: "task-1", userId: "user-1" },
+            data: { plannedFor: null },
+        })
+    })
+})
+
+describe("createTask planned for today", () => {
+    beforeEach(() => {
+        mockedAuth.mockReset()
+    })
+
+    it("stores the user's today when the form asks for today", async () => {
+        signedIn()
+
+        await createTask(formDataFrom({ title: "Call the bank", priority: "high", plannedFor: "today" }))
+
+        expect(prismaMock.task.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ plannedFor: parseDateOnly("2026-10-11") }),
+        })
+    })
+
+    it("rejects any other plannedFor value instead of trusting a client date", async () => {
+        signedIn()
+
+        const result = await createTask(formDataFrom({ title: "Sneaky", priority: "high", plannedFor: "2030-01-01" }))
+
+        expect(result).toEqual({ error: "Invalid input" })
+        expect(prismaMock.task.create).not.toHaveBeenCalled()
     })
 })

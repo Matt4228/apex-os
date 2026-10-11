@@ -5,12 +5,14 @@ import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { parseDateOnly } from "@/lib/dates"
+import { getUserToday } from "@/lib/user-today"
 
 const taskSchema = z.object({
   title: z.string().min(1),
   priority: z.enum(["low", "medium", "high"]),
   dueDate: z.string().optional(),
   goalId: z.string().optional(),
+  plannedFor: z.literal("today").optional(),
 })
 
 const taskStatusSchema = z.enum(["todo", "done"])
@@ -33,6 +35,7 @@ export async function createTask(formData: FormData) {
     priority: formData.get("priority"),
     dueDate: formData.get("dueDate") || undefined,
     goalId: formData.get("goalId") || undefined,
+    plannedFor: formData.get("plannedFor") || undefined,
   })
 
   if (!parsed.success) return { error: "Invalid input" }
@@ -47,6 +50,7 @@ export async function createTask(formData: FormData) {
       priority: parsed.data.priority,
       dueDate: parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null,
       goalId: parsed.data.goalId || null,
+      plannedFor: parsed.data.plannedFor ? parseDateOnly(await getUserToday()) : null,
       status: "todo",
     },
   })
@@ -68,6 +72,17 @@ export async function updateTaskStatus(taskId: string, status: string) {
       status: parsed.data,
       completedAt: parsed.data === "done" ? new Date() : null,
     },
+  })
+}
+
+// Planning always means the user's today, worked out on the server
+export async function planTask(taskId: string, planned: boolean) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  await prisma.task.update({
+    where: { id: taskId, userId: session.user.id },
+    data: { plannedFor: planned ? parseDateOnly(await getUserToday()) : null },
   })
 }
 

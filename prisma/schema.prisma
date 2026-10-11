@@ -103,9 +103,12 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
+  plannedFor  DateTime?
 
   user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   goal        Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, plannedFor])
 }
 
 model Competition {
