@@ -1,5 +1,5 @@
 // src/lib/demo/seedDemo.ts
-// Relative imports only: `npm run seed` runs this through ts-node, which doesn't know the "@/" alias
+// Relative imports keep this file runnable outside Next.js: `npm run seed` runs it with tsx
 import type { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { parseDateOnly, todayIn } from "../dates"
