@@ -4,18 +4,7 @@ import { useState } from "react"
 import { createGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-type Goal = {
-    id: string
-    title: string
-    description: string | null
-    category: string | null
-    status: string
-    targetDate: Date | null
-    targetValue: number | null
-    unit: string | null
-    entries: never[]
-}
+import type { Goal }  from "./types"
 
 export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal) => void }) {
     const [open, setOpen] = useState(false)
@@ -37,7 +26,7 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
         }
 
         if (result?.goal) {
-            onCreated({ ...result.goal, entries: []})
+            onCreated({ ...result.goal, entries: [], tasks: []})
         }
 
         setLoading(false)

@@ -10,13 +10,22 @@ export default async function TasksPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
 
-    const tasks = sortTasksByPriority(
-        await prisma.task.findMany({
-            where: { userId: session.user.id }
-        })
-    )
+    const userId = session.user.id
+    const [allTasks, goals] = await Promise.all([
+        prisma.task.findMany({
+            where: { userId },
+            include: { goal: { select: { id: true, title: true } } },
+        }),
+        // Offered in the goal picker
+        prisma.goal.findMany({
+            where: { userId, status: "active" },
+            select: { id: true, title: true },
+            orderBy: { createdAt: "desc" },
+        }),
+    ])
 
-    const {todoCount, doneCount} = countTaskStatuses(tasks)
+    const tasks = sortTasksByPriority(allTasks)
+    const { todoCount, doneCount } = countTaskStatuses(tasks)
 
     return (
         <main className="max-w-5xl mx-auto px-6 py-10">
@@ -26,7 +35,7 @@ export default async function TasksPage() {
                     {todoCount} remaining · {doneCount} completed
                 </p>
             </div>
-            <TaskList initialTasks={tasks} />
+            <TaskList initialTasks={tasks} goals={goals} />
         </main>
     )
 }

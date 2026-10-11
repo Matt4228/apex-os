@@ -7,25 +7,7 @@ import CreateGoalForm from "./CreateGoalForm"
 import { succeeded } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
-
-type Entry = {
-    id: string
-    value: number
-    note: string | null
-    loggedOn: Date
-}
-
-type Goal = {
-    id: string
-    title: string
-    description: string | null
-    category: string | null
-    status: string
-    targetDate: Date | null
-    targetValue: number | null
-    unit: string | null
-    entries: Entry[]
-}
+import type { Entry, Goal } from "./types"
 
 export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
     const [goals, setGoals] = useState<Goal[]>(initialGoals)

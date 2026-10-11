@@ -17,6 +17,7 @@ export default async function GoalsPage() {
             entries: {
                 orderBy: { loggedOn: "asc" },
             },
+            tasks: true,
         },
     })
 

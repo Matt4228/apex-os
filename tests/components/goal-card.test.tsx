@@ -19,7 +19,18 @@ const baseGoal: Goal = {
     targetValue: 200,
     unit: "problems",
     entries: [],
+    tasks: [],
 }
+
+const step = (id: string, status: string) => ({
+    id,
+    title: `Step ${id}`,
+    status,
+    priority: "medium",
+    dueDate: null,
+    completedAt: null,
+    createdAt: new Date("2026-10-01"),
+})
 
 function renderCard(goal = baseGoal) {
     return render(
@@ -65,5 +76,18 @@ describe("GoalCard", () => {
         await user.click(screen.getByRole("button", { name: "Edit" }))
         
         expect(screen.getByDisplayValue("2026-12-31")).toBeInTheDocument()
+    })
+
+    it("links the title to the goal's page", () => {
+        renderCard()
+
+        expect(screen.getByRole("link", { name: baseGoal.title })).toHaveAttribute("href", "/dashboard/goals/goal-1")
+    })
+
+    it("shows steps progress, and no logging, for a goal with steps", () => {
+        renderCard({ ...baseGoal, tasks: [step("1", "done"), step("2", "todo")] })
+
+        expect(screen.getByText("1 of 2 steps")).toBeInTheDocument()
+        expect(screen.queryByRole("button", { name: "Log progress" })).not.toBeInTheDocument()
     })
 })
