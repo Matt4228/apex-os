@@ -1,5 +1,5 @@
 // tests/lib/today.test.ts
-import { buildToday } from "@/lib/today"
+import { buildToday, dueLabel } from "@/lib/today"
 import { parseDateOnly } from "@/lib/dates"
 import { describe, expect, it } from "vitest"
 
@@ -107,5 +107,31 @@ describe("buildToday", () => {
         const steps = [task("s1")]
         const today = buildToday({ tasks: steps, goals: [goal("g1", steps, "complete")], today: TODAY })
         expect(today.goalSteps).toEqual([])
+    })
+
+    it("suggests a goal's following step when its next one is already planned", () => {
+        const steps = [task("planned", { dueDate: "2026-10-15", plannedFor: TODAY }), task("after", { dueDate: "2026-10-20" })]
+        const today = buildToday({ tasks: steps, goals: [goal("g1", steps)], today: TODAY })
+        expect(today.goalSteps.map(s => s.step.id)).toEqual(["after"])
+    })
+})
+
+describe("dueLabel", () => {
+    it("says due today and due tomorrow", () => {
+        expect(dueLabel(parseDateOnly("2026-10-11"), TODAY)).toBe("due today")
+        expect(dueLabel(parseDateOnly("2026-10-12"), TODAY)).toBe("due tomorrow")
+    })
+
+    it("counts days overdue, singular for one", () => {
+        expect(dueLabel(parseDateOnly("2026-10-10"), TODAY)).toBe("1 day overdue")
+        expect(dueLabel(parseDateOnly("2026-10-08"), TODAY)).toBe("3 days overdue")
+    })
+
+    it("shows the date when it's further out", () => {
+        expect(dueLabel(parseDateOnly("2026-10-20"), TODAY)).toBe("due Oct 20")
+    })
+
+    it("works across a month boundary", () => {
+        expect(dueLabel(parseDateOnly("2026-09-30"), "2026-10-01")).toBe("1 day overdue")
     })
 })
