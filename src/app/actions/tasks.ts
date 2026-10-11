@@ -15,6 +15,15 @@ const taskSchema = z.object({
 
 const taskStatusSchema = z.enum(["todo", "done"])
 
+// A goalId comes from the client, so confirm it is the caller's goal before linking to it
+async function ownsGoal(userId: string, goalId: string) {
+  const goal = await prisma.goal.findFirst({
+    where: { id: goalId, userId },
+    select: { id: true },
+  })
+  return goal !== null
+}
+
 export async function createTask(formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
@@ -27,6 +36,9 @@ export async function createTask(formData: FormData) {
   })
 
   if (!parsed.success) return { error: "Invalid input" }
+  if (parsed.data.goalId && !(await ownsGoal(session.user.id, parsed.data.goalId))) {
+    return { error: "Goal not found" }
+  }
 
   const task = await prisma.task.create({
     data: {
@@ -72,6 +84,9 @@ export async function updateTask(taskId: string, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
+  // Forms without a goal field leave the link alone; an empty goal field means "no goal"
+  const goalFieldSent = formData.has("goalId")
+
   const parsed = taskSchema.safeParse({
     title: formData.get("title"),
     priority: formData.get("priority"),
@@ -81,15 +96,21 @@ export async function updateTask(taskId: string, formData: FormData) {
 
   if (!parsed.success) return { error: "Invalid input" }
 
+  if (parsed.data.goalId && !(await ownsGoal(session.user.id, parsed.data.goalId))) {
+    return { error: "Goal not found" }
+  }
+
   await prisma.task.update({
     where: { id: taskId, userId: session.user.id },
     data: {
       title: parsed.data.title,
       priority: parsed.data.priority,
       dueDate: parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null,
-      goalId: parsed.data.goalId || null,
+      ...(goalFieldSent ? { goalId: parsed.data.goalId ?? null } : {}),
     },
   })
 
   revalidatePath("/dashboard/tasks")
+  // "layout" covers the Goals list and every goal page under it
+  revalidatePath("/dashboard/goals", "layout")
 }
