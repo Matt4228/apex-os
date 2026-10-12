@@ -141,6 +141,7 @@ flex-shrink-0"
                             onEntryLogged(goal.id, entry)
                             setShowLog(false)
                         }}
+                        onCancel={() => setShowLog(false)}
                     />
                 </div>
             )}

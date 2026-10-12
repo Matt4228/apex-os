@@ -48,6 +48,12 @@ export default function CompetitionCard({
     const completedWeeks = countCompletedWeeks(competition.entries)
     const progress = totalWeeks > 0 ? Math.min((completedWeeks / totalWeeks) * 100, 100) : 0
 
+    function closeLog() {
+        setShowLog(false)
+        setError(null)
+        setWeekComplete(false)
+    }
+
     async function handleLogEntry(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setLogging(true)
@@ -140,7 +146,13 @@ export default function CompetitionCard({
             </div>
 
             {showLog && (
-                <form onSubmit={handleLogEntry} className="mt-4 pt-4 border-t border-line space-y-3">
+                <form
+                    onSubmit={handleLogEntry}
+                    onKeyDown={e => {
+                        if (e.key === "Escape") closeLog()
+                    }}
+                    className="mt-4 pt-4 border-t border-line space-y-3"
+                >
                     <div className="flex gap-2">
                         <Input 
                             name="metric"
@@ -171,9 +183,14 @@ export default function CompetitionCard({
                         </label>
                     </div>
                     {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
-                    <Button type="submit" size="sm" disabled={logging}>
-                        {logging ? "Saving..." : "Save entry"}
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button type="submit" size="sm" disabled={logging}>
+                            {logging ? "Saving..." : "Save entry"}
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={closeLog}>
+                            Cancel
+                        </Button>
+                    </div>
                 </form>
             )}
         </div>
