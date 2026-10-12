@@ -116,6 +116,52 @@ describe("buildToday", () => {
     })
 })
 
+describe("buildToday, the rest of the backlog", () => {
+    it("suggests tasks due in the next 7 days, after urgent, high priority first", () => {
+        const { urgent, dueSoon } = buildToday({
+            tasks: [
+                task("today", { dueDate: "2026-10-11" }),
+                task("tomorrow", { dueDate: "2026-10-12" }),
+                task("in-a-week", { dueDate: "2026-10-18", priority: "high" }),
+                task("eight-days", { dueDate: "2026-10-19" }),
+            ],
+            goals: [],
+            today: TODAY,
+        })
+
+        expect(ids(urgent)).toEqual(["today"])
+        expect(ids(dueSoon)).toEqual(["in-a-week", "tomorrow"])
+    })
+
+    it("puts every other open task under everything else, and nothing twice", () => {
+        const step = task("step", { dueDate: "2026-10-13" })
+        const { dueSoon, goalSteps, everythingElse } = buildToday({
+            tasks: [
+                step,
+                task("later", { dueDate: "2026-10-30" }),
+                task("no-date", { priority: "high" }),
+                task("finished", { status: "done" }),
+                task("planned", { plannedFor: TODAY }),
+            ],
+            goals: [goal("g", [step])],
+            today: TODAY,
+        })
+
+        // The step is due soon, so it shows there and the goal has no other step to suggest
+        expect(ids(dueSoon)).toEqual(["step"])
+        expect(goalSteps).toEqual([])
+        expect(ids(everythingElse)).toEqual(["no-date", "later"])
+    })
+
+    it("keeps a goal's next step out of everything else", () => {
+        const step = task("step")
+        const { goalSteps, everythingElse } = buildToday({ tasks: [step], goals: [goal("g", [step])], today: TODAY })
+
+        expect(goalSteps.map(s => s.step.id)).toEqual(["step"])
+        expect(everythingElse).toEqual([])
+    })
+})
+
 describe("dueLabel", () => {
     it("says due today and due tomorrow", () => {
         expect(dueLabel(parseDateOnly("2026-10-11"), TODAY)).toBe("due today")
@@ -178,13 +224,13 @@ describe("groupPlan", () => {
         expect(anytime.map(t => t.id)).toEqual(["a"])
     })
 
-    it("counts every task in each block, done ones included", () => {
-        const { counts } = groupPlan(
+    it("counts each block's done and total tasks for the rail", () => {
+        const { progress } = groupPlan(
             [planned("a", "morning"), planned("b", "morning", "done"), planned("c", null)],
             [morning, evening]
         )
 
-        expect(counts).toEqual({ morning: 2 })
+        expect(progress).toEqual({ morning: { done: 1, total: 2 } })
     })
 
     it("puts everything under anytime when today has no blocks", () => {

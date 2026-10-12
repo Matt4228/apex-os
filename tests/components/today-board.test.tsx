@@ -33,12 +33,22 @@ const suggestions = () => screen.getByRole("region", { name: "Add to today" })
 const rail = () => screen.getByRole("region", { name: "Schedule" })
 const groupHeadings = () => within(plan()).queryAllByRole("heading", { level: 4 }).map(h => h.textContent)
 
+// The picker is a Radix select: open it, then choose an option from the menu it draws
+async function pickBlock(user: ReturnType<typeof userEvent.setup>, title: string, option: RegExp) {
+    await user.click(screen.getByRole("combobox", { name: `Block for ${title}` }))
+    await user.click(await screen.findByRole("option", { name: option }))
+}
+
 const blocks = [
     { id: "b1", startTime: "09:00", endTime: "12:00", label: "Deep work" },
     { id: "b2", startTime: "17:00", endTime: "18:00", label: "Job search" },
 ]
 
 describe("TodayBoard", () => {
+    afterEach(() => {
+        localStorage.clear()
+    })
+
     beforeEach(() => {
         vi.mocked(createTask).mockReset()
         vi.mocked(planTask).mockReset()
@@ -100,17 +110,20 @@ describe("TodayBoard", () => {
     it("shows a goal's next step, and the one after once it's planned", async () => {
         const user = userEvent.setup()
         vi.mocked(planTask).mockResolvedValue(undefined)
+        // No due dates, so neither step is pulled into "Due in the next week"
         const steps = [
-            task("s1", "Add an index", { dueDate: "2026-10-15", goalId: "g1" }),
-            task("s2", "Write a post", { dueDate: "2026-10-20", goalId: "g1" }),
+            task("s1", "Add an index", { goalId: "g1" }),
+            task("s2", "Write a post", { goalId: "g1" }),
         ]
         render(<TodayBoard initialTasks={steps} goals={[{ id: "g1", title: "Postgres performance", status: "active" }]} today={TODAY} />)
-        expect(within(suggestions()).getByText("Add an index")).toBeInTheDocument()
-        expect(within(suggestions()).queryByText("Write a post")).not.toBeInTheDocument()
+        const addButton = (title: string) => within(suggestions()).queryByRole("button", { name: `Add to today: ${title}` })
+        expect(addButton("Add an index")).toBeInTheDocument()
+        // The second step waits in the closed "Everything else" list
+        expect(addButton("Write a post")).not.toBeInTheDocument()
 
-        await user.click(screen.getByRole("button", { name: "Add to today: Add an index" }))
+        await user.click(addButton("Add an index")!)
 
-        expect(within(suggestions()).getByText("Write a post")).toBeInTheDocument()
+        expect(addButton("Write a post")).toBeInTheDocument()
     })
 
     it("adds a new task straight into today's plan", async () => {
@@ -173,7 +186,7 @@ describe("TodayBoard", () => {
             vi.mocked(assignBlock).mockResolvedValue(undefined)
             render(<TodayBoard initialTasks={[task("t1", "Apply to roles", { plannedFor: TODAY })]} goals={[]} today={TODAY} blocks={blocks} />)
 
-            await user.selectOptions(screen.getByRole("combobox", { name: "Block for Apply to roles" }), "b2")
+            await pickBlock(user, "Apply to roles", /Job search/)
 
             expect(groupHeadings()).toEqual(["17:00 to 18:00 Job search"])
             expect(assignBlock).toHaveBeenCalledWith("t1", "b2")
@@ -184,34 +197,60 @@ describe("TodayBoard", () => {
             vi.mocked(assignBlock).mockResolvedValue({ error: "Block not found" })
             render(<TodayBoard initialTasks={[task("t1", "Apply to roles", { plannedFor: TODAY, block: "b1" })]} goals={[]} today={TODAY} blocks={blocks} />)
 
-            await user.selectOptions(screen.getByRole("combobox", { name: "Block for Apply to roles" }), "b2")
+            await pickBlock(user, "Apply to roles", /Job search/)
 
             expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't move that task")
             expect(groupHeadings()).toEqual(["09:00 to 12:00 Deep work"])
         })
 
-        it("takes a task out of its block and the rail count with Not today", async () => {
+        it("takes a task out of its block and the rail's progress with Not today", async () => {
             const user = userEvent.setup()
             vi.mocked(planTask).mockResolvedValue(undefined)
             render(<TodayBoard initialTasks={[task("t1", "Write tests", { plannedFor: TODAY, block: "b1" })]} goals={[]} today={TODAY} blocks={blocks} />)
-            expect(within(rail()).getByText("1 task")).toBeInTheDocument()
+            expect(within(rail()).getByText("0 of 1 done")).toBeInTheDocument()
 
             await user.click(screen.getByRole("button", { name: "Not today: Write tests" }))
 
             expect(groupHeadings()).toEqual([])
-            expect(within(rail()).queryByText("1 task")).not.toBeInTheDocument()
+            expect(within(rail()).queryByText("0 of 1 done")).not.toBeInTheDocument()
         })
 
-        it("moves the rail count with the task", async () => {
+        it("moves the rail's progress with the task", async () => {
             const user = userEvent.setup()
             vi.mocked(assignBlock).mockResolvedValue(undefined)
             render(<TodayBoard initialTasks={[task("t1", "Write tests", { plannedFor: TODAY, block: "b1" })]} goals={[]} today={TODAY} blocks={blocks} />)
 
-            await user.selectOptions(screen.getByRole("combobox", { name: "Block for Write tests" }), "b2")
+            await pickBlock(user, "Write tests", /Job search/)
 
             const railRow = (label: string) => within(rail()).getByText(label).closest("li")!
-            expect(railRow("Deep work")).not.toHaveTextContent(/task/)
-            expect(within(railRow("Job search")).getByText("1 task")).toBeInTheDocument()
+            expect(railRow("Deep work")).not.toHaveTextContent(/done/)
+            expect(within(railRow("Job search")).getByText("0 of 1 done")).toBeInTheDocument()
+        })
+
+        it("counts a block's finished tasks in the rail", async () => {
+            const user = userEvent.setup()
+            vi.mocked(updateTaskStatus).mockResolvedValue(undefined)
+            render(
+                <TodayBoard
+                    initialTasks={[
+                        task("t1", "Write tests", { plannedFor: TODAY, block: "b1" }),
+                        task("t2", "Review PR", { plannedFor: TODAY, block: "b1" }),
+                    ]}
+                    goals={[]}
+                    today={TODAY}
+                    blocks={blocks}
+                />
+            )
+
+            await user.click(screen.getByRole("checkbox", { name: "Write tests" }))
+
+            expect(within(rail()).getByText("1 of 2 done")).toBeInTheDocument()
+        })
+
+        it("shows Anytime in the picker for a task with no block", () => {
+            render(<TodayBoard initialTasks={[task("t1", "Pay rent", { plannedFor: TODAY })]} goals={[]} today={TODAY} blocks={blocks} />)
+
+            expect(screen.getByRole("combobox", { name: "Block for Pay rent" })).toHaveTextContent("Anytime")
         })
 
         it("marks the group for the block happening now", () => {
@@ -233,5 +272,52 @@ describe("TodayBoard", () => {
             expect(group(/Deep work/)).toHaveAttribute("aria-current", "time")
             expect(group(/Job search/)).not.toHaveAttribute("aria-current")
         })
+    })
+})
+
+describe("TodayBoard suggestions", () => {
+    afterEach(() => {
+        localStorage.clear()
+    })
+
+    const backlog = [
+        task("t1", "Pay rent", { dueDate: TODAY }),
+        task("t2", "Book flights", { dueDate: "2026-10-15" }),
+        task("t3", "Clean the garage"),
+    ]
+    const section = (name: RegExp) => within(suggestions()).getByRole("button", { name })
+
+    it("lists tasks due in the next week, open, with their count", () => {
+        render(<TodayBoard initialTasks={backlog} goals={[]} today={TODAY} />)
+
+        expect(section(/Due in the next week/)).toHaveAttribute("aria-expanded", "true")
+        expect(section(/Due in the next week/)).toHaveTextContent("1")
+        expect(within(suggestions()).getByRole("button", { name: "Add to today: Book flights" })).toBeInTheDocument()
+    })
+
+    it("keeps everything else closed until opened, showing how many it holds", async () => {
+        const user = userEvent.setup()
+        render(<TodayBoard initialTasks={backlog} goals={[]} today={TODAY} />)
+
+        expect(section(/Everything else/)).toHaveAttribute("aria-expanded", "false")
+        expect(section(/Everything else/)).toHaveTextContent("1")
+        expect(within(suggestions()).queryByRole("button", { name: "Add to today: Clean the garage" })).not.toBeInTheDocument()
+
+        await user.click(section(/Everything else/))
+
+        expect(within(suggestions()).getByRole("button", { name: "Add to today: Clean the garage" })).toBeInTheDocument()
+    })
+
+    it("closes a section, and remembers that for the next visit", async () => {
+        const user = userEvent.setup()
+        const { unmount } = render(<TodayBoard initialTasks={backlog} goals={[]} today={TODAY} />)
+
+        await user.click(section(/Urgent/))
+        expect(within(suggestions()).queryByRole("button", { name: "Add to today: Pay rent" })).not.toBeInTheDocument()
+
+        unmount()
+        render(<TodayBoard initialTasks={backlog} goals={[]} today={TODAY} />)
+
+        expect(section(/Urgent/)).toHaveAttribute("aria-expanded", "false")
     })
 })

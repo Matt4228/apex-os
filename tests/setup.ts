@@ -11,6 +11,19 @@ beforeEach(() => {
     mockReset(prisma)
 })
 
+// jsdom leaves out a few browser APIs that Radix menus call. No-op stand-ins are enough to open and pick
+if (typeof Element !== "undefined") {
+    Element.prototype.hasPointerCapture ??= () => false
+    Element.prototype.setPointerCapture ??= () => {}
+    Element.prototype.releasePointerCapture ??= () => {}
+    Element.prototype.scrollIntoView ??= () => {}
+    globalThis.ResizeObserver ??= class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+}
+
 // Unmount anything rendered by a component test, so tests don't see each other's DOM.
 // Testing Library only does this automatically when Vitest globals are enabled
 afterEach(() => {
