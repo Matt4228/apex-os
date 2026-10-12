@@ -17,12 +17,12 @@ describe("createGoal", () => {
         mockedAuth.mockReset()
     })
 
-    it("returns Unathorized when there is no session", async () => {
+    it("returns Unauthorized when there is no session", async () => {
         mockedAuth.mockResolvedValue(null)
 
         const result = await createGoal(formDataFrom({ title: "Run a marathon" }))
 
-        expect(result).toEqual({ error: "Unathorized" })
+        expect(result).toEqual({ error: "Unauthorized" })
         expect(prismaMock.goal.create).not.toHaveBeenCalled()
     })
 
@@ -65,7 +65,7 @@ describe("logGoalEntry", () => {
         mockedAuth.mockReset()
     })
 
-    it("returns Unathorized when there is no session", async () => {
+    it("returns Unauthorized when there is no session", async () => {
         mockedAuth.mockResolvedValue(null)
 
         const result = await logGoalEntry("goal-1", formDataFrom({ value: "5" }))

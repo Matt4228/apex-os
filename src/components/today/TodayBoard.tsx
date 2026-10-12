@@ -8,7 +8,7 @@ import CreateTaskForm from "@/components/tasks/CreateTaskForm"
 import type { Task } from "@/components/tasks/types"
 import TodaySchedule from "@/components/today/TodaySchedule"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import { buildToday, dueLabel, groupPlan, type PlanBlock } from "@/lib/today"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 
@@ -51,34 +51,35 @@ export default function TodayBoard({
     const nothingWaiting = unfinished.length + urgent.length + goalSteps.length === 0
 
     /** Change one task on screen now; put it back and explain if the server says no */
-    async function change(id: string, update: Partial<BoardTask>, save: () => Promise<unknown>, failure: string) {
+    async function change(id: string, update: Partial<BoardTask>, save: () => Promise<unknown>, what: string) {
         const before = tasks.find(t => t.id === id)
         if (!before) return
         setError(null)
         setTasks(current => current.map(t => (t.id === id ? { ...t, ...update } : t)))
 
-        if (!(await succeeded(save()))) {
+        const problem = await failureMessage(save(), what)
+        if (problem) {
             setTasks(current => current.map(t => (t.id === id ? before : t)))
-            setError(failure)
+            setError(problem)
         }
     }
 
     function toggle(task: BoardTask) {
         const status = task.status === "done" ? "todo" : "done"
-        return change(task.id, { status }, () => updateTaskStatus(task.id, status), "Couldn't update that task. Check your connection and try again.")
+        return change(task.id, { status }, () => updateTaskStatus(task.id, status), "update that task")
     }
 
     // Planning changes always start the task at anytime, matching planTask on the server
     function addToToday(id: string) {
-        return change(id, { plannedFor: parseDateOnly(today), scheduleBlockId: null }, () => planTask(id, true), "Couldn't add that to today. Check your connection and try again.")
+        return change(id, { plannedFor: parseDateOnly(today), scheduleBlockId: null }, () => planTask(id, true), "add that to today")
     }
 
     function notToday(id: string) {
-        return change(id, { plannedFor: null, scheduleBlockId: null }, () => planTask(id, false), "Couldn't take that off today. Check your connection and try again.")
+        return change(id, { plannedFor: null, scheduleBlockId: null }, () => planTask(id, false), "take that off today")
     }
 
     function moveToBlock(id: string, scheduleBlockId: string | null) {
-        return change(id, { scheduleBlockId }, () => assignBlock(id, scheduleBlockId), "Couldn't move that task. Check your connection and try again.")
+        return change(id, { scheduleBlockId }, () => assignBlock(id, scheduleBlockId), "move that task")
     }
 
     function handleCreated(task: Task) {

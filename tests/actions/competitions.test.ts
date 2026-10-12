@@ -29,7 +29,7 @@ describe("logCompetitionEntry", () => {
         mockedAuth.mockReset()
     })
 
-    it("returns Unathorized when there is no session", async () => {
+    it("returns Unauthorized when there is no session", async () => {
         mockedAuth.mockResolvedValue(null)
 
         const result = await logCompetitionEntry("comp-1", formDataFrom({ weekNumber: "1", value: "10", metric: "reps" }))

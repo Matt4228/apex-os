@@ -4,7 +4,7 @@ import { useState } from "react"
 import { deleteCompetition, updateCompetitionStatus } from "@/app/actions/competitions"
 import CompetitionCard from "./CompetitionCard"
 import CreateCompetitionForm from "./CreateCompetitionForm"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
 
@@ -33,7 +33,7 @@ export default function CompetitionList({
 }) {
     const [competitions, setCompetitions] = useState<Competition[]>(initialCompetitions)
     const [error, setError] = useState<string | null>(null)
-    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteCompetition, setError)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete("competition", deleteCompetition, setError)
 
     function handleCreate(competition: Competition) {
         setCompetitions(current => [competition, ...current])
@@ -52,9 +52,10 @@ export default function CompetitionList({
         setError(null)
         setCompetitions(current => current.map(c => c.id === id ? { ...c, status } : c))
 
-        if (!(await succeeded(updateCompetitionStatus(id, status)))) {
+        const problem = await failureMessage(updateCompetitionStatus(id, status), "update that competition")
+        if (problem) {
             setCompetitions(current => current.map(c => c.id === id ? { ...c, status: oldStatus } : c))
-            setError("Couldn't update that goal. Check your connection and try again.")
+            setError(problem)
         }
     }
 

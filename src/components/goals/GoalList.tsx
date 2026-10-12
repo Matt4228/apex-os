@@ -4,7 +4,7 @@ import { useState } from "react"
 import { deleteGoal, updateGoalStatus } from "@/app/actions/goals"
 import GoalCard from "./GoalCard"
 import CreateGoalForm from "./CreateGoalForm"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
 import type { Entry, Goal } from "./types"
@@ -12,7 +12,7 @@ import type { Entry, Goal } from "./types"
 export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
     const [goals, setGoals] = useState<Goal[]>(initialGoals)
     const [error, setError] = useState<string | null>(null)
-    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteGoal, setError)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete("goal", deleteGoal, setError)
 
     function handleCreate(goal: Goal) {
         setGoals(current => [goal, ...current])
@@ -31,9 +31,10 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
         setError(null)
         setGoals(current => current.map(g => g.id === id ? { ...g, status } : g))
 
-        if (!(await succeeded(updateGoalStatus(id, status)))) {
+        const problem = await failureMessage(updateGoalStatus(id, status), "update that goal")
+        if (problem) {
             setGoals(current => current.map(g => g.id === id ? { ...g, status: oldStatus } : g))
-            setError("Couldn't update that goal. Check your connection and try again.")
+            setError(problem)
         }
     }
 
