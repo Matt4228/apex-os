@@ -1,5 +1,5 @@
 // tests/lib/today.test.ts
-import { buildToday, dueLabel } from "@/lib/today"
+import { buildToday, dueLabel, groupPlan } from "@/lib/today"
 import { parseDateOnly } from "@/lib/dates"
 import { describe, expect, it } from "vitest"
 
@@ -133,5 +133,64 @@ describe("dueLabel", () => {
 
     it("works across a month boundary", () => {
         expect(dueLabel(parseDateOnly("2026-09-30"), "2026-10-01")).toBe("1 day overdue")
+    })
+})
+
+describe("groupPlan", () => {
+    const block = (id: string, startTime: string) => ({ id, startTime, endTime: "23:59", label: `Block ${id}` })
+    const planned = (id: string, scheduleBlockId: string | null, status = "todo") => ({ id, status, scheduleBlockId })
+
+    const morning = block("morning", "09:00")
+    const evening = block("evening", "17:00")
+
+    it("groups tasks by block in time order, whatever order the blocks arrive in", () => {
+        const { groups } = groupPlan([planned("a", "evening"), planned("b", "morning")], [evening, morning])
+
+        expect(groups.map(g => g.block.id)).toEqual(["morning", "evening"])
+        expect(groups.map(g => g.tasks.map(t => t.id))).toEqual([["b"], ["a"]])
+    })
+
+    it("leaves out blocks with no tasks", () => {
+        const { groups } = groupPlan([planned("a", "evening")], [morning, evening])
+
+        expect(groups.map(g => g.block.id)).toEqual(["evening"])
+    })
+
+    it("puts tasks without a block under anytime", () => {
+        const { anytime } = groupPlan([planned("a", null), planned("b", "morning")], [morning])
+
+        expect(anytime.map(t => t.id)).toEqual(["a"])
+    })
+
+    it("keeps the plan's order inside a group, so done tasks stay after open ones", () => {
+        const { groups } = groupPlan(
+            [planned("open", "morning"), planned("done", "morning", "done")],
+            [morning]
+        )
+
+        expect(groups[0].tasks.map(t => t.id)).toEqual(["open", "done"])
+    })
+
+    it("shows a task whose block isn't on today's schedule under anytime instead of hiding it", () => {
+        const { groups, anytime } = groupPlan([planned("a", "moved-to-monday")], [morning])
+
+        expect(groups).toEqual([])
+        expect(anytime.map(t => t.id)).toEqual(["a"])
+    })
+
+    it("counts every task in each block, done ones included", () => {
+        const { counts } = groupPlan(
+            [planned("a", "morning"), planned("b", "morning", "done"), planned("c", null)],
+            [morning, evening]
+        )
+
+        expect(counts).toEqual({ morning: 2 })
+    })
+
+    it("puts everything under anytime when today has no blocks", () => {
+        const { groups, anytime } = groupPlan([planned("a", null), planned("b", null)], [])
+
+        expect(groups).toEqual([])
+        expect(anytime).toHaveLength(2)
     })
 })

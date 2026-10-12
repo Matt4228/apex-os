@@ -71,3 +71,25 @@ export function dueLabel(dueDate: Date, today: string): string {
     if (days < 0) return `${-days} days overdue`
     return `due ${formatDateOnly(dueDate, "MMM d")}`
 }
+
+export type PlanBlock = { id: string; startTime: string; endTime: string; label: string }
+
+/**
+ * Splits today's plan by schedule block, in time order, keeping the plan's order inside each block.
+ * Tasks with no block, or whose block isn't on today's schedule any more, go under anytime,
+ * so nothing planned disappears. `counts` feeds the task numbers in the schedule rail
+ */
+export function groupPlan<T extends { scheduleBlockId: string | null }, B extends PlanBlock>(plan: T[], blocks: B[]) {
+    // "HH:MM" text sorts in time order because hours are zero padded
+    const groups = [...blocks]
+        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+        .map(block => ({ block, tasks: plan.filter(t => t.scheduleBlockId === block.id) }))
+        .filter(group => group.tasks.length > 0)
+
+    const todaysBlocks = new Set(blocks.map(b => b.id))
+    const anytime = plan.filter(t => t.scheduleBlockId === null || !todaysBlocks.has(t.scheduleBlockId))
+
+    const counts: Record<string, number> = Object.fromEntries(groups.map(g => [g.block.id, g.tasks.length]))
+
+    return { groups, anytime, counts }
+}

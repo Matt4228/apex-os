@@ -2,7 +2,7 @@
 // Relative imports keep this file runnable outside Next.js: `npm run seed` runs it with tsx
 import type { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
-import { parseDateOnly, todayIn } from "../dates"
+import { formatDateOnly, parseDateOnly, todayIn } from "../dates"
 
 export const DEMO_EMAIL = "demo@apex-os.app"
 export const DEMO_PASSWORD = "superP@ssword"
@@ -104,7 +104,12 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         prisma.scheduleBlock.deleteMany({ where: { userId } }),
     ])
 
-    await prisma.scheduleBlock.createMany({ data: SCHEDULE.map(block => ({ ...block, userId })) })
+    const blocks = await prisma.scheduleBlock.createManyAndReturn({ data: SCHEDULE.map(block => ({ ...block, userId})) })
+
+    // Some of today's plan sits in today's blocks: each task names the blocks it fits, and the first one on today's schedule wins
+    const todaysBlocks = blocks.filter(block => block.dayOfWeek === formatDateOnly(today, "EEEE"))
+    const blockFor = (...labels: string[]) =>
+        labels.map(label => todaysBlocks.find(block => block.label === label)).find(block => block !== undefined)?.id?? null
 
     // Goals with steps: the top of the flow. Steps are tasks, created with their goal
     await prisma.goal.create({
@@ -119,7 +124,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
                 create: [
                     { userId, title: "Update resume with recent projects", status: "done", priority: "high", createdAt: day(-30), completedAt: day(-12) },
                     { userId, title: "Write a README for the portfolio project", status: "done", priority: "medium", createdAt: day(-20), completedAt: day(-5) },
-                    { userId, title: "Apply to 10 backend roles", status: "todo", priority: "high", dueDate: day(2), plannedFor: day(0), createdAt: day(-14) },
+                    { userId, title: "Apply to 10 backend roles", status: "todo", priority: "high", dueDate: day(2), plannedFor: day(0), scheduleBlockId: blockFor("Job search: applications and outreach"), createdAt: day(-14) },
                     { userId, title: "Mock system design interview with a friend", status: "todo", priority: "medium", dueDate: day(9), createdAt: day(-14) },
                     { userId, title: "Ask 3 engineers for referrals", status: "todo", priority: "medium", createdAt: day(-10) },
                 ],
@@ -255,9 +260,9 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
     // Tasks outside any goal: today's plan, an unfinished task from yesterday, urgent ones, and history
     await prisma.task.createMany({
         data: [
-            { title: "Email the recruiter back about the phone screen", status: "todo", priority: "high", dueDate: day(1), plannedFor: day(0), createdAt: day(-1) },
-            { title: "Prep questions for Thursday's coffee chat", status: "todo", priority: "medium", plannedFor: day(0), createdAt: day(-3) },
-            { title: "Solve 3 LeetCode graph problems", status: "done", priority: "medium", plannedFor: day(0), createdAt: day(-1), completedAt: now },
+            { title: "Email the recruiter back about the phone screen", status: "todo", priority: "high", dueDate: day(1), plannedFor: day(0), scheduleBlockId: blockFor("Job search: applications and outreach", "Weekly review and planning"), createdAt: day(-1) },
+              { title: "Prep questions for Thursday's coffee chat", status: "todo", priority: "medium", plannedFor: day(0), scheduleBlockId: blockFor("Breakfast and planning", "Weekly review and planning"), createdAt: day(-3) },
+              { title: "Solve 3 LeetCode graph problems", status: "done", priority: "medium", plannedFor: day(0), scheduleBlockId: blockFor("Technical study block", "LeetCode practice"), createdAt: day(-1), completedAt: now },
             { title: "Read chapter 8 of Designing Data-Intensive Applications", status: "done", priority: "low", plannedFor: day(0), createdAt: day(-2), completedAt: now },
             { title: "Draft the portfolio demo script", status: "todo", priority: "medium", plannedFor: day(-1), createdAt: day(-4) },
             { title: "Pay rent", status: "todo", priority: "high", dueDate: day(0), createdAt: day(-6) },

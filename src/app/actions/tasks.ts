@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { parseDateOnly } from "@/lib/dates"
+import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
 import { getUserToday } from "@/lib/user-today"
 
 const taskSchema = z.object({
@@ -16,6 +16,9 @@ const taskSchema = z.object({
 })
 
 const taskStatusSchema = z.enum(["todo", "done"])
+
+// A block id comes from the client: a string, or null for "anytime". Anything else (like a Prisma filter object) is rejected
+const blockIdSchema = z.string().min(1).nullable()
 
 // A goalId comes from the client, so confirm it is the caller's goal before linking to it
 async function ownsGoal(userId: string, goalId: string) {
@@ -82,8 +85,46 @@ export async function planTask(taskId: string, planned: boolean) {
 
   await prisma.task.update({
     where: { id: taskId, userId: session.user.id },
-    data: { plannedFor: planned ? parseDateOnly(await getUserToday()) : null },
+    data: { plannedFor: planned ? parseDateOnly(await getUserToday()) : null, scheduleBlockId: null },
   })
+}
+
+// Puts one of today's planned tasks into one of today's schedule blocks, or back to anytime with null
+export async function assignBlock(taskId: string, blockId: string | null) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  const userId = session.user.id
+
+  const parsed = blockIdSchema.safeParse(blockId)
+  if (!parsed.success) return { error: "Invalid input" }
+
+  const today = await getUserToday()
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+    select: { plannedFor: true },
+  })
+  if (!task) return { error: "Task not found" }
+  if (!task.plannedFor || toDateInputValue(task.plannedFor) !== today) {
+    return { error: "Plan the task for today first" }
+  }
+
+  if (parsed.data !== null) {
+    const block = await prisma.scheduleBlock.findFirst({
+      where: { id: parsed.data, userId },
+      select: { dayOfWeek: true },
+    })
+    if (!block) return { error: "Block not found" }
+    if (block.dayOfWeek !== formatDateOnly(parseDateOnly(today), "EEEE")) {
+      return { error: "That block isn't on today's schedule" }
+    }
+  }
+
+  await prisma.task.update({
+    where: { id: taskId, userId },
+    data: { scheduleBlockId: parsed.data },
+  })
+  revalidatePath("/dashboard")
 }
 
 export async function deleteTask(taskId: string) {
