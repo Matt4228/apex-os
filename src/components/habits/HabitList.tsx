@@ -23,7 +23,7 @@ type Habit ={
     logs: HabitLog[]
 }
 
-export default function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
+export default function HabitList({ initialHabits, today }: { initialHabits: Habit[]; today: string }) {
     const [habits, setHabits] = useState<Habit[]>(initialHabits)
     const [error, setError] = useState<string | null>(null)
     const { pending, undo, requestDelete, isHidden } = useUndoableDelete("habit", deleteHabit, setError)
@@ -78,6 +78,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                         habit={habit}
                         onDelete={handleDelete}
                         onLogToggle={handleLogToggle}
+                        today={today}
                     />
                 ))}
                 <CreateHabitForm onCreated={handleCreate} />
@@ -95,6 +96,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                                 habit={habit}
                                 onDelete={handleDelete}
                                 onLogToggle={handleLogToggle}
+                                today={today}
                             />
                         ))}
                     </div>

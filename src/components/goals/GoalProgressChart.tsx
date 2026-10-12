@@ -49,7 +49,7 @@ export default function GoalProgressChart({
     return (
         <div className="mt-4 pt-4 border-t border-line">
             <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-3">
-                Progress over tiime {unit && `(${unit})`}
+                Progress over time {unit && `(${unit})`}
             </p>
             <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
