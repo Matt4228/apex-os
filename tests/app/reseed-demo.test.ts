@@ -15,6 +15,7 @@ describe("reseed-demo cron", () => {
         process.env.CRON_SECRET = "test-secret"
         prismaMock.user.upsert.mockResolvedValue({ id: "demo-1" } as never)
         prismaMock.goal.create.mockResolvedValue({ id: "goal-1" } as never)
+        prismaMock.scheduleBlock.createManyAndReturn.mockResolvedValue([])
     })
 
     it("keeps the demo user's id stable instead of deleting the user", async () => {
