@@ -9,7 +9,16 @@ import TaskCard from "./TaskCard"
 import CreateTaskForm from "./CreateTaskForm"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "../ui/undo-toast"
+import type { EmptyCopy } from "../ui/empty-state"
+import { ListChecks } from "lucide-react"
 import type { GoalOption, Task } from "./types"
+
+const NO_TASKS: EmptyCopy = {
+  icon: ListChecks,
+  title: "No tasks yet",
+  description: "Tasks are the things you need to get done. Give each one a priority and a due date, and link it to a goal.",
+  action: "Create your first task",
+}
 
 /** How long a new or edited task stays highlighted after it lands in its sorted place */
 export const HIGHLIGHT_MS = 2000
@@ -99,7 +108,13 @@ export default function TaskList({
             highlighted={highlight?.id === task.id}
           />
         ))}
-        <CreateTaskForm onCreated={handleCreate} goalId={goalId} goals={goals} />
+        <CreateTaskForm
+          onCreated={handleCreate}
+          goalId={goalId}
+          goals={goals}
+          // A goal's page explains itself, so only the Tasks page gets the empty state
+          empty={!goalId && visibleTasks.length === 0 ? NO_TASKS : undefined}
+        />
       </div>
 
       {done.length > 0 && (

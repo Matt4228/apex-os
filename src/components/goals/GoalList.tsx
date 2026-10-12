@@ -7,7 +7,16 @@ import CreateGoalForm from "./CreateGoalForm"
 import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
+import type { EmptyCopy } from "@/components/ui/empty-state"
+import { Target } from "lucide-react"
 import type { Entry, Goal } from "./types"
+
+const NO_GOALS: EmptyCopy = {
+    icon: Target,
+    title: "No goals yet",
+    description: "A goal is something you're working toward. Track it with steps, or with numbers like km run or books read.",
+    action: "Create your first goal",
+}
 
 export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
     const [goals, setGoals] = useState<Goal[]>(initialGoals)
@@ -72,7 +81,7 @@ export default function GoalList({ initialGoals }: {initialGoals: Goal[] }) {
                         onEntryLogged={handleEntryLogged}
                     />
                 ))}
-                <CreateGoalForm onCreated={handleCreate} />
+                <CreateGoalForm onCreated={handleCreate} empty={visibleGoals.length === 0 ? NO_GOALS : undefined} />
             </div>
 
             {complete.length > 0 && (

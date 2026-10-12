@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 import GoalSelect from "./GoalSelect"
 import type { GoalOption, Task } from "./types"
 
@@ -12,6 +13,7 @@ export default function CreateTaskForm({
   goalId,
   goals,
   planToday,
+  empty,
 }: {
   onCreated: (task: Task) => void
   /** Creates the task as a step of this goal */
@@ -20,6 +22,8 @@ export default function CreateTaskForm({
   goals?: GoalOption[]
   /** Plans the new task for today */
   planToday?: boolean
+  /** Set when the list is empty: shows what the page is for in place of the "+ Add" button */
+  empty?: EmptyCopy
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -49,6 +53,7 @@ export default function CreateTaskForm({
   }
 
   if (!open) {
+    if (empty) return <EmptyState {...empty} onAction={() => setOpen(true)} />
     return (
       <button
         onClick={() => setOpen(true)}
