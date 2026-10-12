@@ -15,7 +15,10 @@ export default defineConfig({
         setupFiles: ["./tests/setup.ts"],
         include: ["tests/**/*.test.{ts,tsx}"],
         coverage: {
-            reporter: ["text"],
-        } ,
+            provider: "v8",
+            // Measure every source file, not only the ones a test happens to import, so untested files show up as 0%
+            include: ["src/**/*.{ts,tsx}"],
+            reporter: ["text", "html"],
+        },
     },
 })
