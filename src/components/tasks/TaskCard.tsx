@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Target } from "lucide-react"
 import { updateTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,7 @@ export default function TaskCard({
     onDelete,
     onUpdate,
     isPending,
+    highlighted = false,
 }: {
     task: Task
     /** Goals to offer in the edit form; leave out to hide the goal picker */
@@ -31,8 +32,17 @@ export default function TaskCard({
     onDelete: (id: string) => void
     onUpdate: (id: string, updated: Partial<Task>) => void
     isPending: boolean
+    /** Just added or edited: outline the card and scroll it into view */
+    highlighted?: boolean
 }) {
     const [editing, setEditing] = useState(false)
+    const cardRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!highlighted) return
+        const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        cardRef.current?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" })
+    }, [highlighted])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const isDone = task.status === "done"
@@ -102,7 +112,13 @@ focus:outline-none focus:ring-2 focus:ring-accent"
     }
 
     return (
-        <div className={`bg-surface border border-line rounded-lg p-4 flex items-start gap-3 transition-opacity ${isDone ? "opacity-60" : ""}`}>
+        <div
+            ref={cardRef}
+            data-highlighted={highlighted || undefined}
+            className={`bg-surface border rounded-lg p-4 flex items-start gap-3 transition-[opacity,border-color,box-shadow] duration-500 ${
+                highlighted ? "border-accent ring-2 ring-accent/30" : "border-line"
+            } ${isDone ? "opacity-60" : ""}`}
+        >
             <button
                 role="checkbox"
                 aria-checked={isDone}

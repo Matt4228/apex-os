@@ -1,12 +1,13 @@
 // tests/components/task-list.test.tsx
 // @vitest-environment jsdom
 import TaskList from "@/components/tasks/TaskList"
-import { createTask, deleteTask, updateTaskStatus } from "@/app/actions/tasks"
+import { createTask, deleteTask, updateTask, updateTaskStatus } from "@/app/actions/tasks"
 import { parseDateOnly } from "@/lib/dates"
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest"
 import { UNDO_WINDOW_MS } from "@/lib/use-undoable-delete"
+import { HIGHLIGHT_MS } from "@/components/tasks/TaskList"
 
 vi.mock("@/app/actions/tasks", () => ({
     createTask: vi.fn(),
@@ -86,6 +87,73 @@ describe("TaskList when the server says no", () => {
         await act(() => vi.advanceTimersByTimeAsync(UNDO_WINDOW_MS))
         expect(deleteTask).toHaveBeenCalledWith("task-1")
         expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
+    })
+})
+
+describe("TaskList adding and editing", () => {
+    const make = (id: string, title: string, priority: string) => ({
+        id,
+        title,
+        status: "todo",
+        priority,
+        dueDate: null,
+        completedAt: null,
+        createdAt: new Date("2026-10-01"),
+    })
+    const order = () => screen.getAllByRole("checkbox").map(c => c.getAttribute("aria-label"))
+    const card = (title: string) => screen.getByRole("checkbox", { name: title }).parentElement!
+
+    beforeEach(() => {
+        vi.useFakeTimers({ shouldAdvanceTime: true })
+        vi.mocked(createTask).mockReset()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    async function addTask(title: string) {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        await user.click(screen.getByRole("button", { name: "+ Add a task" }))
+        await user.type(screen.getByPlaceholderText("Task title"), title)
+        await user.click(screen.getByRole("button", { name: "Add task" }))
+        await screen.findByRole("checkbox", { name: title })
+    }
+
+    it("puts a new task where the sort puts it, not at the top", async () => {
+        vi.mocked(createTask).mockResolvedValue({ task: { ...make("t3", "Book dentist", "medium"), createdAt: new Date() } } as never)
+        render(<TaskList initialTasks={[make("t1", "Ship release", "high"), make("t2", "Tidy desk", "low")]} />)
+
+        await addTask("Book dentist")
+
+        expect(order()).toEqual(["Ship release", "Book dentist", "Tidy desk"])
+    })
+
+    it("highlights the new task, announces it, and lets the highlight fade", async () => {
+        vi.mocked(createTask).mockResolvedValue({ task: { ...make("t3", "Book dentist", "medium"), createdAt: new Date() } } as never)
+        render(<TaskList initialTasks={[make("t1", "Ship release", "high")]} />)
+
+        await addTask("Book dentist")
+
+        expect(card("Book dentist")).toHaveAttribute("data-highlighted")
+        expect(card("Ship release")).not.toHaveAttribute("data-highlighted")
+        expect(screen.getByRole("status")).toHaveTextContent('Added "Book dentist"')
+
+        await act(() => vi.advanceTimersByTimeAsync(HIGHLIGHT_MS))
+        expect(card("Book dentist")).not.toHaveAttribute("data-highlighted")
+    })
+
+    it("moves an edited task to its new place and highlights it there", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        vi.mocked(updateTask).mockResolvedValue(undefined as never)
+        render(<TaskList initialTasks={[make("t1", "Ship release", "medium"), make("t2", "Tidy desk", "low")]} />)
+
+        await user.click(within(card("Tidy desk")).getByRole("button", { name: "Edit" }))
+        await user.selectOptions(screen.getByDisplayValue("Low priority"), "high")
+        await user.click(screen.getByRole("button", { name: "Save" }))
+
+        expect(order()).toEqual(["Tidy desk", "Ship release"])
+        expect(card("Tidy desk")).toHaveAttribute("data-highlighted")
     })
 })
 
