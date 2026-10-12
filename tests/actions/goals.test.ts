@@ -1,5 +1,5 @@
 // tests/actions/goals.tests.ts
-import { createGoal, logGoalEntry, updateGoalStatus } from "@/app/actions/goals"
+import { createGoal, logGoalEntry, updateGoal, updateGoalStatus } from "@/app/actions/goals"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
@@ -38,6 +38,7 @@ describe("createGoal", () => {
             targetDate: null,
             targetValue: 26.2,
             unit: null,
+            tracking: "latest",
             createdAt: new Date(),
             updatedAt: new Date(),
         })
@@ -56,6 +57,41 @@ describe("createGoal", () => {
 
         expect(prismaMock.goal.create).toHaveBeenCalledWith({
             data: expect.objectContaining({ unit: "km" }),
+        })
+    })
+})
+
+describe("how a goal's numbers add up", () => {
+    beforeEach(() => {
+        mockedAuth.mockReset()
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+    })
+
+    it("saves the kind picked in the form", async () => {
+        await createGoal(formDataFrom({ title: "Run 500 km", tracking: "total" }))
+
+        expect(prismaMock.goal.create).toHaveBeenCalledWith({ data: expect.objectContaining({ tracking: "total" }) })
+    })
+
+    it("uses the latest value when the form leaves it out", async () => {
+        await createGoal(formDataFrom({ title: "Weigh 75 kg" }))
+
+        expect(prismaMock.goal.create).toHaveBeenCalledWith({ data: expect.objectContaining({ tracking: "latest" }) })
+    })
+
+    it("rejects a kind it doesn't know, on create and on edit", async () => {
+        expect(await createGoal(formDataFrom({ title: "Run", tracking: "average" }))).toEqual({ error: "Invalid input" })
+        expect(await updateGoal("goal-1", formDataFrom({ title: "Run", tracking: "average" }))).toEqual({ error: "Invalid input" })
+        expect(prismaMock.goal.create).not.toHaveBeenCalled()
+        expect(prismaMock.goal.update).not.toHaveBeenCalled()
+    })
+
+    it("changes the kind on edit, scoped to the caller's goal", async () => {
+        await updateGoal("goal-1", formDataFrom({ title: "Run", tracking: "best" }))
+
+        expect(prismaMock.goal.update).toHaveBeenCalledWith({
+            where: { id: "goal-1", userId: "user-1" },
+            data: expect.objectContaining({ tracking: "best" }),
         })
     })
 })
@@ -99,6 +135,7 @@ describe("logGoalEntry", () => {
             targetDate: null,
             targetValue: null,
             unit: null,
+            tracking: "latest",
             createdAt: new Date(),
             updatedAt: new Date(),
         })

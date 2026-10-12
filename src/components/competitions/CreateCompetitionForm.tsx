@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createCompetition } from "@/app/actions/competitions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 
 type Competition = {
     id: string
@@ -17,8 +18,11 @@ type Competition = {
 
 export default function CreateCompetitionForm({
     onCreated,
+    empty,
 }: {
     onCreated: (competition: Competition) => void
+    /** Set when the list is empty: shows what the page is for in place of the "+ Add" button */
+    empty?: EmptyCopy
 }) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -47,6 +51,7 @@ export default function CreateCompetitionForm({
     }
 
     if (!open) {
+        if (empty) return <EmptyState {...empty} onAction={() => setOpen(true)} />
         return (
             <button
                 onClick={() => setOpen(true)}

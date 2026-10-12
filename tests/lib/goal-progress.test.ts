@@ -105,6 +105,26 @@ describe("goalProgress", () => {
 "none" })
     })
 
+    it("adds up a running total, rounding away float noise", () => {
+        const progress = goalProgress({
+            targetValue: 10,
+            tracking: "total",
+            entries: [entry(0.1, "2026-10-01"), entry(0.2, "2026-10-02"), entry(2.2, "2026-10-03")],
+            tasks: [],
+        })
+        expect(progress).toEqual({ kind: "numeric", percent: 25, value: 2.5, loggedOn: new Date("2026-10-03") })
+    })
+
+    it("keeps a personal best when a later entry is lower", () => {
+        const progress = goalProgress({
+            targetValue: 21.1,
+            tracking: "best",
+            entries: [entry(15, "2026-10-01"), entry(18.4, "2026-10-08"), entry(12, "2026-10-15")],
+            tasks: [],
+        })
+        expect(progress).toMatchObject({ kind: "numeric", value: 18.4, loggedOn: new Date("2026-10-15") })
+    })
+
     it("treats a target of 0 as no target instead of dividing by zero", () => {
         expect(goalProgress({ targetValue: 0, entries: [entry(3, "2026-10-01")], tasks: [] })).toEqual({ kind: "none"
 })

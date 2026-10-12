@@ -7,6 +7,8 @@ import CreateHabitForm from "./CreateHabitForm"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
+import type { EmptyCopy } from "@/components/ui/empty-state"
+import { Repeat } from "lucide-react"
 
 type HabitLog = {
     id: string
@@ -21,6 +23,13 @@ type Habit ={
     targetPerWeek: number
     isActive: boolean
     logs: HabitLog[]
+}
+
+const NO_HABITS: EmptyCopy = {
+    icon: Repeat,
+    title: "No habits yet",
+    description: "Habits are things you want to do regularly, like exercise or reading. Check them off each day to see your week fill in.",
+    action: "Create your first habit",
 }
 
 export default function HabitList({ initialHabits, today }: { initialHabits: Habit[]; today: string }) {
@@ -81,7 +90,7 @@ export default function HabitList({ initialHabits, today }: { initialHabits: Hab
                         today={today}
                     />
                 ))}
-                <CreateHabitForm onCreated={handleCreate} />
+                <CreateHabitForm onCreated={handleCreate} empty={visibleHabits.length === 0 ? NO_HABITS : undefined} />
             </div>
 
             {inactive.length > 0 && (

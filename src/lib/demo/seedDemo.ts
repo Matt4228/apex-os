@@ -169,7 +169,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         },
     })
 
-    // Numeric goals: progress logged as numbers instead of steps
+    // Numeric goals: progress logged as numbers instead of steps, one of each way they add up
     await prisma.goal.create({
         data: {
             userId,
@@ -198,7 +198,8 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
             category: "Fitness",
             status: "active",
             targetValue: 21.1,
-            unit: "km longest run",
+            unit: "km",
+            tracking: "best",
             targetDate: day(60),
             entries: {
                 create: Array.from({ length: 16 }, (_, i) => ({
@@ -218,9 +219,10 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
             status: "active",
             targetValue: 12,
             unit: "books",
+            tracking: "total",
             targetDate: day(80),
             entries: {
-                create: BOOKS.map((note, i) => ({ value: i + 1, note, loggedOn: day(-(6 - i) * 18) })),
+                create: BOOKS.map((note, i) => ({ value: 1, note, loggedOn: day(-(6 - i) * 18) })),
             },
         },
     })

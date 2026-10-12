@@ -9,6 +9,7 @@ import { formatDateOnly } from "@/lib/dates"
 import { goalProgress } from "@/lib/goalProgress"
 import GoalEditForm from "./GoalEditForm"
 import LogEntryForm from "./LogEntryForm"
+import { trackingWords, withUnit } from "./tracking"
 import type { Entry, Goal } from "./types"
 
 export default function GoalCard({
@@ -28,6 +29,7 @@ export default function GoalCard({
     const [editing, setEditing] = useState(false)
 
     const progress = goalProgress(goal)
+    const words = trackingWords(goal.tracking)
     const isComplete = goal.status === "complete"
 
     if (editing) {
@@ -99,8 +101,8 @@ flex-shrink-0"
             {progress.kind === "numeric" && (
                 <div className="mb-3">
                     <div className="flex justify-between text-xs text-ink-muted mb-1">
-                        <span>{progress.value} {goal.unit ?? ""}</span>
-                        <span>{goal.targetValue} {goal.unit ?? ""}</span>
+                        <span>{words.value(withUnit(progress.value, goal.unit))}</span>
+                        <span>Target {withUnit(goal.targetValue, goal.unit)}</span>
                     </div>
                     <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
                 </div>
@@ -119,7 +121,7 @@ flex-shrink-0"
                     {/* Steps measure progress once a goal has any, so logging numbers would do nothing */}
                     {!isComplete && progress.kind !== "steps" && (
                         <Button size="sm" variant="outline" onClick={() => setShowLog(v => !v)}>
-                            Log progress
+                            {words.log}
                         </Button>
                     )}
                     <Button
@@ -137,6 +139,7 @@ flex-shrink-0"
                     <LogEntryForm
                         goalId={goal.id}
                         unit={goal.unit}
+                        tracking={goal.tracking}
                         onLogged={entry => {
                             onEntryLogged(goal.id, entry)
                             setShowLog(false)

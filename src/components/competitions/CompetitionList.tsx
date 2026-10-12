@@ -7,6 +7,8 @@ import CreateCompetitionForm from "./CreateCompetitionForm"
 import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
+import type { EmptyCopy } from "@/components/ui/empty-state"
+import { Trophy } from "lucide-react"
 
 type Entry = {
     id: string
@@ -24,6 +26,13 @@ type Competition = {
     endDate: Date
     rulesJson: string | null
     entries: Entry[]
+}
+
+const NO_COMPETITIONS: EmptyCopy = {
+    icon: Trophy,
+    title: "No competitions yet",
+    description: "A competition is a challenge with weekly targets over a set number of weeks. Log each week and count the weeks you win.",
+    action: "Create your first competition",
 }
 
 export default function CompetitionList({
@@ -95,7 +104,10 @@ export default function CompetitionList({
                         onEntryLogged={handleEntryLogged}
                     />
                 ))}
-                <CreateCompetitionForm onCreated={handleCreate} />
+                <CreateCompetitionForm
+                    onCreated={handleCreate}
+                    empty={visibleCompetitions.length === 0 ? NO_COMPETITIONS : undefined}
+                />
             </div>
 
             {complete.length > 0 && (

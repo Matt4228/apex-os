@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createHabit } from "@/app/actions/habits"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 
 type Habit = {
     id: string
@@ -17,8 +18,11 @@ type Habit = {
 
 export default function CreateHabitForm({
     onCreated,
+    empty,
 }: {
     onCreated: (habit: Habit) => void
+    /** Set when the list is empty: shows what the page is for in place of the "+ Add" button */
+    empty?: EmptyCopy
 }) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -48,6 +52,7 @@ export default function CreateHabitForm({
     }
 
     if (!open) {
+        if (empty) return <EmptyState {...empty} onAction={() => setOpen(true)} />
         return (
             <button
                 onClick={() => setOpen(true)}

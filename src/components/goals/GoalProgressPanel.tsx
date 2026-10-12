@@ -6,6 +6,7 @@ import { formatDateOnly } from "@/lib/dates"
 import { goalProgress, type Step } from "@/lib/goalProgress"
 import GoalProgressChart from "./GoalProgressChart"
 import LogEntryForm from "./LogEntryForm"
+import { trackingWords, withUnit } from "./tracking"
 import type { Entry, Goal } from "./types"
 
 export default function GoalProgressPanel({
@@ -14,7 +15,7 @@ export default function GoalProgressPanel({
     onEntryLogged,
     onComplete,
 }: {
-    goal: Pick<Goal, "id" | "title" | "status" | "targetValue" | "unit" | "entries">
+    goal: Pick<Goal, "id" | "title" | "status" | "targetValue" | "unit" | "tracking" | "entries">
     steps: Step[]
     onEntryLogged: (entry: Entry) => void
     onComplete: () => void
@@ -56,15 +57,20 @@ export default function GoalProgressPanel({
             {progress.kind === "numeric" && (
                 <div>
                     <div className="flex justify-between text-sm text-ink-muted mb-2">
-                        <span>{progress.value} {goal.unit ?? ""}</span>
-                        <span>{goal.targetValue} {goal.unit ?? ""}</span>
+                        <span>{trackingWords(goal.tracking).value(withUnit(progress.value, goal.unit))}</span>
+                        <span>Target {withUnit(goal.targetValue, goal.unit)}</span>
                     </div>
                     <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
                 </div>
             )}
-            {isActive && <LogEntryForm goalId={goal.id} unit={goal.unit} onLogged={onEntryLogged} />}
+            {isActive && <LogEntryForm goalId={goal.id} unit={goal.unit} tracking={goal.tracking} onLogged={onEntryLogged} />}
             {goal.entries.length > 0 && (
-                <GoalProgressChart entries={goal.entries} targetValue={goal.targetValue} unit={goal.unit} />
+                <GoalProgressChart
+                    entries={goal.entries}
+                    targetValue={goal.targetValue}
+                    unit={goal.unit}
+                    tracking={goal.tracking}
+                />
             )}
         </section>
     )

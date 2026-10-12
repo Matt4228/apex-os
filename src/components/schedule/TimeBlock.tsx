@@ -17,6 +17,8 @@ type Block = {
 }
 
 const MIN_DURATION_MINUTES = 5
+// Below this height two lines don't fit, so the time moves up beside the label
+const ONE_LINE_BELOW_PX = 36
 
 export default function TimeBlock({
     block,
@@ -49,6 +51,7 @@ export default function TimeBlock({
     const widthPct = 100 / columnCount
     const leftPct = widthPct * column
     const previewHeight = Math.max(height + resizeDeltaY, 18)
+    const oneLine = previewHeight < ONE_LINE_BELOW_PX
 
     function handleResizeStart(e: React.PointerEvent) {
         e.stopPropagation()
@@ -89,7 +92,9 @@ export default function TimeBlock({
             {...attributes}
             {...listeners}
             onClick={() => onEdit(block)}
-            className="absolute rounded-md px-2 py-1 overflow-hidden group cursor-grab active:cursor-grabbing border border-white/40"
+            className={`absolute rounded-md px-2 overflow-hidden group cursor-grab active:cursor-grabbing border border-white/40 ${
+                oneLine ? "py-0.5" : "py-1"
+            }`}
             style={{
                 top,
                 height: previewHeight,
@@ -101,10 +106,19 @@ export default function TimeBlock({
                 zIndex: isDragging || resizing ? 20 : 1,
             }}
         >
-            <p className="text-xs font-medium text-white truncate pointer-events-none">{block.label}</p>
-            <p className="text-[10px] text-white/70 truncate pointer-events-none">
-                {block.startTime} - {block.endTime}
-            </p>
+            {oneLine ? (
+                <p className="flex items-baseline gap-1.5 text-xs leading-tight text-white pointer-events-none">
+                    <span className="font-medium truncate">{block.label}</span>
+                    <span className="text-[10px] text-white/70 flex-shrink-0">{block.startTime}</span>
+                </p>
+            ) : (
+                <>
+                    <p className="text-xs font-medium text-white truncate pointer-events-none">{block.label}</p>
+                    <p className="text-[10px] text-white/70 truncate pointer-events-none">
+                        {block.startTime} - {block.endTime}
+                    </p>
+                </>
+            )}
 
             <button 
                 onClick={(e) => {

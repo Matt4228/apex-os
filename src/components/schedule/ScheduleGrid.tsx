@@ -29,9 +29,16 @@ type Block = {
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-const PX_PER_MINUTE = 1
+export const PX_PER_MINUTE = 1
 
-export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[] }) {
+export default function ScheduleGrid({
+    initialBlocks,
+    pxPerMinute = PX_PER_MINUTE,
+}: {
+    initialBlocks: Block[]
+    /** Height of one minute; the scale comparison page passes a few */
+    pxPerMinute?: number
+}) {
     const [blocks, setBlocks] = useState<Block[]>(initialBlocks)
     const [editingBlock, setEditingBlock] = useState<Block | null>(null)
     const [createDraft, setCreateDraft] = useState<{ day: string; startTime: string; endTime: string } | null>(null)
@@ -46,8 +53,8 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
     )
 
     useEffect(() => {
-        scrollRef.current?.scrollTo({ top: SCROLL_TO_HOUR * 60 * PX_PER_MINUTE })
-    }, [])
+        scrollRef.current?.scrollTo({ top: SCROLL_TO_HOUR * 60 * pxPerMinute })
+    }, [pxPerMinute])
 
     
     function closeDialog() {
@@ -118,7 +125,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         if (!block) return 
 
         const duration = timeToMinutes(block.endTime) - timeToMinutes(block.startTime)
-        const rawStart = timeToMinutes(block.startTime) + pixelsToMinutes(delta.y, PX_PER_MINUTE)
+        const rawStart = timeToMinutes(block.startTime) + pixelsToMinutes(delta.y, pxPerMinute)
         const clampedStart = Math.min(Math.max(rawStart, 0), 24 * 60 - duration)
         const newStartMinutes = snapToGrid(clampedStart, 5)
         const newEndMinutes = newStartMinutes + duration
@@ -200,14 +207,14 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
 
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                 <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-line rounded-xl">
-                    <HourLabels pxPerMinute={PX_PER_MINUTE} />
+                    <HourLabels pxPerMinute={pxPerMinute} />
 
                     {/* Mobile: singled day */}
                     <div className="flex-1 md:hidden">
                         <DayColumn
                             day={activeDay}
                             blocks={blocks.filter(b => b.dayOfWeek === activeDay && !isHidden(b.id))}
-                            pxPerMinute={PX_PER_MINUTE}
+                            pxPerMinute={pxPerMinute}
                             isToday={activeDay === todayName}
                             onDelete={handleDelete}
                             onEdit={handleEdit}
@@ -223,7 +230,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
                                 key={day}
                                 day={day}
                                 blocks={blocks.filter(b => b.dayOfWeek === day && !isHidden(b.id))}
-                                pxPerMinute={PX_PER_MINUTE}
+                                pxPerMinute={pxPerMinute}
                                 isToday={day === todayName}
                                 onDelete={handleDelete}
                                 onEdit={handleEdit}

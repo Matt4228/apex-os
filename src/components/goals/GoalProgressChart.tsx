@@ -11,6 +11,7 @@ import {
     ReferenceLine,
 } from "recharts"
 import { format } from "date-fns"
+import { trackedValue } from "@/lib/goalProgress"
 
 type Entry = {
     id: string
@@ -23,10 +24,12 @@ export default function GoalProgressChart({
     entries,
     targetValue,
     unit,
+    tracking,
 }: {
     entries: Entry[]
     targetValue: number | null
     unit: string | null
+    tracking?: string
 }) {
     if (entries.length === 0) {
         return (
@@ -40,9 +43,10 @@ export default function GoalProgressChart({
         (a, b) => new Date(a.loggedOn).getTime() - new Date(b.loggedOn).getTime()
     )
 
-    const data = sorted.map(e => ({
+    const data = sorted.map((e, i) => ({
         date: format(new Date(e.loggedOn), "MMM d"),
-        value: e.value,
+        // A running total plots the sum so far, so the line climbs toward the target
+        value: tracking === "total" ? trackedValue(sorted.slice(0, i + 1), "total") : e.value,
         note: e.note,
     }))
 

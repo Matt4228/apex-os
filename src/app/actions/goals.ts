@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { parseDateOnly } from "@/lib/dates"
+import { TRACKING } from "@/lib/goalProgress"
 
 const goalSchema = z.object({
     title: z.string().min(1),
@@ -12,6 +13,7 @@ const goalSchema = z.object({
     targetDate: z.string().optional(),
     targetValue: z.string().optional(),
     unit: z.string().optional(),
+    tracking: z.enum(TRACKING).optional(),
 })
 
 const goalStatusSchema = z.enum(["active", "complete"])
@@ -27,6 +29,7 @@ export async function createGoal(formData: FormData) {
         targetDate: formData.get("targetDate") || undefined,
         targetValue: formData.get("targetValue") || undefined,
         unit: formData.get("unit") || undefined,
+        tracking: formData.get("tracking") || undefined,
     })
 
     if (!parsed.success) return { error: "Invalid input"}
@@ -40,6 +43,7 @@ export async function createGoal(formData: FormData) {
             targetDate: parsed.data.targetDate ? parseDateOnly(parsed.data.targetDate) : null,
             targetValue: parsed.data.targetValue ? parseFloat(parsed.data.targetValue) : null,
             unit: parsed.data.unit || null,
+            tracking: parsed.data.tracking ?? "latest",
             status: "active",
         },
     })
@@ -105,8 +109,11 @@ export async function updateGoal(goalId: string, formData: FormData) {
     const targetDate = formData.get("targetDate")
     const targetValue = formData.get("targetValue")
     const unit = formData.get("unit")
+    // Left out means unchanged
+    const tracking = z.enum(TRACKING).optional().safeParse(formData.get("tracking") || undefined)
 
     if (!title) return { error: "Title is required" }
+    if (!tracking.success) return { error: "Invalid input" }
 
     const goal = await prisma.goal.update({
         where: { id: goalId, userId: session.user.id },
@@ -117,6 +124,7 @@ export async function updateGoal(goalId: string, formData: FormData) {
             targetDate: targetDate ? parseDateOnly(String(targetDate)) : null,
             targetValue: targetValue ? parseFloat(String(targetValue)) : null,
             unit: unit ? String(unit) : null,
+            tracking: tracking.data,
         },
     })
 
