@@ -3,6 +3,8 @@ import { sortTasksByPriority } from "./dashboardStats"
 import { formatDateOnly, parseDateOnly, toDateInputValue } from "./dates"
 import { sortSteps, type Step } from "./goalProgress"
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
 export type TodayTask = Step & { priority: string; plannedFor: Date | null }
 
 export type TodayGoal<T extends TodayTask> = {
@@ -16,7 +18,8 @@ export type TodayGoal<T extends TodayTask> = {
 
 /**
  * Splits tasks into what the today page shows. Each task lands in at most one group,
- * checked in this order: planned for today, unfinished from an earlier plan, urgent, goal next step.
+ * checked in this order: planned for today, unfinished from an earlier plan, urgent, due in the next 7 days,
+ * goal next step, then every other open task, so the whole backlog can be planned from one page.
  * `today` is the user's calendar day, "YYYY-MM-DD"
  */
 export function buildToday<T extends TodayTask>({
@@ -48,6 +51,12 @@ export function buildToday<T extends TodayTask>({
     )
     urgent.forEach(t => shown.add(t.id))
 
+    const weekOut = toDateInputValue(new Date(parseDateOnly(today).getTime() + 7 * DAY_MS))
+    const dueSoon = sortTasksByPriority(
+        tasks.filter(t => isOpen(t) && !shown.has(t.id) && t.dueDate !== null && toDateInputValue(t.dueDate) <= weekOut)
+    )
+    dueSoon.forEach(t => shown.add(t.id))
+
     // Each goal suggests its first open step that isn't already on the page,
     // so planning a goal's next step brings up the one after it
     const goalSteps = goals
@@ -56,11 +65,12 @@ export function buildToday<T extends TodayTask>({
             const step = sortSteps(g.tasks).find(t => isOpen(t) && !shown.has(t.id))
             return step ? [{ goal: { id: g.id, title: g.title }, step }] : []
         })
+    goalSteps.forEach(({ step }) => shown.add(step.id))
 
-    return { plan, unfinished, urgent, goalSteps }
+    const everythingElse = sortTasksByPriority(tasks.filter(t => isOpen(t) && !shown.has(t.id)))
+
+    return { plan, unfinished, urgent, dueSoon, goalSteps, everythingElse }
 }
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /** How a due date reads on the today page: "due today", "due tomorrow", "2 days overdue", "due Oct 20" */
 export function dueLabel(dueDate: Date, today: string): string {
@@ -74,12 +84,14 @@ export function dueLabel(dueDate: Date, today: string): string {
 
 export type PlanBlock = { id: string; startTime: string; endTime: string; label: string }
 
+export type BlockProgress = { done: number; total: number }
+
 /**
  * Splits today's plan by schedule block, in time order, keeping the plan's order inside each block.
  * Tasks with no block, or whose block isn't on today's schedule any more, go under anytime,
- * so nothing planned disappears. `counts` feeds the task numbers in the schedule rail
+ * so nothing planned disappears. `progress` feeds "1 of 3 done" in the schedule rail
  */
-export function groupPlan<T extends { scheduleBlockId: string | null }, B extends PlanBlock>(plan: T[], blocks: B[]) {
+export function groupPlan<T extends { scheduleBlockId: string | null; status: string }, B extends PlanBlock>(plan: T[], blocks: B[]) {
     // "HH:MM" text sorts in time order because hours are zero padded
     const groups = [...blocks]
         .sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -89,7 +101,9 @@ export function groupPlan<T extends { scheduleBlockId: string | null }, B extend
     const todaysBlocks = new Set(blocks.map(b => b.id))
     const anytime = plan.filter(t => t.scheduleBlockId === null || !todaysBlocks.has(t.scheduleBlockId))
 
-    const counts: Record<string, number> = Object.fromEntries(groups.map(g => [g.block.id, g.tasks.length]))
+    const progress: Record<string, BlockProgress> = Object.fromEntries(
+        groups.map(g => [g.block.id, { done: g.tasks.filter(t => t.status === "done").length, total: g.tasks.length }])
+    )
 
-    return { groups, anytime, counts }
+    return { groups, anytime, progress }
 }

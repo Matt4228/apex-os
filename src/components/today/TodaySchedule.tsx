@@ -1,16 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import type { PlanBlock } from "@/lib/today"
+import type { BlockProgress, PlanBlock } from "@/lib/today"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 
 export default function TodaySchedule({
     blocks,
-    counts = {},
+    progress = {},
     className = "",
 }: {
     blocks: PlanBlock[]
-    counts?: Record<string, number>
+    progress?: Record<string, BlockProgress>
     className?: string
 }) {
     const minutes = useMinutesNow()
@@ -35,7 +35,7 @@ export default function TodaySchedule({
                 <ol className="space-y-0.5">
                     {blocks.map(block => {
                         const current = isHappening(block, minutes)
-                        const count = counts[block.id] ?? 0
+                        const tasks = progress[block.id]
                         return (
                             <li
                                 key={block.id}
@@ -51,14 +51,18 @@ export default function TodaySchedule({
                                     <span className="sr-only"> to </span>
                                     <span className="block">{block.endTime}</span>
                                 </span>
-                                <span className="min-w-0">{block.label}</span>
-                                {count > 0 && (
-                                    // The number is for the eye; screen readers hear "2 tasks"
-                                    <span className="ml-auto flex-shrink-0 pt-px text-xs font-normal text-ink-muted tabular-nums">
-                                        <span aria-hidden="true">{count}</span>
-                                        <span className="sr-only">{count === 1 ? "1 task" : `${count} tasks`}</span>
-                                    </span>
-                                )}
+                                <span className="min-w-0">
+                                    {block.label}
+                                    {tasks && (
+                                        <span
+                                            className={`block text-xs font-normal tabular-nums ${
+                                                tasks.done === tasks.total ? "text-success-ink" : "text-ink-muted"
+                                            }`}
+                                        >
+                                            {tasks.done} of {tasks.total} done
+                                        </span>
+                                    )}
+                                </span>
                             </li>
                         )
                     })}

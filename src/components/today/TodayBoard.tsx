@@ -2,15 +2,17 @@
 
 import Link from "next/link"
 import { useState, type ReactNode } from "react"
-import { CalendarMinus, Plus, Target } from "lucide-react"
+import { CalendarMinus, ChevronRight, Plus, Target } from "lucide-react"
 import { assignBlock, planTask, updateTaskStatus } from "@/app/actions/tasks"
 import CreateTaskForm from "@/components/tasks/CreateTaskForm"
 import type { Task } from "@/components/tasks/types"
 import TodaySchedule from "@/components/today/TodaySchedule"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
 import { buildToday, dueLabel, groupPlan, type PlanBlock } from "@/lib/today"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
+import { useStoredToggles } from "@/lib/useStoredToggles"
 
 type BoardTask = Task & { plannedFor: Date | null; scheduleBlockId: string | null }
 type BoardGoal = { id: string; title: string; status: string }
@@ -20,6 +22,12 @@ const priorityStyles: Record<string, string> = {
     medium: "bg-warning/10 text-warning-ink",
     low: "bg-success/10 text-success-ink",
 }
+
+// Radix reserves the empty string for "no choice", so "Anytime" needs a value of its own
+const ANYTIME = "anytime"
+
+// The short lists start open; the rest of the backlog starts closed so it doesn't bury them
+const OPEN_BY_DEFAULT = { unfinished: true, urgent: true, "due-soon": true, "goal-steps": true, "everything-else": false }
 
 /** "2 days overdue · Ship an open source contribution": the parts that exist, joined */
 const joinDetails = (...parts: (string | null | undefined)[]) => parts.filter(Boolean).join(" · ")
@@ -38,17 +46,20 @@ export default function TodayBoard({
     const [tasks, setTasks] = useState(initialTasks)
     const [error, setError] = useState<string | null>(null)
     const minutes = useMinutesNow()
+    const sections = useStoredToggles("apex.today.suggestions", OPEN_BY_DEFAULT)
 
     // Goals read their steps from the same state, so planning or finishing a step moves "next step" on right away
-    const { plan, unfinished, urgent, goalSteps } = buildToday({
+    const { plan, unfinished, urgent, dueSoon, goalSteps, everythingElse } = buildToday({
         tasks,
         goals: goals.map(g => ({ ...g, targetValue: null, entries: [], tasks: tasks.filter(t => t.goalId === g.id) })),
         today,
     })
-    // The rail's counts come from the same grouping, so the plan and the rail always agree
-    const { groups, anytime, counts } = groupPlan(plan, blocks)
+    // The rail's progress comes from the same grouping, so the plan and the rail always agree
+    const { groups, anytime, progress } = groupPlan(plan, blocks)
     const doneCount = plan.filter(t => t.status === "done").length
-    const nothingWaiting = unfinished.length + urgent.length + goalSteps.length === 0
+    const nothingWaiting =
+        unfinished.length + urgent.length + dueSoon.length + goalSteps.length + everythingElse.length === 0
+    const withDue = (t: BoardTask) => ({ task: t, detail: joinDetails(t.dueDate && dueLabel(t.dueDate, today), t.goal?.title) })
 
     /** Change one task on screen now; put it back and explain if the server says no */
     async function change(id: string, update: Partial<BoardTask>, save: () => Promise<unknown>, what: string) {
@@ -101,7 +112,7 @@ export default function TodayBoard({
     return (
         // "contents" lets the page grid place these sections directly, so habits can sit between them on mobile
         <div className="contents">
-            <TodaySchedule blocks={blocks} counts={counts} className="order-1 md:col-start-2 md:row-start-1" />
+            <TodaySchedule blocks={blocks} progress={progress} className="order-1 md:col-start-2 md:row-start-1" />
 
             <section aria-labelledby="plan-heading" className="order-2 md:col-start-1 md:row-start-1">
                 <div className="flex items-baseline justify-between mb-3">
@@ -149,21 +160,35 @@ export default function TodayBoard({
                 {nothingWaiting && <p className="text-sm text-ink-muted">Nothing else waiting.</p>}
 
                 <SuggestionGroup
+                    id="unfinished"
                     title="Unfinished from before"
                     items={unfinished.map(t => ({
                         task: t,
                         detail: joinDetails(t.plannedFor && `planned ${formatDateOnly(t.plannedFor, "EEE")}`, t.goal?.title),
                     }))}
+                    sections={sections}
+                    onAdd={addToToday}
+                />
+                <SuggestionGroup id="urgent" title="Urgent" items={urgent.map(withDue)} sections={sections} onAdd={addToToday} />
+                <SuggestionGroup
+                    id="due-soon"
+                    title="Due in the next week"
+                    items={dueSoon.map(withDue)}
+                    sections={sections}
                     onAdd={addToToday}
                 />
                 <SuggestionGroup
-                    title="Urgent"
-                    items={urgent.map(t => ({ task: t, detail: joinDetails(t.dueDate && dueLabel(t.dueDate, today), t.goal?.title) }))}
-                    onAdd={addToToday}
-                />
-                <SuggestionGroup
+                    id="goal-steps"
                     title="Next steps for your goals"
                     items={goalSteps.map(({ goal, step }) => ({ task: step, detail: joinDetails(goal.title, step.dueDate && dueLabel(step.dueDate, today)) }))}
+                    sections={sections}
+                    onAdd={addToToday}
+                />
+                <SuggestionGroup
+                    id="everything-else"
+                    title="Everything else"
+                    items={everythingElse.map(withDue)}
+                    sections={sections}
                     onAdd={addToToday}
                 />
             </section>
@@ -201,6 +226,7 @@ function PlanRow({
     onMove: (blockId: string | null) => void
 }) {
     const isDone = task.status === "done"
+    const block = blocks.find(b => b.id === task.scheduleBlockId)
 
     return (
         <li className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-sunken transition-colors ${isDone ? "opacity-60" : ""}`}>
@@ -231,22 +257,22 @@ function PlanRow({
                     )}
                 </div>
             </div>
-            {/* A native select: keyboard and screen reader support for free, and the system picker on phones.
-                A block that isn't on today's schedule matches no option, so it reads "Anytime", like its group */}
+            {/* A block that isn't on today's schedule reads "Anytime", like the group the task sits in.
+                The trigger is given its text, so the server renders it too instead of an empty box */}
             {blocks.length > 0 && (
-                <select
-                    aria-label={`Block for ${task.title}`}
-                    value={task.scheduleBlockId ?? ""}
-                    onChange={e => onMove(e.target.value || null)}
-                    className="max-w-[9rem] flex-shrink-0 truncate rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-ink-muted hover:border-line focus:border-line-strong transition-colors"
-                >
-                    <option value="" className="bg-surface text-ink">Anytime</option>
-                    {blocks.map(block => (
-                        <option key={block.id} value={block.id} className="bg-surface text-ink">
-                            {block.startTime} {block.label}
-                        </option>
-                    ))}
-                </select>
+                <Select value={block?.id ?? ANYTIME} onValueChange={value => onMove(value === ANYTIME ? null : value)}>
+                    <SelectTrigger aria-label={`Block for ${task.title}`} className="max-w-[9rem] flex-shrink-0">
+                        <SelectValue>{block ? <BlockName block={block} /> : "Anytime"}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                        <SelectItem value={ANYTIME}>Anytime</SelectItem>
+                        {blocks.map(option => (
+                            <SelectItem key={option.id} value={option.id}>
+                                <BlockName block={option} />
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             )}
             <button
                 onClick={onRemove}
@@ -260,21 +286,55 @@ function PlanRow({
     )
 }
 
+/** "09:00 Deep work", with the time quieter than the name */
+function BlockName({ block }: { block: PlanBlock }) {
+    return (
+        <>
+            <span className="tabular-nums text-ink-muted">{block.startTime}</span> {block.label}
+        </>
+    )
+}
+
+/**
+ * A collapsible list of tasks to plan. The heading is a button with the count beside it, so a closed
+ * section still says what it holds, and closed tasks are hidden from the keyboard as well as the eye
+ */
 function SuggestionGroup({
+    id,
     title,
     items,
+    sections,
     onAdd,
 }: {
+    id: string
     title: string
     items: { task: BoardTask; detail: string }[]
+    sections: { isOpen: (id: string) => boolean; toggle: (id: string) => void }
     onAdd: (id: string) => void
 }) {
     if (items.length === 0) return null
+    const open = sections.isOpen(id)
+    const listId = `suggestions-${id}`
 
     return (
-        <div className="mb-5">
-            <h4 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">{title}</h4>
-            <ul className="space-y-0.5">
+        <div className="mb-3">
+            <h4>
+                <button
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    onClick={() => sections.toggle(id)}
+                    className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-ink-muted hover:bg-sunken hover:text-ink-soft transition-colors"
+                >
+                    <ChevronRight
+                        size={14}
+                        aria-hidden="true"
+                        className={`flex-shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+                    />
+                    {title}
+                    <span className="ml-auto tabular-nums">{items.length}</span>
+                </button>
+            </h4>
+            <ul id={listId} hidden={!open} className="mt-1 space-y-0.5">
                 {items.map(({ task, detail }) => (
                     <li key={task.id} className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-sunken transition-colors">
                         <div className="flex-1 min-w-0">

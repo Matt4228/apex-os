@@ -35,13 +35,13 @@ describe("TodaySchedule", () => {
         expect(marked).toHaveLength(0)
     })
 
-    it("shows how many tasks each block holds", () => {
+    it("shows how far along each block's tasks are", () => {
         vi.setSystemTime(new Date(2026, 9, 11, 8, 0))
-        render(<TodaySchedule blocks={blocks} counts={{ b2: 2, b3: 1 }} />)
+        render(<TodaySchedule blocks={blocks} progress={{ b2: { done: 1, total: 2 }, b3: { done: 1, total: 1 } }} />)
 
-        expect(within(screen.getByText("Deep work").closest("li")!).getByText("2 tasks")).toBeInTheDocument()
-        expect(within(screen.getByText("Meetings").closest("li")!).getByText("1 task")).toBeInTheDocument()
-        expect(screen.getByText("Morning run").closest("li")).not.toHaveTextContent(/task/)
+        expect(within(screen.getByText("Deep work").closest("li")!).getByText("1 of 2 done")).toBeInTheDocument()
+        expect(within(screen.getByText("Meetings").closest("li")!).getByText("1 of 1 done")).toBeInTheDocument()
+        expect(screen.getByText("Morning run").closest("li")).not.toHaveTextContent(/done/)
     })
 
     it("shows when each block starts and ends", () => {
