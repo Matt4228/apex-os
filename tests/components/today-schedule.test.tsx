@@ -43,4 +43,11 @@ describe("TodaySchedule", () => {
         expect(within(screen.getByText("Meetings").closest("li")!).getByText("1 task")).toBeInTheDocument()
         expect(screen.getByText("Morning run").closest("li")).not.toHaveTextContent(/task/)
     })
+
+    it("shows when each block starts and ends", () => {
+        vi.setSystemTime(new Date(2026, 9, 11, 8, 0))
+        render(<TodaySchedule blocks={blocks} />)
+
+        expect(screen.getByText("Deep work").closest("li")).toHaveTextContent("09:00 to 12:00")
+    })
 })
