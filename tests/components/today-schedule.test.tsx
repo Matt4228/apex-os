@@ -1,7 +1,7 @@
 // tests/components/today-schedule.test.tsx
 // @vitest-environment jsdom
 import TodaySchedule from "@/components/today/TodaySchedule"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const blocks = [
@@ -33,5 +33,14 @@ describe("TodaySchedule", () => {
 
         const marked = screen.getAllByRole("listitem").filter(li => li.hasAttribute("aria-current"))
         expect(marked).toHaveLength(0)
+    })
+
+    it("shows how many tasks each block holds", () => {
+        vi.setSystemTime(new Date(2026, 9, 11, 8, 0))
+        render(<TodaySchedule blocks={blocks} counts={{ b2: 2, b3: 1 }} />)
+
+        expect(within(screen.getByText("Deep work").closest("li")!).getByText("2 tasks")).toBeInTheDocument()
+        expect(within(screen.getByText("Meetings").closest("li")!).getByText("1 task")).toBeInTheDocument()
+        expect(screen.getByText("Morning run").closest("li")).not.toHaveTextContent(/task/)
     })
 })
