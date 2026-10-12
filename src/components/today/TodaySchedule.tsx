@@ -46,7 +46,11 @@ export default function TodaySchedule({
                                         : "text-ink-soft"
                                 }`}
                             >
-                                <span className="w-11 flex-shrink-0 pt-px text-xs text-ink-muted tabular-nums">{block.startTime}</span>
+                                <span className="w-11 flex-shrink-0 pt-px text-xs text-ink-muted tabular-nums">
+                                    {block.startTime}
+                                    <span className="sr-only"> to </span>
+                                    <span className="block">{block.endTime}</span>
+                                </span>
                                 <span className="min-w-0">{block.label}</span>
                                 {count > 0 && (
                                     // The number is for the eye; screen readers hear "2 tasks"
