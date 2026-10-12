@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import HabitList from "@/components/habits/HabitList"
-import { format } from "date-fns"
 import { weekRangeOf } from "@/lib/dates"
+import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
 
@@ -11,7 +11,9 @@ export default async function HabitsPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
     
-    const { start: weekStart, end: weekEnd } = weekRangeOf(format(new Date(), "yyyy-MM-dd"))
+    // The user's calendar day, not the server's: on Vercel the server runs in UTC
+    const today = await getUserToday()
+    const { start: weekStart, end: weekEnd } = weekRangeOf(today)
 
     const habits = await prisma.habit.findMany({
         where: { userId: session.user.id },
@@ -37,7 +39,7 @@ export default async function HabitsPage() {
                 </p>
             </div>
 
-            <HabitList initialHabits={habits} />
+            <HabitList initialHabits={habits} today={today} />
         </main>
     )
 }

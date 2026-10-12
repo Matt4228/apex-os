@@ -3,31 +3,40 @@
 import HabitCard from "@/components/habits/HabitCard"
 import { parseDateOnly } from "@/lib/dates"
 import { render, screen } from "@testing-library/react"
-import { format } from "date-fns"
 import { describe, expect, it, vi } from "vitest"
 
-describe("HabitCard check-ins", () => {
-    it("shows a check-in stored at midnight UTC on the right local day", () => {
-        const today = new Date()
-        render(
-            <HabitCard 
-                habit={{
-                    id: "habit-1",
-                    title: "Read",
-                    category: null,
-                    frequency: "daily",
-                    targetPerWeek: 7,
-                    isActive: true,
-                    logs: [{ id: "log-1", completedOn: parseDateOnly(format(today, "yyyy-MM-dd")) }],
-                }}
-                onDelete={vi.fn()}
-                onLogToggle={vi.fn()}
-            />
-        )
+const habit = {
+    id: "habit-1",
+    title: "Read",
+    category: null,
+    frequency: "daily",
+    targetPerWeek: 7,
+    isActive: true,
+    logs: [{ id: "log-1", completedOn: parseDateOnly("2026-10-14") }],
+}
 
-        expect(screen.getByRole("button", { name: format(today, "EEEE, MMM d") })).toHaveAttribute(
-            "aria-pressed",
-            "true"
-        )
+// The user's today comes from the server, so the card never reads the machine's clock
+const renderCard = (today: string) =>
+    render(<HabitCard habit={habit} onDelete={vi.fn()} onLogToggle={vi.fn()} today={today} />)
+
+describe("HabitCard week", () => {
+    it("shows a check-in stored at midnight UTC on its own day", () => {
+        renderCard("2026-10-14")
+
+        expect(screen.getByRole("button", { name: "Wednesday, Oct 14" })).toHaveAttribute("aria-pressed", "true")
+    })
+
+    it("draws the Sunday to Saturday week around the user's today", () => {
+        renderCard("2026-10-14")
+
+        expect(screen.getByRole("button", { name: "Sunday, Oct 11" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Saturday, Oct 17" })).toBeInTheDocument()
+    })
+
+    it("can't log days after the user's today", () => {
+        renderCard("2026-10-14")
+
+        expect(screen.getByRole("button", { name: "Thursday, Oct 15" })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Wednesday, Oct 14" })).toBeEnabled()
     })
 })

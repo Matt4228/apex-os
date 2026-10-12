@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
+import { LocalDate } from "@/components/ui/local-date"
 import { ProgressBar } from "@/components/ui/progress-bar"
 import { formatDateOnly } from "@/lib/dates"
 import { goalProgress } from "@/lib/goalProgress"
@@ -112,7 +112,7 @@ flex-shrink-0"
                         <span>Due {formatDateOnly(goal.targetDate, "MMM d, yyyy")}</span>
                     )}
                     {progress.kind === "numeric" && (
-                        <span>Last logged {format(new Date(progress.loggedOn), "MMM d")}</span>
+                        <span>Last logged <LocalDate date={progress.loggedOn} pattern="MMM d" /></span>
                     )}
                 </div>
                 <div className="flex gap-2">
@@ -141,6 +141,7 @@ flex-shrink-0"
                             onEntryLogged(goal.id, entry)
                             setShowLog(false)
                         }}
+                        onCancel={() => setShowLog(false)}
                     />
                 </div>
             )}

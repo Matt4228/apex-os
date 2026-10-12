@@ -13,7 +13,7 @@ import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGr
 import HourLabels from "./HourLabels"
 import DayColumn from "./DayColumn"
 import BlockForm from "./BlockForm"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
 
@@ -39,7 +39,7 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
     const scrollRef = useRef<HTMLDivElement>(null)
     const todayName = DAYS[new Date().getDay()]
     const [error, setError] = useState<string | null>(null)
-    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteScheduleBlock, setError)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete("schedule-block", deleteScheduleBlock, setError)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -105,9 +105,10 @@ export default function ScheduleGrid({ initialBlocks }: { initialBlocks: Block[]
         formData.set("color", updated.color ?? "")
         setError(null)
 
-        if (!(await succeeded(updateScheduleBlock(updated.id, formData)))) {
+        const problem = await failureMessage(updateScheduleBlock(updated.id, formData), `move "${previous.label}"`)
+        if (problem) {
             setBlocks(current => current.map(b => b.id === previous.id ? previous : b))
-            setError(`Couldn't move "${previous.label}". It's back where it was.`)
+            setError(`${problem} It's back where it was.`)
         }
     }
 

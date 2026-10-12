@@ -16,7 +16,7 @@ const competitionStatusSchema = z.enum(["active", "complete"])
 
 export async function createCompetition(formData: FormData) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     const parsed = competitionSchema.safeParse({
         title: String(formData.get("title")),
@@ -43,7 +43,7 @@ export async function createCompetition(formData: FormData) {
 
 export async function deleteCompetition(competitionId: string) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     await prisma.competition.delete({
         where: { id: competitionId, userId: session.user.id },
@@ -97,7 +97,7 @@ export async function logCompetitionEntry(competitionId: string, formData: FormD
 
 export async function updateCompetitionStatus(competitionId: string, status: string) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     const parsed = competitionStatusSchema.safeParse(status)
       if (!parsed.success) return { error: "Invalid status" }

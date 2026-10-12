@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { toggleHabitLog, deleteHabit } from "@/app/actions/habits"
-import { format, startOfWeek, addDays, isSameDay } from "date-fns"
-import { toDateInputValue } from "@/lib/dates"
+import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 type HabitLog = {
   id: string
@@ -24,26 +25,25 @@ export default function HabitCard({
   habit,
   onDelete,
   onLogToggle,
+  today,
 }: {
   habit: Habit
   onDelete: (id: string) => void
   onLogToggle: (habitId: string, date: string, action: "added" | "removed") => void
+  /** The user's calendar day, "YYYY-MM-DD", from the server, so both sides draw the same week */
+  today: string
 }) {
   const [loading, setLoading] = useState<string | null>(null)
 
-  const today = new Date()
-  const weekStart = startOfWeek(today, { weekStartsOn: 0 })
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  // Sunday to Saturday as "YYYY-MM-DD" days, which compare correctly as text
+  const { start: weekStart } = weekRangeOf(today)
+  const weekDays = Array.from({ length: 7 }, (_, i) => toDateInputValue(new Date(weekStart.getTime() + i * DAY_MS)))
 
-  const isLoggedOnDay = (date: Date) => {
-    const day = format(date, "yyyy-MM-dd")
-    return habit.logs.some(log => toDateInputValue(log.completedOn) === day)
-  }
+  const isLoggedOnDay = (day: string) => habit.logs.some(log => toDateInputValue(log.completedOn) === day)
 
   const completedThisWeek = weekDays.filter(isLoggedOnDay).length
 
-  async function handleDayClick(date: Date) {
-    const dateStr = format(date, "yyyy-MM-dd")
+  async function handleDayClick(dateStr: string) {
     setLoading(dateStr)
     const result = await toggleHabitLog(habit.id, dateStr)
     if (result?.action) {
@@ -79,16 +79,15 @@ export default function HabitCard({
 
       <div className="flex gap-1.5">
         {weekDays.map(day => {
-          const dateStr = format(day, "yyyy-MM-dd")
           const isLogged = isLoggedOnDay(day)
-          const isToday = isSameDay(day, today)
+          const isToday = day === today
           const isFuture = day > today
-          const isLoadingDay = loading === dateStr
+          const isLoadingDay = loading === day
 
           return (
             <button
-              key={dateStr}
-              aria-label={format(day, "EEEE, MMM d")}
+              key={day}
+              aria-label={formatDateOnly(day, "EEEE, MMM d")}
               aria-pressed={isLogged}
               onClick={() => !isFuture && handleDayClick(day)}
               disabled={isFuture || isLoadingDay}
@@ -103,10 +102,10 @@ export default function HabitCard({
               }`}
             >
               <span className="text-xs font-medium">
-                {format(day, "EEE")[0]}
+                {formatDateOnly(day, "EEE")[0]}
               </span>
               <span className="text-xs">
-                {format(day, "d")}
+                {formatDateOnly(day, "d")}
               </span>
             </button>
           )

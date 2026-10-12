@@ -91,3 +91,18 @@ describe("GoalCard", () => {
         expect(screen.queryByRole("button", { name: "Log progress" })).not.toBeInTheDocument()
     })
 })
+
+describe("GoalCard logging", () => {
+    it("closes the log form with Cancel or Escape", async () => {
+        const user = userEvent.setup()
+        renderCard()
+
+        await user.click(screen.getByRole("button", { name: "Log progress" }))
+        await user.click(screen.getByRole("button", { name: "Cancel" }))
+        expect(screen.queryByPlaceholderText("Value (problems)")).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: "Log progress" }))
+        await user.type(screen.getByPlaceholderText("Value (problems)"), "{Escape}")
+        expect(screen.queryByPlaceholderText("Value (problems)")).not.toBeInTheDocument()
+    })
+})

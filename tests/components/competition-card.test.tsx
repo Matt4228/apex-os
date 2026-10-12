@@ -3,6 +3,7 @@
 import CompetitionCard from "@/components/competitions/CompetitionCard"
 import { parseDateOnly } from "@/lib/dates"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 describe("CompetitionCard dates", () => {
@@ -25,5 +26,32 @@ describe("CompetitionCard dates", () => {
         )
         
         expect(screen.getByText(/Oct 1 - Oct 29, 2026/)).toBeInTheDocument()
+    })
+})
+
+describe("CompetitionCard logging", () => {
+    it("closes the log form with Cancel", async () => {
+        const user = userEvent.setup()
+        render(
+            <CompetitionCard
+                competition={{
+                    id: "comp-1",
+                    title: "October push-ups",
+                    status: "active",
+                    startDate: parseDateOnly("2026-10-01"),
+                    endDate: parseDateOnly("2026-10-29"),
+                    rulesJson: null,
+                    entries: [],
+                }}
+                onDelete={vi.fn()}
+                onStatusChange={vi.fn()}
+                onEntryLogged={vi.fn()}
+            />
+        )
+
+        await user.click(screen.getByRole("button", { name: /Log week/ }))
+        await user.click(screen.getByRole("button", { name: "Cancel" }))
+
+        expect(screen.queryByPlaceholderText("Value")).not.toBeInTheDocument()
     })
 })

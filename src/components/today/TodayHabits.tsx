@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { toggleHabitLog } from "@/app/actions/habits"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 
 type HabitItem = { id: string; title: string; targetPerWeek: number; weekCount: number; doneToday: boolean }
 
@@ -30,10 +30,11 @@ export default function TodayHabits({
         setError(null)
         setHabits(current => current.map(h => (h.id === id ? flip(h) : h)))
 
-        if (!(await succeeded(toggleHabitLog(id, today)))) {
+        const problem = await failureMessage(toggleHabitLog(id, today), "update that habit")
+        if (problem) {
             // Flipping again restores the checkbox and the weekly count
             setHabits(current => current.map(h => (h.id === id ? flip(h) : h)))
-            setError("Couldn't update that habit. Check your connection and try again.")
+            setError(problem)
         }
     }
 

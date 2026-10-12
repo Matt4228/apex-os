@@ -7,7 +7,7 @@ import { updateGoalStatus } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import TaskList from "@/components/tasks/TaskList"
 import { formatDateOnly } from "@/lib/dates"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import GoalEditForm from "./GoalEditForm"
 import GoalProgressPanel from "./GoalProgressPanel"
 import type { Entry, Goal } from "./types"
@@ -26,9 +26,10 @@ export default function GoalDetail({ initialGoal }: { initialGoal: Goal }) {
         setError(null)
         setGoal(g => ({ ...g, status }))
 
-        if (!(await succeeded(updateGoalStatus(goal.id, status)))) {
+        const problem = await failureMessage(updateGoalStatus(goal.id, status), "update this goal")
+        if (problem) {
             setGoal(g => ({ ...g, status: oldStatus }))
-            setError("Couldn't update this goal. Check your connection and try again.")
+            setError(problem)
         }
     }
 

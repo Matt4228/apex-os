@@ -27,7 +27,7 @@ const blockSchema = z
 
 export async function createScheduleBlock(formData: FormData) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     const parsed = blockSchema.safeParse({
         dayOfWeek: String(formData.get("dayOfWeek")),
@@ -63,7 +63,7 @@ export async function createScheduleBlock(formData: FormData) {
 
 export async function deleteScheduleBlock(blockId: string) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     await prisma.scheduleBlock.delete({
         where: { id: blockId, userId: session.user.id },
@@ -72,7 +72,7 @@ export async function deleteScheduleBlock(blockId: string) {
 
 export async function updateScheduleBlock(blockId: string, formData: FormData) {
     const session = await auth()
-    if (!session?.user?.id) return { error: "Unathorized" }
+    if (!session?.user?.id) return { error: "Unauthorized" }
 
     const parsed = blockSchema.safeParse({
         dayOfWeek: formData.get("dayOfWeek"),

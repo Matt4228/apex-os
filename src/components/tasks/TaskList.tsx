@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { updateTaskStatus, deleteTask } from "@/app/actions/tasks"
-import { succeeded } from "@/lib/optimistic"
+import { failureMessage } from "@/lib/optimistic"
 import { sortSteps } from "@/lib/goalProgress"
 import TaskCard from "./TaskCard"
 import CreateTaskForm from "./CreateTaskForm"
@@ -27,7 +27,7 @@ export default function TaskList({
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteTask, setError)
+  const { pending, undo, requestDelete, isHidden } = useUndoableDelete("task", deleteTask, setError)
 
   async function handleToggle(id: string, newStatus: string) {
     const oldStatus = tasks.find(t => t.id === id)?.status
@@ -35,9 +35,10 @@ export default function TaskList({
     setError(null)
     setTasks(current => current.map(t => t.id === id ? { ...t, status: newStatus } : t))
 
-    if (!(await succeeded(updateTaskStatus(id, newStatus)))) {
+    const problem = await failureMessage(updateTaskStatus(id, newStatus), "update that task")
+    if (problem) {
       setTasks(current => current.map(t => t.id === id ? { ...t, status: oldStatus } : t))
-      setError("Couldn't update that task. Check your connection and try again.")
+      setError(problem)
     }
   }
 

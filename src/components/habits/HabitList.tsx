@@ -5,7 +5,6 @@ import { deleteHabit } from "@/app/actions/habits"
 import HabitCard from "./HabitCard"
 import CreateHabitForm from "./CreateHabitForm"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
-import { succeeded } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
 
@@ -24,10 +23,10 @@ type Habit ={
     logs: HabitLog[]
 }
 
-export default function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
+export default function HabitList({ initialHabits, today }: { initialHabits: Habit[]; today: string }) {
     const [habits, setHabits] = useState<Habit[]>(initialHabits)
     const [error, setError] = useState<string | null>(null)
-    const { pending, undo, requestDelete, isHidden } = useUndoableDelete(deleteHabit, setError)
+    const { pending, undo, requestDelete, isHidden } = useUndoableDelete("habit", deleteHabit, setError)
 
     function handleCreate(habit: Habit) {
         setHabits(current => [habit, ...current])
@@ -79,6 +78,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                         habit={habit}
                         onDelete={handleDelete}
                         onLogToggle={handleLogToggle}
+                        today={today}
                     />
                 ))}
                 <CreateHabitForm onCreated={handleCreate} />
@@ -96,6 +96,7 @@ export default function HabitList({ initialHabits }: { initialHabits: Habit[] })
                                 habit={habit}
                                 onDelete={handleDelete}
                                 onLogToggle={handleLogToggle}
+                                today={today}
                             />
                         ))}
                     </div>
