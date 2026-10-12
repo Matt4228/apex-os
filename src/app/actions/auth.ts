@@ -1,16 +1,18 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { emailSchema } from "@/lib/email"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
-import { redirect } from "next/navigation"
 
 const registerSchema = z.object({
-    name: z.string().min(1),
-    email: z.string().email(),
+    name: z.string().trim().min(1),
+    email: emailSchema,
     password: z.string().min(8)
 })
 
+// Returns success instead of redirecting: the register page signs in with the password it already has,
+// so the password never travels back from the server
 export async function registerUser(formData: FormData) {
     const parsed = registerSchema.safeParse({
         name: formData.get("name"),
@@ -22,8 +24,10 @@ export async function registerUser(formData: FormData) {
         return { error: "Invalid input. Password must be at least 8 characters." }
     }
 
-    const existing = await prisma.user.findUnique({
-        where: { email: parsed.data.email },
+    // Ignores case, so an older account saved as "Matt@Example.com" still counts as taken
+    const existing = await prisma.user.findFirst({
+        where: { email: { equals: parsed.data.email, mode: "insensitive" } },
+        select: { id: true },
     })
 
     if (existing) {
@@ -40,5 +44,5 @@ export async function registerUser(formData: FormData) {
         },
     })
 
-    redirect("/login")
+    return { success: true }
 }

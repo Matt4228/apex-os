@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { registerUser } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,15 +11,34 @@ import Link from "next/link"
 export default function RegisterPage() {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
+    const [signInFailed, setSignInFailed] = useState(false)
+    const router = useRouter()
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
         setError(null)
-        const result = await  registerUser(formData)
+        setSignInFailed(false)
+
+        const result = await registerUser(formData)
         if (result?.error) {
             setError(result.error)
             setLoading(false)
+            return
         }
+
+        // The account exists now. Sign in with what was just typed, so nothing secret comes back from the server
+        const signedIn = await signIn("credentials", {
+            email: formData.get("email"),
+            password: formData.get("password"),
+            redirect: false,
+        })
+        if (signedIn?.error) {
+            setSignInFailed(true)
+            setLoading(false)
+            return
+        }
+
+        router.push("/dashboard")
     }
 
     return (
@@ -44,6 +65,15 @@ export default function RegisterPage() {
 
                 {error && (
                 <p role="alert" className="text-sm text-danger-ink">{error}</p>
+                )}
+
+                {signInFailed && (
+                <p role="alert" className="text-sm text-ink-soft">
+                    Your account was created, but we couldn&apos;t sign you in.{" "}
+                    <Link href="/login" className="text-accent-ink font-medium hover:underline">
+                    Sign in here
+                    </Link>
+                </p>
                 )}
 
                 <Button type="submit" className="w-full" disabled={loading}>
