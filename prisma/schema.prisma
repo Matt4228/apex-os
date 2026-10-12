@@ -36,6 +36,7 @@ model ScheduleBlock {
   updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
 }
 
 model Goal {
@@ -104,11 +105,14 @@ model Task {
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
   plannedFor  DateTime?
+  scheduleBlockId String?
 
   user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   goal        Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  scheduleBlock ScheduleBlock? @relation(fields: [scheduleBlockId], references: [id], onDelete: SetNull)
 
   @@index([userId, plannedFor])
+  @@index([scheduleBlockId])
 }
 
 model Competition {

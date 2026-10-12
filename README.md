@@ -66,7 +66,7 @@ npm run dev
 | Database | Separate Supabase project | Production Supabase project |
 | Connection strings | `.env.local` | Vercel environment variables, plus a local `.env.prod` used only by the scripts
 below |
-| Schema changes | `npx prisma migrate dev --name <change>` | `npm run db:migrate:prod` (runs `prisma migrate deploy`)
+| Schema changes | ``npx prisma migrate dev --name <change>`, then `npx prisma generate` (Prisma 7 no longer generates on migrate)` | `npm run db:migrate:prod` (runs `prisma migrate deploy`)
 |
 ---
 
