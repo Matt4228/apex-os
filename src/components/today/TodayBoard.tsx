@@ -1,16 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { CalendarMinus, Plus, Target } from "lucide-react"
-import { planTask, updateTaskStatus } from "@/app/actions/tasks"
+import { assignBlock, planTask, updateTaskStatus } from "@/app/actions/tasks"
 import CreateTaskForm from "@/components/tasks/CreateTaskForm"
 import type { Task } from "@/components/tasks/types"
+import TodaySchedule from "@/components/today/TodaySchedule"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { succeeded } from "@/lib/optimistic"
-import { buildToday, dueLabel } from "@/lib/today"
+import { buildToday, dueLabel, groupPlan, type PlanBlock } from "@/lib/today"
+import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 
-type BoardTask = Task & { plannedFor: Date | null }
+type BoardTask = Task & { plannedFor: Date | null; scheduleBlockId: string | null }
 type BoardGoal = { id: string; title: string; status: string }
 
 const priorityStyles: Record<string, string> = {
@@ -26,21 +28,25 @@ export default function TodayBoard({
     initialTasks,
     goals,
     today,
+    blocks = [],
 }: {
     initialTasks: BoardTask[]
     goals: BoardGoal[]
     today: string
+    blocks?: PlanBlock[]
 }) {
     const [tasks, setTasks] = useState(initialTasks)
     const [error, setError] = useState<string | null>(null)
+    const minutes = useMinutesNow()
 
     // Goals read their steps from the same state, so planning or finishing a step moves "next step" on right away
     const { plan, unfinished, urgent, goalSteps } = buildToday({
         tasks,
-        goals: goals.map(g => ({ ...g, targetValue: null, entries: [], tasks: tasks.filter(t => t.goalId === g.id)
-})),
+        goals: goals.map(g => ({ ...g, targetValue: null, entries: [], tasks: tasks.filter(t => t.goalId === g.id) })),
         today,
     })
+    // The rail's counts come from the same grouping, so the plan and the rail always agree
+    const { groups, anytime, counts } = groupPlan(plan, blocks)
     const doneCount = plan.filter(t => t.status === "done").length
     const nothingWaiting = unfinished.length + urgent.length + goalSteps.length === 0
 
@@ -62,21 +68,40 @@ export default function TodayBoard({
         return change(task.id, { status }, () => updateTaskStatus(task.id, status), "Couldn't update that task. Check your connection and try again.")
     }
 
+    // Planning changes always start the task at anytime, matching planTask on the server
     function addToToday(id: string) {
-        return change(id, { plannedFor: parseDateOnly(today) }, () => planTask(id, true), "Couldn't add that to today. Check your connection and try again.")
+        return change(id, { plannedFor: parseDateOnly(today), scheduleBlockId: null }, () => planTask(id, true), "Couldn't add that to today. Check your connection and try again.")
     }
 
     function notToday(id: string) {
-        return change(id, { plannedFor: null }, () => planTask(id, false), "Couldn't take that off today. Check your connection and try again.")
+        return change(id, { plannedFor: null, scheduleBlockId: null }, () => planTask(id, false), "Couldn't take that off today. Check your connection and try again.")
+    }
+
+    function moveToBlock(id: string, scheduleBlockId: string | null) {
+        return change(id, { scheduleBlockId }, () => assignBlock(id, scheduleBlockId), "Couldn't move that task. Check your connection and try again.")
     }
 
     function handleCreated(task: Task) {
-        setTasks(current => [...current, { ...task, plannedFor: parseDateOnly(today) }])
+        setTasks(current => [...current, { ...task, plannedFor: parseDateOnly(today), scheduleBlockId: null }])
     }
 
+    const row = (task: BoardTask) => (
+        <PlanRow
+            key={task.id}
+            task={task}
+            today={today}
+            blocks={blocks}
+            onToggle={() => toggle(task)}
+            onRemove={() => notToday(task.id)}
+            onMove={blockId => moveToBlock(task.id, blockId)}
+        />
+    )
+
     return (
-        // "contents" lets the page grid place these two sections directly, so habits can sit between them on mobile
+        // "contents" lets the page grid place these sections directly, so habits can sit between them on mobile
         <div className="contents">
+            <TodaySchedule blocks={blocks} counts={counts} className="order-1 md:col-start-2 md:row-start-1" />
+
             <section aria-labelledby="plan-heading" className="order-2 md:col-start-1 md:row-start-1">
                 <div className="flex items-baseline justify-between mb-3">
                     <h3 id="plan-heading" className="text-sm font-semibold text-ink">Today&apos;s plan</h3>
@@ -91,11 +116,28 @@ export default function TodayBoard({
                     <p className="text-sm text-ink-muted mb-3">Nothing planned yet. Pick from the suggestions below, or add a task.</p>
                 )}
 
-                <ul className="space-y-0.5 mb-3">
-                    {plan.map(task => (
-                        <PlanRow key={task.id} task={task} today={today} onToggle={() => toggle(task)} onRemove={() => notToday(task.id)} />
-                    ))}
-                </ul>
+                {/* No task in a block yet: one flat list, as before time-blocking */}
+                {groups.length === 0 ? (
+                    <ul className="space-y-0.5 mb-3">{plan.map(row)}</ul>
+                ) : (
+                    <div className="space-y-4 mb-3">
+                        {groups.map(({ block, tasks: blockTasks }) => (
+                            <PlanGroup
+                                key={block.id}
+                                current={isHappening(block, minutes)}
+                                heading={
+                                    <>
+                                        <span className="tabular-nums">{block.startTime} to {block.endTime}</span>{" "}
+                                        <span className="text-ink-soft">{block.label}</span>
+                                    </>
+                                }
+                            >
+                                {blockTasks.map(row)}
+                            </PlanGroup>
+                        ))}
+                        {anytime.length > 0 && <PlanGroup heading="Anytime today">{anytime.map(row)}</PlanGroup>}
+                    </div>
+                )}
 
                 <CreateTaskForm planToday onCreated={handleCreated} />
             </section>
@@ -128,16 +170,34 @@ export default function TodayBoard({
     )
 }
 
+/** One block's tasks under a heading; the block happening now gets the same purple bar as in the rail */
+function PlanGroup({ heading, current = false, children }: { heading: ReactNode; current?: boolean; children:
+ReactNode }) {
+    return (
+        <div
+            aria-current={current ? "time" : undefined}
+            className={`relative ${current ? "before:absolute before:left-0 before:inset-y-1 before:w-0.5 before:rounded-full before:bg-primary-ink" : ""}`}
+        >
+            <h4 className="flex flex-wrap items-baseline gap-x-2 px-2 mb-1 text-xs font-medium text-ink-muted">{heading}</h4>
+            <ul className="space-y-0.5">{children}</ul>
+        </div>
+    )
+}
+
 function PlanRow({
     task,
     today,
+    blocks,
     onToggle,
     onRemove,
+    onMove,
 }: {
     task: BoardTask
     today: string
+    blocks: PlanBlock[]
     onToggle: () => void
     onRemove: () => void
+    onMove: (blockId: string | null) => void
 }) {
     const isDone = task.status === "done"
 
@@ -170,6 +230,23 @@ function PlanRow({
                     )}
                 </div>
             </div>
+            {/* A native select: keyboard and screen reader support for free, and the system picker on phones.
+                A block that isn't on today's schedule matches no option, so it reads "Anytime", like its group */}
+            {blocks.length > 0 && (
+                <select
+                    aria-label={`Block for ${task.title}`}
+                    value={task.scheduleBlockId ?? ""}
+                    onChange={e => onMove(e.target.value || null)}
+                    className="max-w-[9rem] flex-shrink-0 truncate rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-ink-muted hover:border-line focus:border-line-strong transition-colors"
+                >
+                    <option value="" className="bg-surface text-ink">Anytime</option>
+                    {blocks.map(block => (
+                        <option key={block.id} value={block.id} className="bg-surface text-ink">
+                            {block.startTime} {block.label}
+                        </option>
+                    ))}
+                </select>
+            )}
             <button
                 onClick={onRemove}
                 aria-label={`Not today: ${task.title}`}

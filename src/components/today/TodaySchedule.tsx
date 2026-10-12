@@ -1,29 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { useSyncExternalStore } from "react"
+import type { PlanBlock } from "@/lib/today"
+import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 
-type Block = { id: string; startTime: string; endTime: string; label: string }
-
-const minutesOf = (hhmm: string) => {
-    const [hours, minutes] = hhmm.split(":").map(Number)
-    return hours * 60 + minutes
-}
-
-// The clock as an external store: re-read every 30 seconds, and unknown on the server
-function subscribe(onChange: () => void) {
-    const id = setInterval(onChange, 30_000)
-    return () => clearInterval(id)
-}
-const nowInMinutes = () => {
-    const now = new Date()
-    return now.getHours() * 60 + now.getMinutes()
-}
-const unknownOnServer = () => null
-
-export default function TodaySchedule({ blocks, className = "" }: { blocks: Block[]; className?: string }) {
-    // Null during server rendering, so the server and the browser agree on the first render
-    const minutes = useSyncExternalStore(subscribe, nowInMinutes, unknownOnServer)
+export default function TodaySchedule({
+    blocks,
+    counts = {},
+    className = "",
+}: {
+    blocks: PlanBlock[]
+    counts?: Record<string, number>
+    className?: string
+}) {
+    const minutes = useMinutesNow()
 
     return (
         <section aria-labelledby="schedule-heading" className={className}>
@@ -44,8 +34,8 @@ export default function TodaySchedule({ blocks, className = "" }: { blocks: Bloc
             ) : (
                 <ol className="space-y-0.5">
                     {blocks.map(block => {
-                        const current =
-                            minutes !== null && minutes >= minutesOf(block.startTime) && minutes < minutesOf(block.endTime)
+                        const current = isHappening(block, minutes)
+                        const count = counts[block.id] ?? 0
                         return (
                             <li
                                 key={block.id}
@@ -58,6 +48,13 @@ export default function TodaySchedule({ blocks, className = "" }: { blocks: Bloc
                             >
                                 <span className="w-11 flex-shrink-0 pt-px text-xs text-ink-muted tabular-nums">{block.startTime}</span>
                                 <span className="min-w-0">{block.label}</span>
+                                {count > 0 && (
+                                    // The number is for the eye; screen readers hear "2 tasks"
+                                    <span className="ml-auto flex-shrink-0 pt-px text-xs font-normal text-ink-muted tabular-nums">
+                                        <span aria-hidden="true">{count}</span>
+                                        <span className="sr-only">{count === 1 ? "1 task" : `${count} tasks`}</span>
+                                    </span>
+                                )}
                             </li>
                         )
                     })}

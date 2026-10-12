@@ -5,7 +5,6 @@ import { formatDateOnly, parseDateOnly, toDateInputValue, weekRangeOf } from "@/
 import { getUserToday } from "@/lib/user-today"
 import TodayBoard from "@/components/today/TodayBoard"
 import TodayHabits from "@/components/today/TodayHabits"
-import TodaySchedule from "@/components/today/TodaySchedule"
 
 export const dynamic = "force-dynamic"
 
@@ -67,8 +66,7 @@ export default async function DashboardPage() {
             {/* One grid: on mobile everything stacks by `order` (schedule, plan, habits, suggestions);
                 on desktop the plan and suggestions fill column 1 and the rail fills column 2 */}
             <div className="grid gap-x-12 gap-y-10 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start">
-                <TodaySchedule blocks={scheduleBlocks} className="order-1 md:col-start-2 md:row-start-1" />
-                <TodayBoard initialTasks={tasks} goals={goals} today={today} />
+                <TodayBoard initialTasks={tasks} goals={goals} today={today} blocks={scheduleBlocks} />
                 <TodayHabits habits={habitItems} today={today} className="order-3 md:col-start-2 md:row-start-2" />
             </div>
         </main>
