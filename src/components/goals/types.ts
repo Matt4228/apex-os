@@ -19,6 +19,8 @@ export type Goal = {
     targetDate: Date | null
     targetValue: number | null
     unit: string | null
+    /** "latest", "total" or "best": see TRACKING in goalProgress */
+    tracking: string
     entries: Entry[]
     tasks: GoalStep[]
 }

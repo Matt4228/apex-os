@@ -5,9 +5,10 @@ import { updateGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toDateInputValue } from "@/lib/dates"
+import TrackingSelect from "./TrackingSelect"
 import type { Goal } from "./types"
 
-type EditableGoal = Pick<Goal, "id" | "title" | "description" | "category" | "targetDate" | "targetValue" | "unit">
+type EditableGoal = Pick<Goal, "id" | "title" | "description" | "category" | "targetDate" | "targetValue" | "unit" | "tracking">
 
 export default function GoalEditForm({
     goal,
@@ -58,6 +59,7 @@ className="flex-1" />
                 <Input name="unit" placeholder="Unit e.g. km, lbs" defaultValue={goal.unit ?? ""} className="flex-1"
 />
             </div>
+            <TrackingSelect defaultValue={goal.tracking} />
             {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={saving}>

@@ -4,22 +4,27 @@ import { useState } from "react"
 import { logGoalEntry } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { trackingWords } from "./tracking"
 import type { Entry } from "./types"
 
 export default function LogEntryForm({
     goalId,
     unit,
+    tracking,
     onLogged,
     onCancel,
 }: {
     goalId: string
     unit: string | null
+    /** Words the field to match: "Amount to add" for a running total */
+    tracking?: string
     onLogged: (entry: Entry) => void
     /** Shows a Cancel button (and Escape) for a form that was opened on demand */
     onCancel?: () => void
 }) {
     const [logging, setLogging] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { field } = trackingWords(tracking)
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -51,7 +56,7 @@ export default function LogEntryForm({
                     name="value"
                     type="number"
                     step="any"
-                    placeholder={unit ? `Value (${unit})` : "Value"}
+                    placeholder={unit ? `${field} (${unit})` : field}
                     required
                     className="flex-1"
                 />

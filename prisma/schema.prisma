@@ -49,6 +49,8 @@ model Goal {
   targetDate  DateTime?
   targetValue Float?
   unit        String?
+  /// How logged numbers add up: "latest" (like a weight), "total" (like km run) or "best" (like a longest run)
+  tracking    String    @default("latest")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

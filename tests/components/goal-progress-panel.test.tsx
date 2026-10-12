@@ -17,6 +17,7 @@ const goal: Props["goal"] = {
     status: "active",
     targetValue: null,
     unit: null,
+    tracking: "latest",
     entries: [],
 }
 
@@ -74,7 +75,7 @@ describe("GoalProgressPanel", () => {
             },
         })
 
-        expect(screen.getByText("50 problems")).toBeInTheDocument()
-        expect(screen.getByPlaceholderText("Value (problems)")).toBeInTheDocument()
+        expect(screen.getByText("Now 50 problems")).toBeInTheDocument()
+        expect(screen.getByPlaceholderText("New value (problems)")).toBeInTheDocument()
     })
 })

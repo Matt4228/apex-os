@@ -7,10 +7,29 @@ export type GoalProgress<T extends Step = Step> =
     | { kind: "numeric"; percent: number; value: number; loggedOn: Date }
     | { kind: "none" }
 
+/** How a numeric goal's entries add up: the newest value, their sum, or the highest one */
+export const TRACKING = ["latest", "total", "best"] as const
+export type Tracking = (typeof TRACKING)[number]
+
 type ProgressGoal<T extends Step> = {
     targetValue: number | null
+    /** Leave out for "latest", the original behavior */
+    tracking?: string
     entries: { value: number; loggedOn: Date }[]
     tasks: T[]
+}
+
+/** The number a goal has reached so far. Sums are rounded to 2 places so 0.1 + 0.2 shows as 0.3 */
+export function trackedValue(entries: { value: number; loggedOn: Date }[], tracking = "latest"): number {
+    if (tracking === "total") return Math.round(entries.reduce((sum, e) => sum + e.value, 0) * 100) / 100
+    if (tracking === "best") return Math.max(...entries.map(e => e.value))
+    return newest(entries).value
+}
+
+function newest<E extends { loggedOn: Date }>(entries: E[]): E {
+    return entries.reduce((latest, e) =>
+        new Date(e.loggedOn).getTime() > new Date(latest.loggedOn).getTime() ? e : latest
+    )
 }
 
 /** Earliest due date first, undated steps last; ties keep the order they were added */
@@ -22,7 +41,7 @@ export function sortSteps<T extends Step>(steps: T[]): T[] {
     return [...steps].sort((a, b) => dueTime(a) - dueTime(b) || created(a) - created(b))
 }
 
-/** Steps decide progress when a goal has any; otherwise the latest logged value against the target */
+/** Steps decide progress when a goal has any; otherwise the tracked value against the target */
 export function goalProgress<T extends Step>(goal: ProgressGoal<T>): GoalProgress<T> {
     if (goal.tasks.length > 0) {
         const done = goal.tasks.filter(t => t.status === "done").length
@@ -39,14 +58,12 @@ export function goalProgress<T extends Step>(goal: ProgressGoal<T>): GoalProgres
     // A target of 0 would divide by zero, so it counts as no target
     if (!goal.targetValue || goal.entries.length === 0) return { kind: "none" }
 
-    const latest = goal.entries.reduce((newest, e) =>
-        new Date(e.loggedOn).getTime() > new Date(newest.loggedOn).getTime() ? e : newest
-    )
-    const percent = Math.round((latest.value / goal.targetValue) * 100)
+    const value = trackedValue(goal.entries, goal.tracking)
+    const percent = Math.round((value / goal.targetValue) * 100)
     return {
         kind: "numeric",
         percent: Math.min(Math.max(percent, 0), 100),
-        value: latest.value,
-        loggedOn: latest.loggedOn,
+        value,
+        loggedOn: newest(goal.entries).loggedOn,
     }
 }

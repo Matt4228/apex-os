@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import TrackingSelect from "./TrackingSelect"
 import type { Goal }  from "./types"
 
 export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal) => void }) {
@@ -58,6 +59,8 @@ export default function CreateGoalFormat({ onCreated }: { onCreated: (goal: Goal
                 <Input name="targetValue" type="number" step="any" placeholder="Target value (optional)" className="flex-1" />
                 <Input name="targetDate" type="date" className="flex-1" />
             </div>
+
+            <TrackingSelect />
 
             {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 
