@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatDateOnly, parseDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
 import { weekOf } from "@/lib/habitHistory"
+import { occurrences } from "@/lib/occurrences"
+import { loadBlocks } from "@/lib/scheduleData"
 import { getUserToday } from "@/lib/user-today"
 import DayStrip from "@/components/today/DayStrip"
 import TodayBoard from "@/components/today/TodayBoard"
@@ -18,9 +20,8 @@ export default async function DashboardPage() {
     const today = await getUserToday()
     const todayDate = parseDateOnly(today)
     const { start: weekStart, end: weekEnd } = weekRangeOf(today)
-    const dayOfWeek = formatDateOnly(todayDate, "EEEE")
 
-    const [tasks, goals, habits, scheduleBlocks] = await Promise.all([
+    const [tasks, goals, habits, calendar] = await Promise.all([
         // Everything still open (for suggestions and goal steps), plus anything finished from today's plan
         prisma.task.findMany({
             where: { userId, OR: [{ status: "todo" }, { plannedFor: todayDate }] },
@@ -41,12 +42,17 @@ export default async function DashboardPage() {
                 },
             },
         }),
-        prisma.scheduleBlock.findMany({
-            where: { userId, dayOfWeek },
-            // "HH:MM" text sorts in time order because hours are zero padded
-            orderBy: { startTime: "asc" },
-        }),
+        loadBlocks(userId, today, today),
     ])
+
+    // Today's blocks from the calendar, in time order. A block keeps its series id, which is what tasks point at
+    const scheduleBlocks = occurrences(calendar.blocks, calendar.exceptions, today, today).map(o => ({
+        id: o.blockId,
+        startTime: o.startTime,
+        endTime: o.endTime,
+        label: o.label,
+        category: o.category,
+    }))
 
     const habitItems = habits.map(habit => ({
         id: habit.id,

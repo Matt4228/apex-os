@@ -22,21 +22,52 @@ model User {
   competitions    Competition[]
 }
 
+/// A block on the calendar: one day, or a series that repeats. src/lib/occurrences.ts turns it into dated blocks
 model ScheduleBlock {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  dayOfWeek   String
-  startTime   String
-  endTime     String
   label       String
   category    String?
-  color       String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  /// Wall-clock "HH:MM"
+  startTime   String
+  endTime     String
+  /// The first day it happens (a one-off's only day), stored as UTC midnight like other calendar dates
+  startDate   DateTime
+  /// "none", "daily", "weekday", "weekly" or "monthly"
+  repeat      String    @default("none")
+  /// Weekdays for "weekly": 0 is Sunday
+  repeatDays  Int[]     @default([])
+  /// Last possible day, inclusive. At most one of endsOn and endsAfter is set
+  endsOn      DateTime?
+  /// How many times it happens, counted from startDate
+  endsAfter   Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks       Task[]
+  exceptions  BlockException[]
+
+  @@index([userId, startDate])
+}
+
+/// One day of a series that was cancelled, moved or changed
+model BlockException {
+  id         String        @id @default(cuid())
+  blockId    String
+  /// The day it would have happened
+  date       DateTime
+  cancelled  Boolean       @default(false)
+  newDate    DateTime?
+  startTime  String?
+  endTime    String?
+  label      String?
+  category   String?
+
+  block      ScheduleBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([blockId, date])
+  @@index([blockId])
 }
 
 model Goal {

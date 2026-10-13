@@ -4,18 +4,9 @@ import { useRef, useState } from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { timeToMinutes, layoutOverlaps, minutesToPixels, pixelsToMinutes, snapToGrid } from "@/lib/schedule-time"
 import TimeBlock from "./TimeBlock"
+import type { CalendarBlock } from "./types"
 import CurrentTimeLine from "./CurrentTimeLine"
 
-type Block = {
-    id: string
-    label: string
-    startTime: string
-    endTime: string
-    category: string | null
-    color: string | null
-    dayOfWeek: string
-    sortOrder: number
-}
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const MIN_DRAFT_MINUTES = 5
@@ -33,11 +24,11 @@ export default function DayColumn({
     onCreateDraft,
 }: {
     day: string
-    blocks: Block[]
+    blocks: CalendarBlock[]
     pxPerMinute: number
     isToday: boolean
     onDelete: (id: string) => void
-    onEdit: (block: Block) => void
+    onEdit: (block: CalendarBlock) => void
     onResize: (blockId: string, newEndTime: string) => void
     onCreateDraft: (day: string, startMinutees: number, endMinutes: number) => void
 }) {

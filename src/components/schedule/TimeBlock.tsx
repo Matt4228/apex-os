@@ -4,18 +4,9 @@ import { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { catProps } from "@/lib/categoryColor"
+import type { CalendarBlock } from "./types"
 import { minutesToTime, pixelsToMinutes, snapToGrid, timeToMinutes } from "@/lib/schedule-time" 
 
-type Block = {
-    id: string
-    label: string
-    startTime: string
-    endTime: string
-    category: string | null
-    color: string | null
-    dayOfWeek: string
-    sortOrder: number
-}
 
 const MIN_DURATION_MINUTES = 5
 // Below this height two lines don't fit, so the time moves up beside the label
@@ -32,14 +23,14 @@ export default function TimeBlock({
     onEdit,
     onResize,
 }: {
-    block: Block
+    block: CalendarBlock
     top: number
     height: number
     column: number
     columnCount: number
     pxPerMinute: number
     onDelete: (id: string) => void
-    onEdit: (block: Block) => void
+    onEdit: (block: CalendarBlock) => void
     onResize: (blockId: string, newEndTime: string) => void
 }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({

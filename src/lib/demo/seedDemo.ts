@@ -2,7 +2,8 @@
 // Relative imports keep this file runnable outside Next.js: `npm run seed` runs it with tsx
 import type { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
-import { formatDateOnly, parseDateOnly, todayIn } from "../dates"
+import { parseDateOnly, toDateInputValue, todayIn } from "../dates"
+import { occurrences } from "../occurrences"
 
 export const DEMO_EMAIL = "demo@apex-os.app"
 export const DEMO_PASSWORD = "superP@ssword"
@@ -12,44 +13,74 @@ export const DEMO_TIMEZONE = "America/New_York"
 const DAY_MS = 24 * 60 * 60 * 1000
 const HISTORY_DAYS = 120
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+type SeedBlock = {
+    label: string
+    category: string
+    startTime: string
+    endTime: string
+    startDate: Date
+    repeat: string
+    repeatDays: number[]
+    endsAfter?: number
+}
 
-const SCHEDULE = [
-    ...WEEKDAYS.flatMap((dayOfWeek, i) => [
-        { dayOfWeek, startTime: "06:00", endTime: "07:00", label: "Morning run", category: "Fitness", color:
-"#1B998B", sortOrder: 0 },
-        { dayOfWeek, startTime: "07:00", endTime: "08:00", label: "Breakfast and planning", category: "Personal",
-color: "#2E294E", sortOrder: 1 },
-        { dayOfWeek, startTime: "09:00", endTime: "12:00", label: "Deep work: product engineering", category: "Work",
-color: "#2E294E", sortOrder: 2 },
-        { dayOfWeek, startTime: "12:00", endTime: "13:00", label: "Lunch and walk", category: "Personal", color:
-"#1B998B", sortOrder: 3 },
-        { dayOfWeek, startTime: "13:00", endTime: "17:00", label: "Meetings and collaborative work", category: "Work",
-color: "#2E294E", sortOrder: 4 },
-        { dayOfWeek, startTime: "17:00", endTime: "18:00", label: "Job search: applications and outreach", category:
-"Career", color: "#F46036", sortOrder: 5 },
-        ...(i % 2 === 0
-            ? [{ dayOfWeek, startTime: "19:00", endTime: "21:00", label: "Technical study block", category: "Career",
-color: "#F46036", sortOrder: 6 }]
-            : []),
-    ]),
-    { dayOfWeek: "Saturday", startTime: "08:00", endTime: "10:00", label: "Long run", category: "Fitness", color:
-"#1B998B", sortOrder: 0 },
-    { dayOfWeek: "Saturday", startTime: "10:00", endTime: "12:00", label: "LeetCode practice", category: "Career",
-color: "#F46036", sortOrder: 1 },
-    { dayOfWeek: "Saturday", startTime: "13:00", endTime: "16:00", label: "Side project work", category: "Career",
-color: "#F46036", sortOrder: 2 },
-    { dayOfWeek: "Saturday", startTime: "16:00", endTime: "18:00", label: "Free time", category: "Personal", color:
-"#2E294E", sortOrder: 3 },
-    { dayOfWeek: "Sunday", startTime: "09:00", endTime: "10:00", label: "Weekly review and planning", category:
-"Personal", color: "#2E294E", sortOrder: 0 },
-    { dayOfWeek: "Sunday", startTime: "10:00", endTime: "12:00", label: "System design study", category: "Career",
-color: "#F46036", sortOrder: 1 },
-    { dayOfWeek: "Sunday", startTime: "13:00", endTime: "15:00", label: "Side project work", category: "Career",
-color: "#F46036", sortOrder: 2 },
-    { dayOfWeek: "Sunday", startTime: "15:00", endTime: "17:00", label: "Meal prep", category: "Personal", color:
-"#1B998B", sortOrder: 3 },
-]
+type SeedChange = { label: string; date: Date; cancelled?: boolean; startTime?: string; endTime?: string }
+
+const WEEKDAYS = [1, 2, 3, 4, 5]
+
+/**
+ * The demo's calendar, relative to its today: a repeating core that began eight weeks ago, a monthly review, a course
+ * that ends, one-off events and a few changed days, so every week a visitor clicks to looks a little different
+ */
+function demoSchedule(day: (offset: number) => Date, weekday: number) {
+    // Days from today to the Sunday that starts a week: 0 is this week, -1 last week, 1 next week
+    const sunday = (week: number) => -weekday + week * 7
+    const began = day(sunday(-8))
+    const repeating = (label: string, category: string, startTime: string, endTime: string, repeat: string, repeatDays: number[] = []) =>
+        ({ label, category, startTime, endTime, startDate: began, repeat, repeatDays })
+    const once = (label: string, category: string, startTime: string, endTime: string, offset: number) =>
+        ({ label, category, startTime, endTime, startDate: day(offset), repeat: "none", repeatDays: [] })
+    const today = day(0)
+
+    const blocks: SeedBlock[] = [
+        repeating("Morning run", "Fitness", "06:00", "07:00", "weekly", WEEKDAYS),
+        repeating("Breakfast and planning", "Personal", "07:00", "08:00", "weekday"),
+        repeating("Deep work: product engineering", "Work", "09:00", "12:00", "weekday"),
+        repeating("Lunch and walk", "Personal", "12:00", "13:00", "weekday"),
+        repeating("Meetings and collaborative work", "Work", "13:00", "17:00", "weekday"),
+        repeating("Job search: applications and outreach", "Career", "17:00", "18:00", "weekday"),
+        repeating("Technical study block", "Career", "19:00", "21:00", "weekly", [1, 3, 5]),
+        repeating("Long run", "Fitness", "08:00", "10:00", "weekly", [6]),
+        repeating("LeetCode practice", "Career", "10:00", "12:00", "weekly", [6]),
+        repeating("Side project work", "Career", "13:00", "16:00", "weekly", [0, 6]),
+        repeating("Free time", "Personal", "16:00", "18:00", "weekly", [6]),
+        repeating("Weekly review and planning", "Personal", "09:00", "10:00", "weekly", [0]),
+        repeating("System design study", "Career", "10:00", "12:00", "weekly", [0]),
+        repeating("Meal prep", "Personal", "16:00", "18:00", "weekly", [0]),
+        // On the 1st of every month, since three months ago
+        {
+            label: "Budget review", category: "Finance", startTime: "18:00", endTime: "18:30", repeat: "monthly", repeatDays: [],
+            startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 3, 1)),
+        },
+        // Tuesdays and Thursdays from two weeks ago; the sixth class is this Thursday
+        {
+            label: "Postgres course", category: "Learning", startTime: "19:00", endTime: "20:30", repeat: "weekly",
+            repeatDays: [2, 4], startDate: day(sunday(-2) + 2), endsAfter: 6,
+        },
+        once("Dentist", "Health", "14:00", "15:00", sunday(0) + 4),
+        once("Onsite interview", "Career", "10:00", "15:00", sunday(1) + 3),
+        once("Conference", "Learning", "09:00", "17:00", sunday(2) + 4),
+    ]
+
+    const changes: SeedChange[] = [
+        // Last week's Friday was a holiday
+        { label: "Meetings and collaborative work", date: day(sunday(-1) + 5), cancelled: true },
+        { label: "Lunch and walk", date: day(sunday(0) + 3), startTime: "12:30", endTime: "13:30" },
+        { label: "Deep work: product engineering", date: day(sunday(1) + 1), endTime: "11:00" },
+    ]
+
+    return { blocks, changes }
+}
 
 // Each habit's history follows a fixed pattern (dow: 0 is Sunday; n: days ago), so every reseed tells the same story
 const HABITS = [
@@ -104,12 +135,21 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         prisma.scheduleBlock.deleteMany({ where: { userId } }),
     ])
 
-    const blocks = await prisma.scheduleBlock.createManyAndReturn({ data: SCHEDULE.map(block => ({ ...block, userId})) })
+    // The calendar: blocks first, then the days that were changed, which point at their block
+    const schedule = demoSchedule(day, today.getUTCDay())
+    const blocks = await prisma.scheduleBlock.createManyAndReturn({ data: schedule.blocks.map(block => ({ ...block, userId })) })
+    const idOf = (label: string) => blocks.find(block => block.label === label)!.id
+    const changes = schedule.changes.map(({ label, ...change }) => ({ blockId: idOf(label), ...change }))
+    await prisma.blockException.createMany({ data: changes })
 
     // Some of today's plan sits in today's blocks: each task names the blocks it fits, and the first one on today's schedule wins
-    const todaysBlocks = blocks.filter(block => block.dayOfWeek === formatDateOnly(today, "EEEE"))
+    const todayText = toDateInputValue(today)
+    const exceptions = changes.map(c => ({
+        cancelled: false, newDate: null, startTime: null, endTime: null, label: null, category: null, ...c,
+    }))
+    const todaysBlocks = occurrences(blocks, exceptions, todayText, todayText)
     const blockFor = (...labels: string[]) =>
-        labels.map(label => todaysBlocks.find(block => block.label === label)).find(block => block !== undefined)?.id?? null
+        labels.map(label => todaysBlocks.find(block => block.label === label)).find(block => block !== undefined)?.blockId ?? null
 
     // Goals with steps: the top of the flow. Steps are tasks, created with their goal
     await prisma.goal.create({
