@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
+import { catProps } from "@/lib/categoryColor"
 import { minutesToTime, pixelsToMinutes, snapToGrid, timeToMinutes } from "@/lib/schedule-time" 
 
 type Block = {
@@ -91,8 +92,10 @@ export default function TimeBlock({
             ref={setNodeRef}
             {...attributes}
             {...listeners}
+            {...catProps(block.category)}
             onClick={() => onEdit(block)}
-            className={`absolute rounded-md px-2 overflow-hidden group cursor-grab active:cursor-grabbing border border-white/40 ${
+            // Colored by category like everything else; with no category the block is neutral
+            className={`absolute rounded-md px-2 overflow-hidden group cursor-grab active:cursor-grabbing border border-cat-line bg-cat-tint text-cat-ink ${
                 oneLine ? "py-0.5" : "py-1"
             }`}
             style={{
@@ -100,21 +103,20 @@ export default function TimeBlock({
                 height: previewHeight,
                 left: `${leftPct}%`,
                 width: `calc(${widthPct}% - 4px)`,
-                backgroundColor: block.color ?? "#2E294E",
                 transform: CSS.Translate.toString(transform),
                 opacity: isDragging ? 0.6 : 1,
                 zIndex: isDragging || resizing ? 20 : 1,
             }}
         >
             {oneLine ? (
-                <p className="flex items-baseline gap-1.5 text-xs leading-tight text-white pointer-events-none">
+                <p className="flex items-baseline gap-1.5 text-xs leading-tight pointer-events-none">
                     <span className="font-medium truncate">{block.label}</span>
-                    <span className="text-[10px] text-white/70 flex-shrink-0">{block.startTime}</span>
+                    <span className="text-[10px] flex-shrink-0">{block.startTime}</span>
                 </p>
             ) : (
                 <>
-                    <p className="text-xs font-medium text-white truncate pointer-events-none">{block.label}</p>
-                    <p className="text-[10px] text-white/70 truncate pointer-events-none">
+                    <p className="text-xs font-medium truncate pointer-events-none">{block.label}</p>
+                    <p className="text-[10px] truncate pointer-events-none">
                         {block.startTime} - {block.endTime}
                     </p>
                 </>
@@ -125,7 +127,7 @@ export default function TimeBlock({
                     e.stopPropagation()
                     onDelete(block.id)
                 }}
-                className="absolute top-0.5 right-1 text-white/60 hover:text-white opacity-0 focus-visible:opacity-100 group-hover:opacity-100 transition-opacity text-sm leading-none"
+                className="absolute top-0.5 right-1 text-cat-ink/70 hover:text-cat-ink opacity-0 focus-visible:opacity-100 group-hover:opacity-100 transition-opacity text-sm leading-none"
                 aria-label={`Delete ${block.label}`}
             >
                 ×

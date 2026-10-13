@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { catProps } from "@/lib/categoryColor"
 
 type Block = {
     id: string
@@ -16,12 +17,6 @@ type Block = {
     sortOrder: number
 }
 
-const COLORS = [
-  "#2E294E", "#1B998B", "#D7263D",
-  "#F46036", "#C5D86D", "#1e1b33",
-  "#147a6f", "#b01e31",
-]
-
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 export default function BlockForm({
@@ -29,6 +24,7 @@ export default function BlockForm({
     block,
     initialStartTime,
     initialEndTime,
+    categories = [],
     onCreated,
     onUpdated,
     onCancel,
@@ -37,13 +33,14 @@ export default function BlockForm({
     block?: Block
     initialStartTime?: string
     initialEndTime?: string
+    /** Categories already in use, offered as suggestions so the same name (and color) is typed each time */
+    categories?: string[]
     onCreated?: (block: Block) => void
     onUpdated?: (block: Block) => void
     onCancel: () => void
 }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [color, setColor] = useState(block?.color ?? "#2E294E")
     const [label, setLabel] = useState(block?.label ?? "")
     const [dayOfWeek, setDayOfWeek] = useState(block?.dayOfWeek ?? day)
     const [startTime, setStartTime] = useState(block?.startTime ?? initialStartTime ?? "09:00")
@@ -61,7 +58,6 @@ export default function BlockForm({
         formData.set("startTime", startTime)
         formData.set("endTime", endTime)
         formData.set("category", category)
-        formData.set("color", color)
         
         if (block) {
             const result = await updateScheduleBlock(block.id, formData)
@@ -117,25 +113,28 @@ export default function BlockForm({
                 />
             </div>
 
-            <Input 
-                name="category" 
-                placeholder="Category (optional)" 
-                value={category}
-                onChange={e => setCategory(e.target.value)} 
-            />
-
-            <div className="flex gap-1.5 flex-wrap">
-                {COLORS.map(c => (
-                    <button
-                        key={c}
-                        type="button"
-                        onClick={() => setColor(c)}
-                        aria-label={`Color ${c}`}
-                        aria-pressed={color === c}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-ink scale-110" : "border-transparent"}`}
-                        style={{ backgroundColor: c }}
-                    />
-                ))}
+            {/* The block's color comes from its category, so the dot previews it as you type */}
+            <div className="relative">
+                <Input
+                    name="category"
+                    placeholder="Category (optional)"
+                    aria-label="Category"
+                    list="block-categories"
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="pr-8"
+                />
+                <span
+                    {...catProps(category)}
+                    data-testid="category-dot"
+                    aria-hidden="true"
+                    className="absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-cat-solid"
+                />
+                <datalist id="block-categories">
+                    {categories.map(name => (
+                        <option key={name} value={name} />
+                    ))}
+                </datalist>
             </div>
 
             { error && <p role="alert" className="text-xs text-danger-ink">{error}</p> }
