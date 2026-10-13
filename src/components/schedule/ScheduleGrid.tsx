@@ -275,7 +275,9 @@ export default function ScheduleGrid({
                 ))}
             </div>
 
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            {/* A fixed id: otherwise dnd-kit numbers its labels with a counter, and the server's count and the
+                browser's differ, so React can't hydrate the page (DndDescribedBy-0 vs -1) */}
+            <DndContext id="schedule-grid" sensors={sensors} onDragEnd={handleDragEnd}>
                 <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-line rounded-xl">
                     <HourLabels pxPerMinute={pxPerMinute} />
 

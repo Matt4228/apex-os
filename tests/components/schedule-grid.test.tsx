@@ -3,6 +3,7 @@
 import ScheduleGrid from "@/components/schedule/ScheduleGrid"
 import { parseDateOnly } from "@/lib/dates"
 import { render, screen } from "@testing-library/react"
+import { renderToString } from "react-dom/server"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -95,5 +96,17 @@ describe("ScheduleGrid zoom", () => {
 
         render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
         expect(screen.getByRole("button", { name: "Large" })).toHaveAttribute("aria-pressed", "true")
+    })
+})
+
+describe("ScheduleGrid on the server", () => {
+    it("labels its draggable blocks the same way every render, so the browser can hydrate it", () => {
+        const page = () => renderToString(<ScheduleGrid initialBlocks={[series({})]} days={DAYS} today="2026-10-13" />)
+        const labels = (html: string) => [...html.matchAll(/aria-describedby="([^"]+)"/g)].map(m => m[1])
+
+        const first = labels(page())
+        expect(first.length).toBeGreaterThan(0)
+        expect(new Set(first)).toEqual(new Set(["schedule-grid"]))
+        expect(labels(page())).toEqual(first)
     })
 })
