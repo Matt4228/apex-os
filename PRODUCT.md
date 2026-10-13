@@ -35,6 +35,7 @@ Light by default, with a dark option.
 ## Principles
 1. Structure should be felt, not seen: hierarchy from type and spacing before boxes and borders.
 2. Today first: what you need now leads, history and settings come after.
-3. Color means something: purple for brand and current location, teal for actions, red only for danger.
+3. Color means something: purple for brand and current location, teal for actions, red for danger, and category colors for where a thing belongs.
 4. Every text color passes WCAG AA (4.5:1) in both themes.
 5. Tasks come from somewhere: every feature should help turn goals and the schedule into today's tasks.
+6. Spend the boldest color on progress: rings, bars, streaks.

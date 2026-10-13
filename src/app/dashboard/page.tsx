@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatDateOnly, parseDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
 import { getUserToday } from "@/lib/user-today"
+import DayStrip from "@/components/today/DayStrip"
 import TodayBoard from "@/components/today/TodayBoard"
 import TodayHabits from "@/components/today/TodayHabits"
 
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
         // Everything still open (for suggestions and goal steps), plus anything finished from today's plan
         prisma.task.findMany({
             where: { userId, OR: [{ status: "todo" }, { plannedFor: todayDate }] },
-            include: { goal: { select: { id: true, title: true } } },
+            include: { goal: { select: { id: true, title: true, category: true } } },
         }),
         prisma.goal.findMany({
             where: { userId, status: "active" },
@@ -61,6 +62,7 @@ export default async function DashboardPage() {
                 <p className="text-ink-muted text-sm mt-1">
                     Welcome back, {session.user?.name?.split(" ")[0] ?? "there"}
                 </p>
+                <DayStrip blocks={scheduleBlocks} className="mt-5" />
             </header>
 
             {/* One grid: on mobile everything stacks by `order` (schedule, plan, habits, suggestions);

@@ -4,6 +4,17 @@ import { useState } from "react"
 import { createScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectSeparator,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { STANDARD_CATEGORIES, catProps, uniqueCategories } from "@/lib/categoryColor"
 
 type Block = {
     id: string
@@ -16,19 +27,28 @@ type Block = {
     sortOrder: number
 }
 
-const COLORS = [
-  "#2E294E", "#1B998B", "#D7263D",
-  "#F46036", "#C5D86D", "#1e1b33",
-  "#147a6f", "#b01e31",
-]
-
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+// Radix reserves the empty string, so "no category" and "make a new one" need values of their own
+const NONE = "__none__"
+const NEW = "__new__"
+
+/** A category's color dot beside its name */
+function CategoryName({ name }: { name: string }) {
+    return (
+        <span className="inline-flex items-center gap-2">
+            <span {...catProps(name)} aria-hidden="true" className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-cat-solid" />
+            {name}
+        </span>
+    )
+}
 
 export default function BlockForm({
     day,
     block,
     initialStartTime,
     initialEndTime,
+    categories = [],
     onCreated,
     onUpdated,
     onCancel,
@@ -37,18 +57,32 @@ export default function BlockForm({
     block?: Block
     initialStartTime?: string
     initialEndTime?: string
+    /** Categories already in use (blocks, goals, habits), offered after the standard ones */
+    categories?: string[]
     onCreated?: (block: Block) => void
     onUpdated?: (block: Block) => void
     onCancel: () => void
 }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [color, setColor] = useState(block?.color ?? "#2E294E")
     const [label, setLabel] = useState(block?.label ?? "")
     const [dayOfWeek, setDayOfWeek] = useState(block?.dayOfWeek ?? day)
     const [startTime, setStartTime] = useState(block?.startTime ?? initialStartTime ?? "09:00")
     const [endTime, setEndTime] = useState(block?.endTime ?? initialEndTime ?? "10:00")
     const [category, setCategory] = useState(block?.category ?? "")
+    const [addingNew, setAddingNew] = useState(false)
+
+    // Standard categories first, then the user's own; a name matching a standard one (any case) is that one
+    const standardKeys = new Set(STANDARD_CATEGORIES.map(name => name.toLowerCase()))
+    const yours = uniqueCategories([...categories, block?.category]).filter(name => !standardKeys.has(name.toLowerCase()))
+    const options = [...STANDARD_CATEGORIES, ...yours]
+    const chosen = options.find(name => name.toLowerCase() === category.trim().toLowerCase())
+    const selectValue = addingNew ? NEW : chosen ?? NONE
+
+    function pickCategory(value: string) {
+        setAddingNew(value === NEW)
+        setCategory(value === NEW || value === NONE ? "" : value)
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -61,7 +95,6 @@ export default function BlockForm({
         formData.set("startTime", startTime)
         formData.set("endTime", endTime)
         formData.set("category", category)
-        formData.set("color", color)
         
         if (block) {
             const result = await updateScheduleBlock(block.id, formData)
@@ -117,26 +150,59 @@ export default function BlockForm({
                 />
             </div>
 
-            <Input 
-                name="category" 
-                placeholder="Category (optional)" 
-                value={category}
-                onChange={e => setCategory(e.target.value)} 
-            />
+            {/* The block's color comes from its category: standard ones, then the user's own, then a new one */}
+            <Select value={selectValue} onValueChange={pickCategory}>
+                <SelectTrigger
+                    aria-label="Category"
+                    className="h-10 w-full justify-between border-line bg-surface px-3 text-sm text-ink hover:border-line-strong"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value={NONE}>No category</SelectItem>
+                    <SelectSeparator />
+                    <SelectGroup>
+                        <SelectLabel>Standard</SelectLabel>
+                        {STANDARD_CATEGORIES.map(name => (
+                            <SelectItem key={name} value={name}>
+                                <CategoryName name={name} />
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                    {yours.length > 0 && (
+                        <SelectGroup>
+                            <SelectLabel>Yours</SelectLabel>
+                            {yours.map(name => (
+                                <SelectItem key={name} value={name}>
+                                    <CategoryName name={name} />
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                    )}
+                    <SelectSeparator />
+                    <SelectItem value={NEW}>New category...</SelectItem>
+                </SelectContent>
+            </Select>
 
-            <div className="flex gap-1.5 flex-wrap">
-                {COLORS.map(c => (
-                    <button
-                        key={c}
-                        type="button"
-                        onClick={() => setColor(c)}
-                        aria-label={`Color ${c}`}
-                        aria-pressed={color === c}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? "border-ink scale-110" : "border-transparent"}`}
-                        style={{ backgroundColor: c }}
+            {addingNew && (
+                <div className="relative">
+                    <Input
+                        aria-label="New category name"
+                        placeholder="Name your category"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        className="pr-8"
+                        autoFocus
                     />
-                ))}
-            </div>
+                    {/* Its color, as soon as there is a name to take it from */}
+                    <span
+                        {...catProps(category)}
+                        data-testid="new-category-dot"
+                        aria-hidden="true"
+                        className="absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-cat-solid"
+                    />
+                </div>
+            )}
 
             { error && <p role="alert" className="text-xs text-danger-ink">{error}</p> }
             

@@ -273,6 +273,64 @@ describe("TodayBoard", () => {
             expect(group(/Job search/)).not.toHaveAttribute("aria-current")
         })
     })
+
+    describe("category colors", () => {
+        // data-cat 4 is Work and 5 is Career (src/lib/categoryColor.ts)
+        const coloredBlocks = [
+            { ...blocks[0], category: "Work" },
+            { ...blocks[1], category: "Career" },
+        ]
+        const goalStep = (id: string, title: string, block: string) => ({
+            ...task(id, title, { plannedFor: TODAY, block, goalId: "g1" }),
+            goal: { id: "g1", title: "Land a backend role", category: "Career" },
+        })
+        const group = (name: RegExp) => within(plan()).getByRole("heading", { name }).parentElement
+
+        it("tints each block's group with its category, and leaves anytime neutral", () => {
+            render(
+                <TodayBoard
+                    initialTasks={[
+                        task("t1", "Write tests", { plannedFor: TODAY, block: "b1" }),
+                        task("t2", "Apply to roles", { plannedFor: TODAY, block: "b2" }),
+                        task("t3", "Pay rent", { plannedFor: TODAY }),
+                    ]}
+                    goals={[]}
+                    today={TODAY}
+                    blocks={coloredBlocks}
+                />
+            )
+
+            expect(group(/Deep work/)).toHaveAttribute("data-cat", "4")
+            expect(group(/Job search/)).toHaveAttribute("data-cat", "5")
+            expect(group(/Anytime today/)).not.toHaveAttribute("data-cat")
+        })
+
+        it("colors a goal step's check by its goal, ahead of the block it sits in", () => {
+            render(
+                <TodayBoard
+                    initialTasks={[
+                        goalStep("t1", "Polish the resume", "b1"),
+                        task("t2", "Write tests", { plannedFor: TODAY, block: "b1" }),
+                        task("t3", "Pay rent", { plannedFor: TODAY }),
+                    ]}
+                    goals={[]}
+                    today={TODAY}
+                    blocks={coloredBlocks}
+                />
+            )
+
+            expect(screen.getByRole("checkbox", { name: "Polish the resume" })).toHaveAttribute("data-cat", "5")
+            expect(screen.getByRole("checkbox", { name: "Write tests" })).toHaveAttribute("data-cat", "4")
+            expect(screen.getByRole("checkbox", { name: "Pay rent" })).not.toHaveAttribute("data-cat")
+        })
+
+        it("falls back to the block's color when the goal has no category", () => {
+            const step = { ...goalStep("t1", "Polish the resume", "b2"), goal: { id: "g1", title: "Land a backend role", category: " " } }
+            render(<TodayBoard initialTasks={[step]} goals={[]} today={TODAY} blocks={coloredBlocks} />)
+
+            expect(screen.getByRole("checkbox", { name: "Polish the resume" })).toHaveAttribute("data-cat", "5")
+        })
+    })
 })
 
 describe("TodayBoard suggestions", () => {
