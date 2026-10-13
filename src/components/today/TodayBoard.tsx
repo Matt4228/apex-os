@@ -13,6 +13,7 @@ import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
 import { buildToday, dueLabel, groupPlan, type PlanBlock } from "@/lib/today"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
+import { usePop } from "@/lib/usePop"
 import { useStoredToggles } from "@/lib/useStoredToggles"
 
 type BoardTask = Task & { plannedFor: Date | null; scheduleBlockId: string | null }
@@ -242,6 +243,7 @@ function PlanRow({
 }) {
     const isDone = task.status === "done"
     const block = blocks.find(b => b.id === task.scheduleBlockId)
+    const pop = usePop()
     // A goal step takes its goal's color, anything else its block's, so a step reads as part of its goal
     const color = catProps(task.goal?.category?.trim() ? task.goal.category : block?.category)
     const checkColors = color["data-cat"] === undefined
@@ -255,8 +257,12 @@ function PlanRow({
                 role="checkbox"
                 aria-checked={isDone}
                 aria-label={task.title}
-                onClick={onToggle}
-                className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${checkColors}`}
+                onClick={() => {
+                    if (!isDone) pop.start()
+                    onToggle()
+                }}
+                onAnimationEnd={pop.end}
+                className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${checkColors} ${pop.className()}`}
             />
             <div className="flex-1 min-w-0">
                 <p className={`text-sm text-ink ${isDone ? "line-through" : ""}`}>{task.title}</p>

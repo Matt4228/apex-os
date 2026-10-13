@@ -274,6 +274,40 @@ describe("TodayBoard", () => {
         })
     })
 
+    describe("check pop", () => {
+        it("pops only the task just checked, not ones already done", async () => {
+            const user = userEvent.setup()
+            vi.mocked(updateTaskStatus).mockResolvedValue(undefined as never)
+            render(
+                <TodayBoard
+                    initialTasks={[
+                        task("t1", "Write tests", { plannedFor: TODAY }),
+                        task("t2", "Pay rent", { plannedFor: TODAY, status: "done" }),
+                    ]}
+                    goals={[]}
+                    today={TODAY}
+                />
+            )
+            const check = (name: string) => screen.getByRole("checkbox", { name })
+            expect(check("Pay rent").className).not.toContain("animate-check-pop")
+
+            await user.click(check("Write tests"))
+
+            expect(check("Write tests").className).toContain("animate-check-pop")
+            expect(check("Pay rent").className).not.toContain("animate-check-pop")
+        })
+
+        it("doesn't pop when unchecking", async () => {
+            const user = userEvent.setup()
+            vi.mocked(updateTaskStatus).mockResolvedValue(undefined as never)
+            render(<TodayBoard initialTasks={[task("t1", "Pay rent", { plannedFor: TODAY, status: "done" })]} goals={[]} today={TODAY} />)
+
+            await user.click(screen.getByRole("checkbox", { name: "Pay rent" }))
+
+            expect(screen.getByRole("checkbox", { name: "Pay rent" }).className).not.toContain("animate-check-pop")
+        })
+    })
+
     describe("category colors", () => {
         // data-cat 4 is Work and 5 is Career (src/lib/categoryColor.ts)
         const coloredBlocks = [

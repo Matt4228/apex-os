@@ -143,6 +143,14 @@ describe("globals.css", () => {
         expect(dark).toBeGreaterThan(light)
     })
 
+    it("puts the brand tint on the tint step, with brand text readable on it", () => {
+        expect(css).toContain(`--color-primary-tint: ${oklchStep("light", "tint", 290)};`)
+        expect(css).toContain(`--color-primary-tint: ${oklchStep("dark", "tint", 290)};`)
+        // --color-primary-ink in globals.css: oklch(0.45 0.13 290) light, oklch(0.75 0.12 290) dark
+        expect(contrast(linearRgb(0.45, 0.13, 290), step("light", "tint", 290))).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(linearRgb(0.75, 0.12, 290), step("dark", "tint", 290))).toBeGreaterThanOrEqual(4.5)
+    })
+
     it("writes text on solid fills in the table's color", () => {
         expect(css).toContain(`--cat-on-solid: oklch(${ON_SOLID.l} ${ON_SOLID.c} ${ON_SOLID.h});`)
     })

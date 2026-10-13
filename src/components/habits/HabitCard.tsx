@@ -6,6 +6,7 @@ import { toggleHabitLog } from "@/app/actions/habits"
 import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
 import { dayStreak, heatmapDays, heatmapLabel } from "@/lib/habitHistory"
+import { usePop } from "@/lib/usePop"
 import HabitForm, { type HabitFields } from "./HabitForm"
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -47,6 +48,7 @@ export default function HabitCard({
 }) {
   const [loading, setLoading] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const pop = usePop()
 
   // Sunday to Saturday as "YYYY-MM-DD" days, which compare correctly as text
   const { start: weekStart } = weekRangeOf(today)
@@ -138,9 +140,14 @@ export default function HabitCard({
                   key={day}
                   aria-label={formatDateOnly(day, "EEEE, MMM d")}
                   aria-pressed={isLogged}
-                  onClick={() => !isFuture && handleDayClick(day)}
+                  onClick={() => {
+                    if (isFuture) return
+                    if (!isLogged) pop.start(day)
+                    handleDayClick(day)
+                  }}
+                  onAnimationEnd={pop.end}
                   disabled={isFuture || isLoadingDay}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${pop.className(day)} ${
                     isFuture
                       ? "border-line text-ink-muted cursor-not-allowed"
                       : isLogged

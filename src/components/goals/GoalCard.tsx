@@ -5,6 +5,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { LocalDate } from "@/components/ui/local-date"
 import { ProgressBar } from "@/components/ui/progress-bar"
+import { ProgressRing } from "@/components/ui/progress-ring"
+import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly } from "@/lib/dates"
 import { goalProgress } from "@/lib/goalProgress"
 import GoalEditForm from "./GoalEditForm"
@@ -48,7 +50,8 @@ export default function GoalCard({
     }
 
     return (
-        <div className={`bg-surface border border-line rounded-lg p-5 ${isComplete ? "opacity-60" : ""}`}>
+        // The goal's category colors its chip, bar or ring
+        <div {...catProps(goal.category)} className={`bg-surface border border-line rounded-lg p-5 ${isComplete ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -59,7 +62,7 @@ transition-colors">
                             </Link>
                         </h3>
                         {goal.category && (
-                            <span className="text-xs bg-sunken text-ink-soft px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-medium bg-cat-tint text-cat-ink px-2 py-0.5 rounded-full">
                                 {goal.category}
                             </span>
                         )}
@@ -94,17 +97,18 @@ flex-shrink-0"
                         <span>{progress.done} of {progress.total} steps</span>
                         <span>{progress.percent}%</span>
                     </div>
-                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
+                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} tone="category" />
                 </div>
             )}
 
+            {/* Numbers get a ring, steps a bar, so the two kinds of goal look different at a glance */}
             {progress.kind === "numeric" && (
-                <div className="mb-3">
-                    <div className="flex justify-between text-xs text-ink-muted mb-1">
-                        <span>{words.value(withUnit(progress.value, goal.unit))}</span>
-                        <span>Target {withUnit(goal.targetValue, goal.unit)}</span>
+                <div className="mb-3 flex items-center gap-4">
+                    <ProgressRing percent={progress.percent} label={`${goal.title} progress`} />
+                    <div className="text-xs text-ink-muted space-y-0.5">
+                        <p className="text-sm text-ink">{words.value(withUnit(progress.value, goal.unit))}</p>
+                        <p>Target {withUnit(goal.targetValue, goal.unit)}</p>
                     </div>
-                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
                 </div>
             )}
 

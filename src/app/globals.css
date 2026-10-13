@@ -37,6 +37,9 @@
   --color-warning-ink: oklch(0.47 0.14 55);
   --color-success-ink: oklch(0.47 0.14 125);
 
+  /* Brand purple on the palette's tint step: empty-state icons */
+  --color-primary-tint: oklch(0.962 0.03 290);
+
   /* Priority chips: the palette's tint step at the same hues */
   --color-danger-tint: oklch(0.962 0.03 25);
   --color-warning-tint: oklch(0.962 0.03 55);
@@ -54,6 +57,9 @@
   --color-cat-solid: var(--cat-solid);
   --color-cat-ink: var(--cat-ink);
   --color-cat-on-solid: var(--cat-on-solid);
+
+  /* A check pops once when ticked (usePop decides which one) */
+  --animate-check-pop: check-pop 220ms ease-out;
 }
 
 [data-theme="light"] {
@@ -77,6 +83,7 @@
   --color-danger-ink: oklch(0.83 0.1 25);
   --color-warning-ink: oklch(0.83 0.1 55);
   --color-success-ink: oklch(0.83 0.1 125);
+  --color-primary-tint: oklch(0.27 0.045 290);
   --color-danger-tint: oklch(0.27 0.045 25);
   --color-warning-tint: oklch(0.27 0.045 55);
   --color-success-tint: oklch(0.27 0.045 125);
@@ -130,6 +137,12 @@
     @apply bg-canvas text-ink;
   }
 }
+@keyframes check-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
 /* The welcome screen's form fades up when its tab is picked */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(4px); }

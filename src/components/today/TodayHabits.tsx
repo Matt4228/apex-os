@@ -6,6 +6,7 @@ import { toggleHabitLog } from "@/app/actions/habits"
 import { catProps } from "@/lib/categoryColor"
 import { parseDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
+import { usePop } from "@/lib/usePop"
 
 type HabitItem = {
     id: string
@@ -38,9 +39,11 @@ export default function TodayHabits({
     const [habits, setHabits] = useState(initialHabits)
     const [error, setError] = useState<string | null>(null)
     const todayIndex = parseDateOnly(today).getUTCDay()
+    const pop = usePop()
     const left = habits.filter(h => !h.doneToday).length
 
     async function toggle(id: string) {
+        if (!habits.find(h => h.id === id)?.doneToday) pop.start(id)
         setError(null)
         setHabits(current => current.map(h => (h.id === id ? flip(h, todayIndex) : h)))
 
@@ -80,7 +83,8 @@ export default function TodayHabits({
                                 aria-checked={habit.doneToday}
                                 aria-label={habit.title}
                                 onClick={() => toggle(habit.id)}
-                                className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                onAnimationEnd={pop.end}
+                                className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${pop.className(habit.id)} ${
                                     habit.category?.trim()
                                         ? habit.doneToday ? "bg-cat-solid border-cat-solid" : "border-cat-solid hover:bg-cat-tint"
                                         : habit.doneToday ? "bg-accent border-accent" : "border-line-strong hover:border-accent"
