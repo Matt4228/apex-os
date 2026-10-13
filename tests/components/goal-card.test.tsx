@@ -132,3 +132,30 @@ describe("GoalCard logging", () => {
         expect(screen.queryByPlaceholderText("New value (problems)")).not.toBeInTheDocument()
     })
 })
+
+describe("GoalCard progress shape and color", () => {
+    const entry = (value: number) => ({ id: `e${value}`, value, note: null, loggedOn: new Date("2026-10-10") })
+
+    it("draws a ring for a goal measured in numbers", () => {
+        renderCard({ ...baseGoal, category: "Career", entries: [entry(131)] })
+
+        const progress = screen.getByRole("progressbar", { name: "Complete 200 LeetCode problems progress" })
+        expect(progress).toHaveAttribute("aria-valuenow", "66")
+        expect(progress.querySelector("svg")).not.toBeNull()
+        expect(progress.closest("[data-cat]")).toHaveAttribute("data-cat", "5")
+    })
+
+    it("draws a bar for a goal measured in steps", () => {
+        renderCard({ ...baseGoal, targetValue: null, unit: null, tasks: [step("1", "done"), step("2", "todo")] })
+
+        const progress = screen.getByRole("progressbar", { name: "Complete 200 LeetCode problems progress" })
+        expect(progress).toHaveAttribute("aria-valuenow", "50")
+        expect(progress.querySelector("svg")).toBeNull()
+    })
+
+    it("shows the category as a chip in its color", () => {
+        renderCard({ ...baseGoal, category: "Fitness" })
+
+        expect(screen.getByText("Fitness").closest("[data-cat]")).toHaveAttribute("data-cat", "0")
+    })
+})

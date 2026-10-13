@@ -7,6 +7,7 @@ import { updateTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { usePop } from "@/lib/usePop"
 import GoalSelect from "./GoalSelect"
 import type { GoalOption, Task } from "./types"
 
@@ -46,6 +47,7 @@ export default function TaskCard({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const isDone = task.status === "done"
+    const pop = usePop()
 
     async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -123,9 +125,13 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                 role="checkbox"
                 aria-checked={isDone}
                 aria-label={task.title}
-                onClick={() => onToggle(task.id, isDone ? "todo" : "done")}
+                onClick={() => {
+                    if (!isDone) pop.start()
+                    onToggle(task.id, isDone ? "todo" : "done")
+                }}
+                onAnimationEnd={pop.end}
                 disabled={isPending}
-                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${
+                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${pop.className()} ${
                     isDone
                         ? "bg-accent border-accent"
                         : "border-line-strong hover:border-accent"

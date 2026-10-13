@@ -37,6 +37,9 @@
   --color-warning-ink: oklch(0.47 0.14 55);
   --color-success-ink: oklch(0.47 0.14 125);
 
+  /* Brand purple on the palette's tint step: empty-state icons */
+  --color-primary-tint: oklch(0.962 0.03 290);
+
   /* Priority chips: the palette's tint step at the same hues */
   --color-danger-tint: oklch(0.962 0.03 25);
   --color-warning-tint: oklch(0.962 0.03 55);
@@ -53,6 +56,10 @@
   --color-cat-line: var(--cat-line);
   --color-cat-solid: var(--cat-solid);
   --color-cat-ink: var(--cat-ink);
+  --color-cat-on-solid: var(--cat-on-solid);
+
+  /* A check pops once when ticked (usePop decides which one) */
+  --animate-check-pop: check-pop 220ms ease-out;
 }
 
 [data-theme="light"] {
@@ -76,6 +83,7 @@
   --color-danger-ink: oklch(0.83 0.1 25);
   --color-warning-ink: oklch(0.83 0.1 55);
   --color-success-ink: oklch(0.83 0.1 125);
+  --color-primary-tint: oklch(0.27 0.045 290);
   --color-danger-tint: oklch(0.27 0.045 25);
   --color-warning-tint: oklch(0.27 0.045 55);
   --color-success-tint: oklch(0.27 0.045 125);
@@ -94,6 +102,8 @@
   --cat-line: var(--color-line);
   --cat-solid: var(--color-ink-muted);
   --cat-ink: var(--color-ink-soft);
+  /* Neutral solid is mid gray: white reads on it in light, dark text in dark */
+  --cat-on-solid: oklch(1 0 0);
 }
 
 /* After :root on purpose: the two selectors weigh the same, so the later one wins */
@@ -102,6 +112,7 @@
   --cat-line-l: 0.4; --cat-line-c: 0.08;
   --cat-solid-l: 0.7; --cat-solid-c: 0.14;
   --cat-ink-l: 0.83; --cat-ink-c: 0.1;
+  --cat-on-solid: oklch(0.2 0.02 290);
 }
 
 [data-cat] {
@@ -109,6 +120,7 @@
   --cat-line: oklch(var(--cat-line-l) var(--cat-line-c) var(--cat-h));
   --cat-solid: oklch(var(--cat-solid-l) var(--cat-solid-c) var(--cat-h));
   --cat-ink: oklch(var(--cat-ink-l) var(--cat-ink-c) var(--cat-h));
+  --cat-on-solid: oklch(0.2 0.02 290);
 }
 
 [data-cat="0"] { --cat-h: 40; }
@@ -125,6 +137,12 @@
     @apply bg-canvas text-ink;
   }
 }
+@keyframes check-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
 /* The welcome screen's form fades up when its tab is picked */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(4px); }

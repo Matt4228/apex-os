@@ -26,6 +26,8 @@ describe.each(pages)("$name with nothing in it", ({ page, button, field }) => {
         render(page)
 
         expect(screen.getByRole("heading", { name: /yet$/ })).toBeInTheDocument()
+        // The icon sits in a brand purple circle
+        expect(screen.getByTestId("empty-icon").className).toContain("bg-primary-tint")
 
         await user.click(screen.getByRole("button", { name: button }))
 

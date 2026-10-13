@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatDateOnly, parseDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
+import { weekOf } from "@/lib/habitHistory"
 import { getUserToday } from "@/lib/user-today"
 import DayStrip from "@/components/today/DayStrip"
 import TodayBoard from "@/components/today/TodayBoard"
@@ -53,6 +54,8 @@ export default async function DashboardPage() {
         targetPerWeek: habit.targetPerWeek,
         weekCount: habit.logs.length,
         doneToday: habit.logs.some(log => toDateInputValue(log.completedOn) === today),
+        category: habit.category,
+        week: weekOf(habit.logs.map(log => toDateInputValue(log.completedOn)), today),
     }))
 
     return (

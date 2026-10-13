@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import {
     CATEGORY_HUES,
+    ON_SOLID,
     CATEGORY_STEPS,
     STATUS_HUES,
     catProps,
@@ -101,6 +102,17 @@ describe("palette contrast", () => {
             }
         })
 
+        it(`keeps text readable on a solid fill (${theme})`, () => {
+            const onSolid = linearRgb(ON_SOLID.l, ON_SOLID.c, ON_SOLID.h)
+            for (const hue of CATEGORY_HUES) {
+                expect(contrast(onSolid, step(theme, "solid", hue)), `hue ${hue}`).toBeGreaterThanOrEqual(4.5)
+            }
+            // No category: the solid is ink-muted, with white text in light and dark text in dark
+            const neutral = theme === "light" ? linearRgb(0.5, 0.018, 290) : linearRgb(0.68, 0.014, 290)
+            const neutralText = theme === "light" ? linearRgb(1, 0, 0) : onSolid
+            expect(contrast(neutralText, neutral), "no category").toBeGreaterThanOrEqual(4.5)
+        })
+
         it(`keeps solid fills visible on cards (${theme})`, () => {
             for (const hue of CATEGORY_HUES) {
                 expect(contrast(step(theme, "solid", hue), SURFACE[theme]), `hue ${hue}`).toBeGreaterThanOrEqual(3)
@@ -129,6 +141,18 @@ describe("globals.css", () => {
         const dark = css.indexOf(`--cat-tint-l: ${CATEGORY_STEPS.dark.tint.l};`)
         expect(light).toBeGreaterThan(-1)
         expect(dark).toBeGreaterThan(light)
+    })
+
+    it("puts the brand tint on the tint step, with brand text readable on it", () => {
+        expect(css).toContain(`--color-primary-tint: ${oklchStep("light", "tint", 290)};`)
+        expect(css).toContain(`--color-primary-tint: ${oklchStep("dark", "tint", 290)};`)
+        // --color-primary-ink in globals.css: oklch(0.45 0.13 290) light, oklch(0.75 0.12 290) dark
+        expect(contrast(linearRgb(0.45, 0.13, 290), step("light", "tint", 290))).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(linearRgb(0.75, 0.12, 290), step("dark", "tint", 290))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it("writes text on solid fills in the table's color", () => {
+        expect(css).toContain(`--cat-on-solid: oklch(${ON_SOLID.l} ${ON_SOLID.c} ${ON_SOLID.h});`)
     })
 
     it("puts the priority chip and status text colors on the same steps", () => {

@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button"
 import { ProgressBar } from "@/components/ui/progress-bar"
+import { ProgressRing } from "@/components/ui/progress-ring"
+import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly } from "@/lib/dates"
 import { goalProgress, type Step } from "@/lib/goalProgress"
 import GoalProgressChart from "./GoalProgressChart"
@@ -15,7 +17,7 @@ export default function GoalProgressPanel({
     onEntryLogged,
     onComplete,
 }: {
-    goal: Pick<Goal, "id" | "title" | "status" | "targetValue" | "unit" | "tracking" | "entries">
+    goal: Pick<Goal, "id" | "title" | "status" | "targetValue" | "unit" | "tracking" | "entries"> & { category?: string | null }
     steps: Step[]
     onEntryLogged: (entry: Entry) => void
     onComplete: () => void
@@ -25,12 +27,12 @@ export default function GoalProgressPanel({
 
     if (progress.kind === "steps") {
         return (
-            <section aria-label="Progress" className="mb-8">
+            <section {...catProps(goal.category)} aria-label="Progress" className="mb-8">
                 <div className="flex justify-between text-sm mb-2">
                     <span className="text-ink-soft">{progress.done} of {progress.total} steps</span>
                     <span className="text-ink-muted">{progress.percent}%</span>
                 </div>
-                <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
+                <ProgressBar percent={progress.percent} label={`${goal.title} progress`} tone="category" />
 
                 {progress.nextStep && (
                     <p className="text-sm text-ink-muted mt-3">
@@ -53,14 +55,16 @@ export default function GoalProgressPanel({
     if (!goal.targetValue) return null
 
     return (
-        <section aria-label="Progress" className="mb-8 space-y-4">
+        <section {...catProps(goal.category)} aria-label="Progress" className="mb-8 space-y-4">
             {progress.kind === "numeric" && (
-                <div>
-                    <div className="flex justify-between text-sm text-ink-muted mb-2">
-                        <span>{trackingWords(goal.tracking).value(withUnit(progress.value, goal.unit))}</span>
-                        <span>Target {withUnit(goal.targetValue, goal.unit)}</span>
+                <div className="flex items-center gap-5">
+                    <ProgressRing percent={progress.percent} label={`${goal.title} progress`} size={88} />
+                    <div className="space-y-1">
+                        <p className="text-lg font-semibold text-ink">
+                            {trackingWords(goal.tracking).value(withUnit(progress.value, goal.unit))}
+                        </p>
+                        <p className="text-sm text-ink-muted">Target {withUnit(goal.targetValue, goal.unit)}</p>
                     </div>
-                    <ProgressBar percent={progress.percent} label={`${goal.title} progress`} />
                 </div>
             )}
             {isActive && <LogEntryForm goalId={goal.id} unit={goal.unit} tracking={goal.tracking} onLogged={onEntryLogged} />}

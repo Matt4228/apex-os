@@ -29,6 +29,9 @@ export const CATEGORY_STEPS: Record<Theme, Record<Step, { l: number; c: number }
     },
 }
 
+/** Text on a solid fill (a logged day): dark on every category, in both themes, for contrast */
+export const ON_SOLID = { l: 0.2, c: 0.02, h: 290 }
+
 /** The hues the priority chips and status text use, on the same steps as the categories */
 export const STATUS_HUES = { danger: 25, warning: 55, success: 125 } as const
 
