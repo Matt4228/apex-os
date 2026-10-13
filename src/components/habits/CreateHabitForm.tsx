@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createHabit } from "@/app/actions/habits"
 import { Button } from "@/components/ui/button"
+import { CategorySelect, useCategories } from "@/components/ui/category-select"
 import { Input } from "@/components/ui/input"
 import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 
@@ -28,6 +29,7 @@ export default function CreateHabitForm({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [frequency, setFrequency] = useState("daily")
+    const { remember } = useCategories()
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -45,6 +47,7 @@ export default function CreateHabitForm({
 
         if (result?.habit) {
             onCreated(result.habit as Habit)
+            remember(result.habit.category)
         }
 
         setLoading(false)
@@ -66,7 +69,7 @@ export default function CreateHabitForm({
     return (
         <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-lg p-4 space-y-3">
             <Input name="title" placeholder="Habit title" required autoFocus/>
-            <Input name="category" placeholder="Category (optional)" />
+            <CategorySelect name="category" />
 
             <div className="flex gap-2">
                 <select

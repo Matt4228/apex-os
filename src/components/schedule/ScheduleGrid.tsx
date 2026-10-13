@@ -13,7 +13,6 @@ import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGr
 import HourLabels from "./HourLabels"
 import DayColumn from "./DayColumn"
 import BlockForm from "./BlockForm"
-import { uniqueCategories } from "@/lib/categoryColor"
 import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
@@ -35,11 +34,8 @@ export const PX_PER_MINUTE = 1
 export default function ScheduleGrid({
     initialBlocks,
     pxPerMinute = PX_PER_MINUTE,
-    categories = [],
 }: {
     initialBlocks: Block[]
-    /** Goal and habit categories, suggested in the block form beside the blocks' own */
-    categories?: string[]
     /** Height of one minute; the scale comparison page passes a few */
     pxPerMinute?: number
 }) {
@@ -174,7 +170,6 @@ export default function ScheduleGrid({
                             block={editingBlock ?? undefined}
                             initialStartTime={createDraft?.startTime}
                             initialEndTime={createDraft?.endTime}
-                            categories={uniqueCategories([...categories, ...blocks.map(b => b.category)])}
                             onCreated={handleCreated}
                             onUpdated={handleUpdated}
                             onCancel={closeDialog}

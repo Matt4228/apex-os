@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
+import { CategorySelect, useCategories } from "@/components/ui/category-select"
 import { Input } from "@/components/ui/input"
 import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 import TrackingSelect from "./TrackingSelect"
@@ -19,6 +20,7 @@ export default function CreateGoalFormat({
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { remember } = useCategories()
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -36,6 +38,7 @@ export default function CreateGoalFormat({
 
         if (result?.goal) {
             onCreated({ ...result.goal, entries: [], tasks: []})
+            remember(result.goal.category)
         }
 
         setLoading(false)
@@ -59,15 +62,14 @@ export default function CreateGoalFormat({
             <Input name="title" placeholder="Goal title" required autoFocus />
             <Input name="description" placeholder="Description (optional)" />
 
-            <div className="flex gap-2">
-                <Input name="category" placeholder="Category (optional)" className="flex-1" />
-                <Input name="unit" placeholder="Unit e.g. km, lbs" className="flex-1" />
-            </div>
-            
+            <CategorySelect name="category" />
+
             <div className="flex gap-2">
                 <Input name="targetValue" type="number" step="any" placeholder="Target value (optional)" className="flex-1" />
-                <Input name="targetDate" type="date" className="flex-1" />
+                <Input name="unit" placeholder="Unit e.g. km, lbs" className="flex-1" />
             </div>
+
+            <Input name="targetDate" type="date" aria-label="Target date" />
 
             <TrackingSelect />
 

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { updateGoal } from "@/app/actions/goals"
 import { Button } from "@/components/ui/button"
+import { CategorySelect, useCategories } from "@/components/ui/category-select"
 import { Input } from "@/components/ui/input"
 import { toDateInputValue } from "@/lib/dates"
 import TrackingSelect from "./TrackingSelect"
@@ -21,6 +22,7 @@ export default function GoalEditForm({
 }) {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { remember } = useCategories()
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -34,19 +36,23 @@ export default function GoalEditForm({
             setError(result.error)
             return
         }
-        if (result?.goal) onSaved(result.goal)
+        if (result?.goal) {
+            remember(result.goal.category)
+            onSaved(result.goal)
+        }
     }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-3">
             <Input name="title" defaultValue={goal.title} required autoFocus />
             <Input name="description" placeholder="Description (optional)" defaultValue={goal.description ?? ""} />
-            <div className="flex gap-2">
-                <Input name="category" placeholder="Category (optional)" defaultValue={goal.category ?? ""}
-className="flex-1" />
-                <Input name="targetDate" type="date" defaultValue={goal.targetDate ? toDateInputValue(goal.targetDate)
-: ""} className="flex-1" />
-            </div>
+            <CategorySelect name="category" defaultValue={goal.category} />
+            <Input
+                name="targetDate"
+                type="date"
+                aria-label="Target date"
+                defaultValue={goal.targetDate ? toDateInputValue(goal.targetDate) : ""}
+            />
             <div className="flex gap-2">
                 <Input
                     name="targetValue"
