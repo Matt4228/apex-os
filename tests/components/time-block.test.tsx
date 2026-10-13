@@ -5,7 +5,7 @@ import { DndContext } from "@dnd-kit/core"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-const block = (category: string | null) => ({
+const block = (category: string | null, o: { repeats?: boolean; changed?: boolean } = {}) => ({
     id: "b1|2026-10-12",
     blockId: "b1",
     date: "2026-10-12",
@@ -14,8 +14,8 @@ const block = (category: string | null) => ({
     startTime: "09:00",
     endTime: "12:00",
     category,
-    repeats: true,
-    changed: false,
+    repeats: o.repeats ?? true,
+    changed: o.changed ?? false,
 })
 
 function renderBlock(b: ReturnType<typeof block>) {
@@ -40,5 +40,27 @@ describe("TimeBlock", () => {
 
         expect(el).not.toHaveAttribute("data-cat")
         expect(el.style.backgroundColor).toBe("")
+    })
+})
+
+describe("TimeBlock marks", () => {
+    it("says a repeating block repeats, and leaves a one-off unmarked", () => {
+        renderBlock(block("Work"))
+        expect(screen.getByText("Repeats:", { exact: false })).toBeInTheDocument()
+    })
+
+    it("has no repeat mark on a one-off", () => {
+        renderBlock(block("Work", { repeats: false }))
+        expect(screen.queryByText("Repeats:", { exact: false })).not.toBeInTheDocument()
+    })
+
+    it("draws a day changed on its own with a dashed border", () => {
+        const el = renderBlock(block("Work", { changed: true }))
+        expect(el.className).toContain("border-dashed")
+    })
+
+    it("shows its times as a range", () => {
+        renderBlock(block("Work"))
+        expect(screen.getByText("09:00 to 12:00")).toBeInTheDocument()
     })
 })

@@ -1,18 +1,16 @@
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
-function formatHour(hour: number): string {
-    if (hour === 0) return "12 AM"
-    if (hour === 12) return "12 PM"
-    return hour < 12 ? `${hour} AM` : `${hour - 12} PM`
-}
+/** "07:00": 24-hour, like every other time in the app */
+const formatHour = (hour: number) => `${String(hour).padStart(2, "0")}:00`
 
 export default function HourLabels({ pxPerMinute }: { pxPerMinute: number}) {
     return (
         <div className="relative flex-shrink-0 w-14" style={{ height: 24 * 60 * pxPerMinute }}>
-            {HOURS.map(hour => (
-                <div 
+            {/* Midnight at the very top would be cut in half, so the labels start at 01:00 */}
+            {HOURS.slice(1).map(hour => (
+                <div
                     key={hour}
-                    className="absolute right-2 -translate-y-1/2 text-xs text-ink-muted"
+                    className="absolute right-2 -translate-y-1/2 font-mono text-[11px] text-ink-muted tabular-nums"
                     style={{ top: hour * 60 * pxPerMinute }}
                 >
                     {formatHour(hour)}

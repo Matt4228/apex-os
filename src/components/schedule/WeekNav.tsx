@@ -22,7 +22,7 @@ export default function WeekNav({ sunday, today }: { sunday: string; today: stri
     const isThisWeek = weekDates(today)[0] === sunday
 
     return (
-        <nav aria-label="Weeks" className="mb-4 flex flex-wrap items-center gap-2">
+        <nav aria-label="Weeks" className="flex flex-wrap items-center gap-2">
             <Link href={weekHref(addDays(sunday, -7))} aria-label="Previous week" className={`${button} px-2`}>
                 <ChevronLeft size={16} aria-hidden="true" />
             </Link>
@@ -48,7 +48,7 @@ export default function WeekNav({ sunday, today }: { sunday: string; today: stri
                 key={sunday}
                 defaultValue={sunday}
                 onChange={e => e.target.value && router.push(weekHref(e.target.value))}
-                className="ml-auto h-9 rounded-md border border-line bg-surface px-2 text-sm text-ink"
+                className="h-9 rounded-md border border-line bg-surface px-2 text-sm text-ink"
             />
         </nav>
     )

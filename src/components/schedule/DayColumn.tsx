@@ -110,7 +110,7 @@ export default function DayColumn({
         <div 
             ref={setRefs}
             onPointerDown={handlePointerDown}
-            className="relative flex-1 border-l border-line touch-none"
+            className={`relative flex-1 border-l border-line touch-none ${isToday ? "bg-primary-ink/[0.04]" : ""}`}
             style={{ height: 24 * 60 * pxPerMinute}}
         >
             {HOURS.map(hour => (

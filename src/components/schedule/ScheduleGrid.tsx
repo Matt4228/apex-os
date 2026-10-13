@@ -12,7 +12,10 @@ import { deleteScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { occurrences, type Exception } from "@/lib/occurrences"
 import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGrid } from "@/lib/schedule-time"
+import { Plus, Repeat } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import HourLabels from "./HourLabels"
+import WeekNav from "./WeekNav"
 import DayColumn from "./DayColumn"
 import BlockForm, { type Saved } from "./BlockForm"
 import { fieldsOf, toFormData, whyNotMove } from "./blockFields"
@@ -114,6 +117,11 @@ export default function ScheduleGrid({
         closeDialog()
     }
 
+    /** + New block: today when this week holds it, otherwise the week's Monday, 09:00 to 10:00 */
+    function openNew() {
+        setCreateDraft({ day: days.includes(today) ? today : days[1], startTime: "09:00", endTime: "10:00" })
+    }
+
     function handleCreateDraft(day: string, startMinutes: number, endMinutes: number) {
         setCreateDraft({
             day,
@@ -204,7 +212,7 @@ export default function ScheduleGrid({
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="block-dialog-title"
-                        className="bg-surface rounded-xl border border-line p-5 w-full max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto"
+                        className="bg-surface rounded-xl border border-line p-5 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl"
                     >
                         <h3 id="block-dialog-title" className="text-sm font-semibold text-ink mb-3">
                             {editing ? "Edit block" : "New block"}
@@ -222,7 +230,11 @@ export default function ScheduleGrid({
                 </div>
             )}
 
-            <div className="flex justify-end mb-3">
+            {/* One toolbar: the week on the left; zoom and New block on the right */}
+            <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+                <WeekNav sunday={days[0]} today={today} />
+                <div className="ml-auto flex items-center gap-2">
+                <span className="text-xs text-ink-muted">Zoom</span>
                 <div role="group" aria-label="Zoom" className="inline-flex gap-0.5 rounded-lg bg-sunken p-0.5">
                     {ZOOMS.map(z => (
                         <button
@@ -237,6 +249,11 @@ export default function ScheduleGrid({
                             {z.label}
                         </button>
                     ))}
+                </div>
+                <Button size="sm" onClick={openNew}>
+                    <Plus size={14} aria-hidden="true" className="mr-1" />
+                    New block
+                </Button>
                 </div>
             </div>
 
@@ -258,36 +275,52 @@ export default function ScheduleGrid({
                 ))}
             </div>
 
-            {/* Desktop day headers: weekday and date, today circled */}
-            <div className="hidden md:flex mb-2">
-                <div className="w-14 flex-shrink-0" />
-                {days.map(day => (
-                    <div key={day} className="flex-1 text-center text-xs font-semibold text-ink-muted uppercase tracking-wide">
-                        {formatDateOnly(day, "EEE")}
-                        <span
-                            className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm normal-case tracking-normal tabular-nums ${
-                                day === today ? "bg-primary-ink text-canvas" : "text-ink"
-                            }`}
-                        >
-                            {formatDateOnly(day, "d")}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
             {/* A fixed id: otherwise dnd-kit numbers its labels with a counter, and the server's count and the
                 browser's differ, so React can't hydrate the page (DndDescribedBy-0 vs -1) */}
             <DndContext id="schedule-grid" sensors={sensors} onDragEnd={handleDragEnd}>
-                <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-line rounded-xl">
-                    <HourLabels pxPerMinute={pxPerMinute} />
+                {/* One card: the day headers stay in view while the hours scroll under them */}
+                <div ref={scrollRef} className="max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-surface">
+                    <div className="sticky top-0 z-30 hidden md:flex border-b border-line bg-surface">
+                        <div className="w-14 flex-shrink-0" />
+                        {days.map(day => (
+                            <div
+                                key={day}
+                                className={`flex-1 border-l border-line py-2 text-center text-xs ${day < today ? "text-ink-muted/80" : "text-ink-muted"}`}
+                            >
+                                {formatDateOnly(day, "EEE")}
+                                <span
+                                    className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-base font-semibold tabular-nums ${
+                                        day === today ? "bg-primary-ink text-canvas" : day < today ? "text-ink-soft" : "text-ink"
+                                    }`}
+                                >
+                                    {formatDateOnly(day, "d")}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
 
-                    {/* Mobile: one day */}
-                    <div className="flex-1 md:hidden">{column(activeDay)}</div>
+                    <div className="flex">
+                        <HourLabels pxPerMinute={pxPerMinute} />
 
-                    {/* Desktop: the whole week */}
-                    <div className="hidden md:flex flex-1">{days.map(column)}</div>
+                        {/* Mobile: one day */}
+                        <div className="flex-1 md:hidden">{column(activeDay)}</div>
+
+                        {/* Desktop: the whole week */}
+                        <div className="hidden md:flex flex-1">{days.map(column)}</div>
+                    </div>
                 </div>
             </DndContext>
+
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-muted">
+                <span className="inline-flex items-center gap-1.5">
+                    <Repeat size={12} aria-hidden="true" />
+                    Repeats
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true" className="h-2.5 w-3.5 rounded-[3px] border border-dashed border-line-strong" />
+                    Changed for one day
+                </span>
+            </div>
 
             {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>

@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import ScheduleGrid from "@/components/schedule/ScheduleGrid"
-import WeekNav from "@/components/schedule/WeekNav"
 import { weekDates } from "@/lib/occurrences"
 import { weekStartFor } from "@/lib/weekParam"
 import { loadBlocks } from "@/lib/scheduleData"
@@ -26,8 +25,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                 <h2 className="text-2xl font-semibold text-ink">Schedule</h2>
                 <p className="text-ink-muted text-sm mt-1">Repeating blocks fill every week they apply to.</p>
             </div>
-
-            <WeekNav sunday={sunday} today={today} />
 
             {/* A new week is a new grid: the key starts it fresh with that week's blocks */}
             <ScheduleGrid key={sunday} initialBlocks={blocks} initialExceptions={exceptions} days={days} today={today} />

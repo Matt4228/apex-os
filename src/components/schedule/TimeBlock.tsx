@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
+import { Repeat } from "lucide-react"
 import { catProps } from "@/lib/categoryColor"
 import type { CalendarBlock } from "./types"
 import { minutesToTime, pixelsToMinutes, snapToGrid, timeToMinutes } from "@/lib/schedule-time" 
@@ -44,6 +45,12 @@ export default function TimeBlock({
     const leftPct = widthPct * column
     const previewHeight = Math.max(height + resizeDeltaY, 18)
     const oneLine = previewHeight < ONE_LINE_BELOW_PX
+    const repeatIcon = block.repeats && (
+        <>
+            <Repeat size={11} aria-hidden="true" className="flex-shrink-0 opacity-80" />
+            <span className="sr-only">Repeats: </span>
+        </>
+    )
 
     function handleResizeStart(e: React.PointerEvent) {
         e.stopPropagation()
@@ -86,9 +93,9 @@ export default function TimeBlock({
             {...catProps(block.category)}
             onClick={() => onEdit(block)}
             // Colored by category like everything else; with no category the block is neutral
-            className={`absolute rounded-md px-2 overflow-hidden group cursor-grab active:cursor-grabbing border border-cat-line bg-cat-tint text-cat-ink ${
-                oneLine ? "py-0.5" : "py-1"
-            }`}
+            className={`absolute rounded-md px-2 overflow-hidden group cursor-grab active:cursor-grabbing border bg-cat-tint text-cat-ink hover:border-cat-solid transition-colors ${
+                block.changed ? "border-dashed border-cat-solid" : "border-cat-line"
+            } ${oneLine ? "py-0.5" : "py-1"}`}
             style={{
                 top,
                 height: previewHeight,
@@ -100,15 +107,19 @@ export default function TimeBlock({
             }}
         >
             {oneLine ? (
-                <p className="flex items-baseline gap-1.5 text-xs leading-tight pointer-events-none">
-                    <span className="font-medium truncate">{block.label}</span>
-                    <span className="text-[10px] flex-shrink-0">{block.startTime}</span>
+                <p className="flex items-center gap-1 text-xs leading-tight pointer-events-none">
+                    {repeatIcon}
+                    <span className="font-semibold truncate">{block.label}</span>
+                    <span className="font-mono text-[10px] flex-shrink-0">{block.startTime}</span>
                 </p>
             ) : (
                 <>
-                    <p className="text-xs font-medium truncate pointer-events-none">{block.label}</p>
-                    <p className="text-[10px] truncate pointer-events-none">
-                        {block.startTime} - {block.endTime}
+                    <p className="flex items-center gap-1 text-xs font-semibold pointer-events-none">
+                        {repeatIcon}
+                        <span className="truncate">{block.label}</span>
+                    </p>
+                    <p className="font-mono text-[10px] truncate pointer-events-none">
+                        {block.startTime} to {block.endTime}
                     </p>
                 </>
             )}
