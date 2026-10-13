@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation"
+import WelcomeScreen from "@/components/welcome/WelcomeScreen"
 
-export default function RootPage() {
-  redirect("/dashboard")
+// Signed-in visitors never get here: the proxy sends them to the dashboard
+export default function HomePage() {
+  return <WelcomeScreen initialMode="login" homePath="/" />
 }
