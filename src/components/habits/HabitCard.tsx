@@ -3,7 +3,9 @@
 import { useState } from "react"
 import { Pause, Pencil, Play, X } from "lucide-react"
 import { toggleHabitLog } from "@/app/actions/habits"
+import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
+import { dayStreak, heatmapDays, heatmapLabel } from "@/lib/habitHistory"
 import HabitForm, { type HabitFields } from "./HabitForm"
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -54,6 +56,8 @@ export default function HabitCard({
 
   const completedThisWeek = weekDays.filter(isLoggedOnDay).length
   const paused = !habit.isActive
+  const logDays = habit.logs.map(log => toDateInputValue(log.completedOn))
+  const streak = habit.frequency === "daily" ? dayStreak(logDays, today) : null
 
   async function handleDayClick(dateStr: string) {
     setLoading(dateStr)
@@ -80,13 +84,14 @@ export default function HabitCard({
   }
 
   return (
-    <div className={`bg-surface border border-line rounded-lg p-4 ${paused ? "opacity-60" : ""}`}>
+    // Everything inside takes the habit's category color: chip, day buttons, bar and heatmap
+    <div {...catProps(habit.category)} className={`bg-surface border border-line rounded-lg p-4 ${paused ? "opacity-60" : ""}`}>
       <div className={`flex items-start justify-between gap-3 ${paused ? "" : "mb-4"}`}>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-medium text-ink">{habit.title}</h3>
             {habit.category && (
-              <span className="text-xs bg-sunken text-ink-soft px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium bg-cat-tint text-cat-ink px-2 py-0.5 rounded-full">
                 {habit.category}
               </span>
             )}
@@ -139,10 +144,10 @@ export default function HabitCard({
                     isFuture
                       ? "border-line text-ink-muted cursor-not-allowed"
                       : isLogged
-                      ? "bg-accent border-accent text-white"
+                      ? "bg-cat-solid border-cat-solid text-cat-on-solid"
                       : isToday
-                      ? "border-ink-muted bg-canvas hover:bg-sunken text-ink-soft"
-                      : "border-line hover:border-accent hover:bg-canvas text-ink-soft"
+                      ? "border-cat-solid hover:bg-cat-tint text-ink-soft"
+                      : "border-cat-line hover:bg-cat-tint text-ink-soft"
                   }`}
                 >
                   <span className="text-xs font-medium">
@@ -157,14 +162,41 @@ export default function HabitCard({
           </div>
 
           <div className="mt-3">
-            <div className="h-1 bg-sunken rounded-full overflow-hidden">
+            <div className="h-1 bg-cat-tint rounded-full overflow-hidden">
               <div
-                className="h-full bg-accent rounded-full transition-all"
+                className="h-full bg-cat-solid rounded-full transition-all"
                 style={{
                   width: `${Math.min((completedThisWeek / habit.targetPerWeek) * 100, 100)}%`
                 }}
               />
             </div>
+          </div>
+
+          {/* Twelve weeks at a glance: a column per week, Sunday on top, this week last */}
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div
+              aria-hidden="true"
+              data-testid="heatmap"
+              className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto"
+            >
+              {heatmapDays(logDays, today).map((logged, i) => (
+                <span
+                  key={i}
+                  title={logged === null ? undefined : heatmapLabel(today, i)}
+                  className={`h-2.5 w-2.5 rounded-[3px] ${
+                    logged === null ? "" : logged ? "bg-cat-solid" : "bg-cat-tint"
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-ink-muted text-right">
+              {streak !== null && (
+                <span className="block font-semibold text-cat-ink">
+                  {streak} day streak
+                </span>
+              )}
+              Last 12 weeks
+            </p>
           </div>
         </>
       )}

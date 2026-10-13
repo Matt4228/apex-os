@@ -38,4 +38,21 @@ describe("TodayHabits", () => {
         expect(screen.getByRole("checkbox", { name: "Read technical content" })).not.toBeChecked()
         expect(screen.getByText("3/7 this week")).toBeInTheDocument()
     })
+
+    it("colors the check by the habit's category and fills today's square when checked", async () => {
+        const user = userEvent.setup()
+        vi.mocked(toggleHabitLog).mockResolvedValue({ action: "added", date: "2026-10-14" } as never)
+        // 2026-10-14 is a Wednesday: the fourth square
+        const week = [true, true, false, false, false, false, false]
+        render(<TodayHabits habits={[{ ...habits[0], category: "Learning", weekCount: 2, week }]} today="2026-10-14" />)
+
+        const squares = () => [...screen.getByTestId("week-squares").children]
+        expect(screen.getByRole("checkbox", { name: "Read technical content" })).toHaveAttribute("data-cat", "1")
+        expect(squares().map(s => s.className.includes("bg-cat-solid"))).toEqual(week)
+
+        await user.click(screen.getByRole("checkbox", { name: "Read technical content" }))
+
+        expect(squares()[3].className).toContain("bg-cat-solid")
+        expect(screen.getByText("3/7 this week")).toBeInTheDocument()
+    })
 })

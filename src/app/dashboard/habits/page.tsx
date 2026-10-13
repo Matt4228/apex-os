@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import HabitList from "@/components/habits/HabitList"
 import { weekRangeOf } from "@/lib/dates"
+import { heatmapStart } from "@/lib/habitHistory"
 import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
@@ -13,7 +14,7 @@ export default async function HabitsPage() {
     
     // The user's calendar day, not the server's: on Vercel the server runs in UTC
     const today = await getUserToday()
-    const { start: weekStart, end: weekEnd } = weekRangeOf(today)
+    const { end: weekEnd } = weekRangeOf(today)
 
     const habits = await prisma.habit.findMany({
         where: { userId: session.user.id },
@@ -21,8 +22,9 @@ export default async function HabitsPage() {
         include: {
             logs: {
                 where: {
+                    // Twelve weeks for the heatmap; the card counts this week on its own
                     completedOn: {
-                        gte: weekStart,
+                        gte: heatmapStart(today),
                         lt: weekEnd,
                     },
                 },

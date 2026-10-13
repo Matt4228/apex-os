@@ -40,3 +40,33 @@ describe("HabitCard week", () => {
         expect(screen.getByRole("button", { name: "Wednesday, Oct 14" })).toBeEnabled()
     })
 })
+
+describe("HabitCard history", () => {
+    const logs = (...days: string[]) => days.map((day, i) => ({ id: `log-${i}`, completedOn: parseDateOnly(day) }))
+    const card = (frequency: string) => ({
+        ...habit,
+        category: "Fitness",
+        frequency,
+        logs: logs("2026-10-12", "2026-10-13", "2026-10-14"),
+    })
+
+    it("shows twelve weeks of days, colored by the habit's category", () => {
+        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect(screen.getByTestId("heatmap").children).toHaveLength(84)
+        expect(screen.getByText("Fitness").closest("[data-cat]")).toHaveAttribute("data-cat", "0")
+        expect(screen.getByRole("button", { name: "Wednesday, Oct 14" }).className).toContain("bg-cat-solid")
+    })
+
+    it("counts a daily habit's streak", () => {
+        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect(screen.getByText("3 day streak")).toBeInTheDocument()
+    })
+
+    it("shows no day streak for a weekly habit", () => {
+        render(<HabitCard habit={card("weekly")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect(screen.queryByText(/day streak/)).not.toBeInTheDocument()
+    })
+})
