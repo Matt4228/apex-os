@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { occursOn } from "@/lib/occurrences"
 import { getUserToday } from "@/lib/user-today"
 
 const taskSchema = z.object({
@@ -110,12 +111,13 @@ export async function assignBlock(taskId: string, blockId: string | null) {
   }
 
   if (parsed.data !== null) {
+    const todayDate = parseDateOnly(today)
     const block = await prisma.scheduleBlock.findFirst({
       where: { id: parsed.data, userId },
-      select: { dayOfWeek: true },
+      include: { exceptions: { where: { OR: [{ date: todayDate }, { newDate: todayDate }] } } },
     })
     if (!block) return { error: "Block not found" }
-    if (block.dayOfWeek !== formatDateOnly(parseDateOnly(today), "EEEE")) {
+    if (!occursOn(block, block.exceptions, today)) {
       return { error: "That block isn't on today's schedule" }
     }
   }

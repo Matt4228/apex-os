@@ -1,6 +1,7 @@
 // tests/lib/demo-seed.test.ts
 import { seedDemo } from "@/lib/demo/seedDemo"
-import { formatDateOnly, parseDateOnly } from "@/lib/dates"
+import { parseDateOnly } from "@/lib/dates"
+import { occurrences, weekDates, type Exception, type SeriesBlock } from "@/lib/occurrences"
 import type { PrismaClient } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { prismaMock } from "../mocks/prismaMock"
@@ -22,7 +23,6 @@ function seededTasks(): SeedTask[] {
 
 const sameDay = (a: Date | null | undefined, day: string) => a?.getTime() === parseDateOnly(day).getTime()
 
-type SeedBlock = { id: string; dayOfWeek: string; label: string }
 
 // The mock hands back each block with a predictable id, the way the database returns created rows
 function returnBlocksWithIds() {
@@ -30,10 +30,27 @@ function returnBlocksWithIds() {
         args.data.map((block, i) => ({ ...block, id: `block-${i}` }))) as never)
 }
 
-function seededBlocks(): SeedBlock[] {
+function seededBlocks(): SeriesBlock[] {
     const [args] = prismaMock.scheduleBlock.createManyAndReturn.mock.calls[0]
-    return (args?.data as unknown as Omit<SeedBlock, "id">[]).map((block, i) => ({ ...block, id: `block-${i}` }))
+    // The seed leaves endsOn and endsAfter out unless it sets them; the database fills in null
+    return (args?.data as unknown as Partial<SeriesBlock>[]).map((block, i) => ({
+        ...block,
+        endsOn: block.endsOn ?? null,
+        endsAfter: block.endsAfter ?? null,
+        id: `block-${i}`,
+    }) as SeriesBlock)
 }
+
+function seededChanges(): Exception[] {
+    const [args] = prismaMock.blockException.createMany.mock.calls[0]
+    return (args?.data as unknown as Partial<Exception>[]).map(change => ({
+        cancelled: false, newDate: null, startTime: null, endTime: null, label: null, category: null, ...change,
+    })) as Exception[]
+}
+
+/** What the calendar shows on these days, as "date label start-end" lines */
+const calendar = (from: string, to: string) =>
+    occurrences(seededBlocks(), seededChanges(), from, to).map(o => `${o.date.slice(5)} ${o.label} ${o.startTime}-${o.endTime}`)
 
 describe("seedDemo", () => {
     beforeEach(() => {
@@ -122,10 +139,40 @@ describe("seedDemo", () => {
         const inBlocks = seededTasks().filter(t => t.scheduleBlockId)
 
         expect(inBlocks.length).toBeGreaterThan(0)
+        const onToday = occurrences(blocks, seededChanges(), date, date).map(o => o.blockId)
         for (const task of inBlocks) {
             expect(sameDay(task.plannedFor, date)).toBe(true)
-            expect(blocks.find(b => b.id === task.scheduleBlockId)?.dayOfWeek).toBe(formatDateOnly(parseDateOnly(date), "EEEE"))
+            expect(onToday).toContain(task.scheduleBlockId)
         }
+    })
+
+    it("shows a different calendar each week, with something that happens only once", async () => {
+        await run()
+        const [last, current, next] = ["2026-10-04", "2026-10-11", "2026-10-18"].map(sunday => {
+            const days = weekDates(sunday)
+            // The same blocks repeat every week; compare the lines without their dates
+            return calendar(days[0], days[6]).map(line => line.slice(6)).sort().join("\n")
+        })
+
+        expect(new Set([last, current, next]).size).toBe(3)
+        expect(calendar("2026-10-11", "2026-10-17")).toContain("10-15 Dentist 14:00-15:00")
+        expect(calendar("2026-10-18", "2026-10-24")).toContain("10-21 Onsite interview 10:00-15:00")
+    })
+
+    it("changes days that the series really has", async () => {
+        await run()
+
+        // Wednesday's lunch moves, last Friday's meetings are cancelled, next Monday's deep work ends early
+        expect(calendar("2026-10-14", "2026-10-14")).toContain("10-14 Lunch and walk 12:30-13:30")
+        expect(calendar("2026-10-09", "2026-10-09").some(line => line.includes("Meetings"))).toBe(false)
+        expect(calendar("2026-10-19", "2026-10-19")).toContain("10-19 Deep work: product engineering 09:00-11:00")
+    })
+
+    it("ends the course after six classes", async () => {
+        await run()
+
+        const classes = calendar("2026-09-01", "2026-12-31").filter(line => line.includes("Postgres course"))
+        expect(classes).toHaveLength(6)
     })
 
     it("leaves some of today's plan for anytime", async () => {

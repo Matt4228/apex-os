@@ -227,8 +227,22 @@ describe("assignBlock", () => {
     // The mocked user's today, 2026-10-11, is a Sunday
     const plannedFor = (day: string | null) =>
         prismaMock.task.findFirst.mockResolvedValue({ plannedFor: day ? parseDateOnly(day) : null } as never)
-    const blockOn = (dayOfWeek: string) => prismaMock.scheduleBlock.findFirst.mockResolvedValue({ dayOfWeek } as
-never)
+    // A block on the calendar: by default every weekday, with no changed days
+    const blockOn = (o: { repeat?: string; repeatDays?: number[]; exceptions?: object[] } = {}) =>
+        prismaMock.scheduleBlock.findFirst.mockResolvedValue({
+            id: "block-1",
+            label: "Deep work",
+            category: null,
+            startTime: "09:00",
+            endTime: "12:00",
+            startDate: parseDateOnly("2026-09-01"),
+            repeat: "weekday",
+            repeatDays: [],
+            endsOn: null,
+            endsAfter: null,
+            exceptions: [],
+            ...o,
+        } as never)
 
     it("returns Unauthorized when there is no session", async () => {
         mockedAuth.mockResolvedValue(null)
@@ -277,15 +291,15 @@ never)
         expect(await assignBlock("task-1", "block-1")).toEqual({ error: "Block not found" })
         expect(prismaMock.scheduleBlock.findFirst).toHaveBeenCalledWith({
             where: { id: "block-1", userId: "user-1" },
-            select: { dayOfWeek: true },
+            include: { exceptions: { where: { OR: [{ date: parseDateOnly("2026-10-11") }, { newDate: parseDateOnly("2026-10-11") }] } } },
         })
         expect(prismaMock.task.update).not.toHaveBeenCalled()
     })
 
-    it("rejects a block from another day of the week", async () => {
+    it("rejects a block that isn't on today's calendar", async () => {
         signedIn()
         plannedFor("2026-10-11")
-        blockOn("Monday")
+        blockOn({ repeat: "weekday" }) // today is a Sunday
 
         expect(await assignBlock("task-1", "block-1")).toEqual({ error: "That block isn't on today's schedule" })
         expect(prismaMock.task.update).not.toHaveBeenCalled()
@@ -294,13 +308,25 @@ never)
     it("puts the caller's task into one of today's blocks", async () => {
         signedIn()
         plannedFor("2026-10-11")
-        blockOn("Sunday")
+        blockOn({ repeat: "weekly", repeatDays: [0] })
 
         expect(await assignBlock("task-1", "block-1")).toBeUndefined()
         expect(prismaMock.task.update).toHaveBeenCalledWith({
             where: { id: "task-1", userId: "user-1" },
             data: { scheduleBlockId: "block-1" },
         })
+    })
+
+    it("rejects a block whose day today was cancelled", async () => {
+        signedIn()
+        plannedFor("2026-10-11")
+        blockOn({
+            repeat: "daily",
+            exceptions: [{ blockId: "block-1", date: parseDateOnly("2026-10-11"), cancelled: true, newDate: null, startTime: null, endTime: null, label: null, category: null }],
+        })
+
+        expect(await assignBlock("task-1", "block-1")).toEqual({ error: "That block isn't on today's schedule" })
+        expect(prismaMock.task.update).not.toHaveBeenCalled()
     })
 
     it("moves the task to anytime without looking up a block", async () => {

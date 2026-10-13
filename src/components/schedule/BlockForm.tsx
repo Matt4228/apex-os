@@ -3,22 +3,24 @@
 import { useState } from "react"
 import { createScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { CategorySelect, useCategories } from "@/components/ui/category-select"
+import { Input } from "@/components/ui/input"
+import { parseDateOnly } from "@/lib/dates"
+import type { Exception } from "@/lib/occurrences"
+import { fieldsOf, toFormData } from "./blockFields"
+import type { BlockFields, Series } from "./types"
 
-type Block = {
-    id: string
-    label: string
-    startTime: string
-    endTime: string
-    category: string | null
-    color: string | null
-    dayOfWeek: string
-    sortOrder: number
-}
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+const selectClass =
+    "w-full rounded-md border border-line px-2 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent"
 
+export type Saved = { block: Series; exceptions: Exception[] }
+
+/**
+ * Create a block, or edit one when `block` is given. Editing changes every day of a repeating block.
+ * `day` is the day the form opened on ("YYYY-MM-DD"): a new block's date
+ */
 export default function BlockForm({
     day,
     block,
@@ -29,94 +31,181 @@ export default function BlockForm({
     onCancel,
 }: {
     day: string
-    block?: Block
+    block?: Series
     initialStartTime?: string
     initialEndTime?: string
-    onCreated?: (block: Block) => void
-    onUpdated?: (block: Block) => void
+    onCreated?: (saved: Saved) => void
+    onUpdated?: (saved: Saved) => void
     onCancel: () => void
 }) {
+    const [fields, setFields] = useState<BlockFields>(() =>
+        block
+            ? fieldsOf(block)
+            : {
+                  label: "",
+                  category: "",
+                  startDate: day,
+                  startTime: initialStartTime ?? "09:00",
+                  endTime: initialEndTime ?? "10:00",
+                  repeat: "none",
+                  repeatDays: [],
+                  ends: "never",
+                  endsOn: "",
+                  endsAfter: "10",
+              },
+    )
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [label, setLabel] = useState(block?.label ?? "")
-    const [dayOfWeek, setDayOfWeek] = useState(block?.dayOfWeek ?? day)
-    const [startTime, setStartTime] = useState(block?.startTime ?? initialStartTime ?? "09:00")
-    const [endTime, setEndTime] = useState(block?.endTime ?? initialEndTime ?? "10:00")
-    const [category, setCategory] = useState(block?.category ?? "")
     const { remember } = useCategories()
+
+    const set = (change: Partial<BlockFields>) => setFields(current => ({ ...current, ...change }))
+    const date = fields.startDate ? parseDateOnly(fields.startDate) : null
+    const repeats = fields.repeat !== "none"
+
+    // Weekly starts on the date's own weekday, so the first pick already means something
+    function changeRepeat(repeat: string) {
+        set({ repeat, repeatDays: repeat === "weekly" && fields.repeatDays.length === 0 && date ? [date.getUTCDay()] : fields.repeatDays })
+    }
+
+    function toggleDay(weekday: number) {
+        set({
+            repeatDays: fields.repeatDays.includes(weekday)
+                ? fields.repeatDays.filter(d => d !== weekday)
+                : [...fields.repeatDays, weekday].sort(),
+        })
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
-        const formData = new FormData()
-        formData.set("dayOfWeek", dayOfWeek)
-        formData.set("label", label)
-        formData.set("startTime", startTime)
-        formData.set("endTime", endTime)
-        formData.set("category", category)
-        
-        if (block) {
-            const result = await updateScheduleBlock(block.id, formData)
-            if (result?.error) { setError(result.error); setLoading(false); return }
-            if (result?.block) onUpdated?.(result.block as Block)
-        } else {
-            const result = await createScheduleBlock(formData)
-            if (result?.error) { setError(result.error); setLoading(false); return }
-            if (result?.block) onCreated?.(result.block as Block)
-        }
-
-        remember(category)
+        const formData = toFormData(fields)
+        const result = block ? await updateScheduleBlock(block.id, formData) : await createScheduleBlock(formData)
         setLoading(false)
+
+        if ("error" in result) {
+            setError(result.error ?? "Something went wrong")
+            return
+        }
+        remember(fields.category)
+        const saved = { block: result.block, exceptions: result.exceptions }
+        if (block) onUpdated?.(saved)
+        else onCreated?.(saved)
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-canvas border border-line rounded-lg p-3 space-y-2">
+        <form onSubmit={handleSubmit} className="bg-canvas border border-line rounded-lg p-3 space-y-3">
             <Input
                 name="label"
                 placeholder="Block label"
-                value={label}
-                onChange={e => setLabel(e.target.value)}
+                aria-label="Label"
+                value={fields.label}
+                onChange={e => set({ label: e.target.value })}
                 required
-                autoFocus 
+                autoFocus
             />
 
-            <select
-                name="dayOfWeek"
-                value={dayOfWeek}
-                onChange={e => setDayOfWeek(e.target.value)}
-                className="w-full rounded-md border border-line px-2 py-1.5 text-sm bg-surface"
-            >
-                {DAYS.map(d => (
-                    <option key={d} value={d}>{d}</option> 
-                ))}
-            </select>
+            <label className="block space-y-1">
+                <span className="text-xs text-ink-muted">{repeats ? "Starts" : "Date"}</span>
+                <Input type="date" value={fields.startDate} onChange={e => set({ startDate: e.target.value })} required />
+            </label>
 
             <div className="flex gap-2">
-                <Input 
-                    name="startTime" 
-                    type="time" 
-                    value={startTime}
-                    onChange={e => setStartTime(e.target.value)} 
+                <Input
+                    type="time"
+                    aria-label="Start time"
+                    value={fields.startTime}
+                    onChange={e => set({ startTime: e.target.value })}
                     className="flex-1"
-                    required 
+                    required
                 />
-                <Input 
-                    name="endTime" 
-                    type="time" 
-                    value={endTime}
-                    onChange={e => setEndTime(e.target.value)} 
-                    className="flex-1" 
-                    required 
+                <Input
+                    type="time"
+                    aria-label="End time"
+                    value={fields.endTime}
+                    onChange={e => set({ endTime: e.target.value })}
+                    className="flex-1"
+                    required
                 />
             </div>
 
             {/* The block's color comes from its category */}
-            <CategorySelect defaultValue={block?.category} onChange={setCategory} />
+            <CategorySelect defaultValue={block?.category} onChange={category => set({ category })} />
 
-            { error && <p role="alert" className="text-xs text-danger-ink">{error}</p> }
-            
+            <label className="block space-y-1">
+                <span className="text-xs text-ink-muted">Repeat</span>
+                <select value={fields.repeat} onChange={e => changeRepeat(e.target.value)} className={selectClass}>
+                    <option value="none">Does not repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekday">Every weekday (Mon to Fri)</option>
+                    <option value="weekly">Weekly on chosen days</option>
+                    <option value="monthly">Monthly on day {date ? date.getUTCDate() : "..."}</option>
+                </select>
+            </label>
+
+            {fields.repeat === "weekly" && (
+                <fieldset className="space-y-1">
+                    <legend className="text-xs text-ink-muted">On</legend>
+                    <div className="flex gap-1.5 flex-wrap">
+                        {WEEKDAY_NAMES.map((name, weekday) => (
+                            <button
+                                key={name}
+                                type="button"
+                                aria-label={name}
+                                aria-pressed={fields.repeatDays.includes(weekday)}
+                                onClick={() => toggleDay(weekday)}
+                                className={`h-8 w-8 rounded-full border text-xs font-medium transition-colors ${
+                                    fields.repeatDays.includes(weekday)
+                                        ? "bg-accent-ink border-accent-ink text-surface"
+                                        : "border-line text-ink-soft hover:border-line-strong"
+                                }`}
+                            >
+                                {name[0]}
+                            </button>
+                        ))}
+                    </div>
+                </fieldset>
+            )}
+
+            {repeats && (
+                <fieldset className="space-y-2">
+                    <legend className="text-xs text-ink-muted">Ends</legend>
+                    <label className="flex items-center gap-2 text-sm text-ink-soft">
+                        <input type="radio" name="ends" checked={fields.ends === "never"} onChange={() => set({ ends: "never" })} />
+                        Never
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-ink-soft">
+                        <input type="radio" name="ends" checked={fields.ends === "on"} onChange={() => set({ ends: "on" })} />
+                        On
+                        <Input
+                            type="date"
+                            aria-label="End date"
+                            value={fields.endsOn}
+                            onChange={e => set({ ends: "on", endsOn: e.target.value })}
+                            className="h-8 w-auto"
+                        />
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-ink-soft">
+                        <input type="radio" name="ends" checked={fields.ends === "after"} onChange={() => set({ ends: "after" })} />
+                        After
+                        <Input
+                            type="number"
+                            min={1}
+                            aria-label="Number of times"
+                            value={fields.endsAfter}
+                            onChange={e => set({ ends: "after", endsAfter: e.target.value })}
+                            className="h-8 w-20"
+                        />
+                        times
+                    </label>
+                </fieldset>
+            )}
+
+            {block && repeats && <p className="text-xs text-ink-muted">Changes apply to every day of this block.</p>}
+
+            {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
+
             <div className="flex gap-2">
                 <Button type="submit" size="sm" disabled={loading}>
                     {loading ? "Saving..." : block ? "Update" : "Add block"}

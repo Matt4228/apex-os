@@ -17,6 +17,7 @@ if (typeof Element !== "undefined") {
     Element.prototype.setPointerCapture ??= () => {}
     Element.prototype.releasePointerCapture ??= () => {}
     Element.prototype.scrollIntoView ??= () => {}
+    Element.prototype.scrollTo ??= () => {}
     globalThis.ResizeObserver ??= class {
         observe() {}
         unobserve() {}
