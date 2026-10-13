@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { deleteHabit } from "@/app/actions/habits"
+import { deleteHabit, toggleHabitActive } from "@/app/actions/habits"
 import HabitCard from "./HabitCard"
 import CreateHabitForm from "./CreateHabitForm"
+import type { HabitFields } from "./HabitForm"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
 import { UndoToast } from "@/components/ui/undo-toast"
 import type { EmptyCopy } from "@/components/ui/empty-state"
@@ -39,6 +41,26 @@ export default function HabitList({ initialHabits, today }: { initialHabits: Hab
 
     function handleCreate(habit: Habit) {
         setHabits(current => [habit, ...current])
+    }
+
+    function handleUpdate(id: string, saved: HabitFields) {
+        const { title, category, frequency, targetPerWeek } = saved
+        setHabits(current => current.map(h => (h.id === id ? { ...h, title, category, frequency, targetPerWeek } : h)))
+    }
+
+    /** Pause or resume on screen now; flip it back and explain if the server says no */
+    async function handlePauseToggle(id: string) {
+        const habit = habits.find(h => h.id === id)
+        if (!habit) return
+        const flip = () => setHabits(current => current.map(h => (h.id === id ? { ...h, isActive: !h.isActive } : h)))
+        setError(null)
+        flip()
+
+        const problem = await failureMessage(toggleHabitActive(id, !habit.isActive), habit.isActive ? "pause that habit" : "resume that habit")
+        if (problem) {
+            flip()
+            setError(problem)
+        }
     }
 
     function handleDelete(id: string) {
@@ -87,6 +109,8 @@ export default function HabitList({ initialHabits, today }: { initialHabits: Hab
                         habit={habit}
                         onDelete={handleDelete}
                         onLogToggle={handleLogToggle}
+                        onUpdate={handleUpdate}
+                        onPauseToggle={handlePauseToggle}
                         today={today}
                     />
                 ))}
@@ -96,7 +120,7 @@ export default function HabitList({ initialHabits, today }: { initialHabits: Hab
             {inactive.length > 0 && (
                 <div>
                     <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-3">
-                        Inactive
+                        Paused
                     </p>
                     <div className="space-y-3">
                         {inactive.map(habit => (
@@ -105,6 +129,8 @@ export default function HabitList({ initialHabits, today }: { initialHabits: Hab
                                 habit={habit}
                                 onDelete={handleDelete}
                                 onLogToggle={handleLogToggle}
+                                onUpdate={handleUpdate}
+                                onPauseToggle={handlePauseToggle}
                                 today={today}
                             />
                         ))}

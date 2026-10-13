@@ -39,6 +39,35 @@ export async function createHabit(formData: FormData) {
   return { habit: { ...habit, logs: [] } }
 }
 
+export async function updateHabit(habitId: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const parsed = habitSchema.safeParse({
+    title: formData.get("title"),
+    category: formData.get("category") || undefined,
+    frequency: formData.get("frequency"),
+    targetPerWeek: formData.get("targetPerWeek"),
+  })
+  if (!parsed.success) return { error: "Invalid input" }
+
+  // Only the owner's habit: someone else's id finds nothing
+  const owned = await prisma.habit.findFirst({ where: { id: habitId, userId: session.user.id } })
+  if (!owned) return { error: "Not found" }
+
+  const habit = await prisma.habit.update({
+    where: { id: habitId },
+    data: {
+      title: parsed.data.title,
+      category: parsed.data.category || null,
+      frequency: parsed.data.frequency,
+      targetPerWeek: parseInt(parsed.data.targetPerWeek),
+    },
+  })
+
+  return { habit }
+}
+
 export async function deleteHabit(habitId: string) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
@@ -80,12 +109,13 @@ export async function toggleHabitLog(habitId: string, date: string) {
   }
 }
 
+/** Pause (false) or resume (true) a habit. A paused habit leaves Today and keeps its history */
 export async function toggleHabitActive(habitId: string, isActive: boolean) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
 
-  await prisma.habit.update({
-    where: { id: habitId, userId: session.user.id },
-    data: { isActive },
-  })
+  const owned = await prisma.habit.findFirst({ where: { id: habitId, userId: session.user.id } })
+  if (!owned) return { error: "Not found" }
+
+  await prisma.habit.update({ where: { id: habitId }, data: { isActive } })
 }
