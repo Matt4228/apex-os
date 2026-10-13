@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState, type ReactNode } from "react"
 import { CalendarMinus, ChevronRight, Plus, Target } from "lucide-react"
 import { assignBlock, planTask, updateTaskStatus } from "@/app/actions/tasks"
+import { catProps } from "@/lib/categoryColor"
 import CreateTaskForm from "@/components/tasks/CreateTaskForm"
 import type { Task } from "@/components/tasks/types"
 import TodaySchedule from "@/components/today/TodaySchedule"
@@ -128,19 +129,20 @@ export default function TodayBoard({
                     <p className="text-sm text-ink-muted mb-3">Nothing planned yet. Pick from the suggestions below, or add a task.</p>
                 )}
 
-                {/* No task in a block yet: one flat list, as before time-blocking */}
+                {/* No task in a block yet: one flat list on a neutral panel, as before time-blocking */}
                 {groups.length === 0 ? (
-                    <ul className="space-y-0.5 mb-3">{plan.map(row)}</ul>
+                    plan.length > 0 && <ul className="space-y-0.5 mb-3 rounded-lg bg-sunken p-1.5">{plan.map(row)}</ul>
                 ) : (
-                    <div className="space-y-4 mb-3">
+                    <div className="space-y-3 mb-3">
                         {groups.map(({ block, tasks: blockTasks }) => (
                             <PlanGroup
                                 key={block.id}
+                                category={block.category}
                                 current={isHappening(block, minutes)}
                                 heading={
                                     <>
                                         <span className="tabular-nums">{block.startTime} to {block.endTime}</span>{" "}
-                                        <span className="text-ink-soft">{block.label}</span>
+                                        <span className="font-semibold">{block.label}</span>
                                     </>
                                 }
                             >
@@ -196,15 +198,28 @@ export default function TodayBoard({
     )
 }
 
-/** One block's tasks under a heading; the block happening now gets the same purple bar as in the rail */
-function PlanGroup({ heading, current = false, children }: { heading: ReactNode; current?: boolean; children:
-ReactNode }) {
+/**
+ * One block's tasks on a panel tinted with the block's category; with no category the panel is neutral.
+ * The block happening now gets the same outline as in the rail
+ */
+function PlanGroup({
+    heading,
+    category,
+    current = false,
+    children,
+}: {
+    heading: ReactNode
+    category?: string | null
+    current?: boolean
+    children: ReactNode
+}) {
     return (
         <div
+            {...catProps(category)}
             aria-current={current ? "time" : undefined}
-            className={`relative ${current ? "before:absolute before:left-0 before:inset-y-1 before:w-0.5 before:rounded-full before:bg-primary-ink" : ""}`}
+            className={`rounded-lg bg-cat-tint p-1.5 ${current ? "ring-2 ring-inset ring-cat-solid" : ""}`}
         >
-            <h4 className="flex flex-wrap items-baseline gap-x-2 px-2 mb-1 text-xs font-medium text-ink-muted">{heading}</h4>
+            <h4 className="flex flex-wrap items-baseline gap-x-2 px-2 pt-1 mb-1 text-xs font-medium text-cat-ink">{heading}</h4>
             <ul className="space-y-0.5">{children}</ul>
         </div>
     )
@@ -227,17 +242,21 @@ function PlanRow({
 }) {
     const isDone = task.status === "done"
     const block = blocks.find(b => b.id === task.scheduleBlockId)
+    // A goal step takes its goal's color, anything else its block's, so a step reads as part of its goal
+    const color = catProps(task.goal?.category?.trim() ? task.goal.category : block?.category)
+    const checkColors = color["data-cat"] === undefined
+        ? isDone ? "bg-accent border-accent" : "border-line-strong hover:border-accent"
+        : isDone ? "bg-cat-solid border-cat-solid" : "border-cat-solid hover:bg-cat-tint"
 
     return (
-        <li className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-sunken transition-colors ${isDone ? "opacity-60" : ""}`}>
+        <li className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface/70 transition-colors ${isDone ? "opacity-60" : ""}`}>
             <button
+                {...color}
                 role="checkbox"
                 aria-checked={isDone}
                 aria-label={task.title}
                 onClick={onToggle}
-                className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${
-                    isDone ? "bg-accent border-accent" : "border-line-strong hover:border-accent"
-                }`}
+                className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${checkColors}`}
             />
             <div className="flex-1 min-w-0">
                 <p className={`text-sm text-ink ${isDone ? "line-through" : ""}`}>{task.title}</p>

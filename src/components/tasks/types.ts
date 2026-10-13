@@ -1,4 +1,5 @@
-export type GoalOption = { id: string; title: string }
+/** A goal as a task shows it. Its category colors the task where it is known */
+export type GoalOption = { id: string; title: string; category?: string | null }
 
 export type Task = {
     id: string

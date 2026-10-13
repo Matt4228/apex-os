@@ -82,7 +82,7 @@ export function dueLabel(dueDate: Date, today: string): string {
     return `due ${formatDateOnly(dueDate, "MMM d")}`
 }
 
-export type PlanBlock = { id: string; startTime: string; endTime: string; label: string }
+export type PlanBlock = { id: string; startTime: string; endTime: string; label: string; category?: string | null }
 
 export type BlockProgress = { done: number; total: number }
 

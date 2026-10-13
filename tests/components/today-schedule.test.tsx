@@ -44,6 +44,14 @@ describe("TodaySchedule", () => {
         expect(screen.getByText("Morning run").closest("li")).not.toHaveTextContent(/done/)
     })
 
+    it("tints each block with its category, and leaves one without a category neutral", () => {
+        vi.setSystemTime(new Date(2026, 9, 11, 8, 0))
+        render(<TodaySchedule blocks={[{ ...blocks[0], category: "Fitness" }, blocks[1]]} />)
+
+        expect(screen.getByText("Morning run").closest("li")).toHaveAttribute("data-cat", "0")
+        expect(screen.getByText("Deep work").closest("li")).not.toHaveAttribute("data-cat")
+    })
+
     it("shows when each block starts and ends", () => {
         vi.setSystemTime(new Date(2026, 9, 11, 8, 0))
         render(<TodaySchedule blocks={blocks} />)
