@@ -10,10 +10,10 @@
   --color-danger: #D7263D;
   --color-danger-light: #e8364d;
   --color-danger-dark: #b01e31;
-  --color-warning: #F46034;
+  --color-warning: oklch(0.64 0.15 55);
   --color-warning-light: #f6734e;
   --color-warning-dark: #d44e2a;
-  --color-success: #C5D86D;
+  --color-success: oklch(0.64 0.15 125);
   --color-success-light: #d1e27e;
   --color-success-dark: #a8be4a;
 
@@ -32,17 +32,28 @@
   /* Colored text. Separate from the fill colors because text needs more contrast than a badge tint or a border. */
   --color-primary-ink: oklch(0.45 0.13 290);
   --color-accent-ink: #147a6f;
-  --color-danger-ink: oklch(0.5 0.19 25);
-  --color-warning-ink: oklch(0.53 0.15 45);
-  --color-success-ink: oklch(0.5 0.12 125);
+  /* Danger, warning and success text sit on the category palette's ink step (src/lib/categoryColor.ts) */
+  --color-danger-ink: oklch(0.47 0.14 25);
+  --color-warning-ink: oklch(0.47 0.14 55);
+  --color-success-ink: oklch(0.47 0.14 125);
+
+  /* Priority chips: the palette's tint step at the same hues */
+  --color-danger-tint: oklch(0.962 0.03 25);
+  --color-warning-tint: oklch(0.962 0.03 55);
+  --color-success-tint: oklch(0.962 0.03 125);
 }
 
 /* next/font defines these variables on the html element; "inline" makes the utilities read them there */
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  
-} 
+
+  /* Category colors as utilities (bg-cat-tint, text-cat-ink...), read from the closest [data-cat] */
+  --color-cat-tint: var(--cat-tint);
+  --color-cat-line: var(--cat-line);
+  --color-cat-solid: var(--cat-solid);
+  --color-cat-ink: var(--cat-ink);
+}
 
 [data-theme="light"] {
   color-scheme: light;
@@ -62,10 +73,52 @@
   --color-ink-soft: oklch(0.8 0.012 290);
   --color-ink-muted: oklch(0.68 0.014 290);
   --color-accent-ink: #22b8a8;
-  --color-danger-ink: oklch(0.7 0.17 22);
-  --color-warning-ink: #F46034;
-  --color-success-ink: #C5D86D;
+  --color-danger-ink: oklch(0.83 0.1 25);
+  --color-warning-ink: oklch(0.83 0.1 55);
+  --color-success-ink: oklch(0.83 0.1 125);
+  --color-danger-tint: oklch(0.27 0.045 25);
+  --color-warning-tint: oklch(0.27 0.045 55);
+  --color-success-tint: oklch(0.27 0.045 125);
 }
+
+/* Category colors. The same numbers live in src/lib/categoryColor.ts, and a test checks they match.
+   An element with data-cat="0" to "7" gets four colors from its hue, and its children inherit them.
+   With no category anywhere above, the colors are the neutral ones */
+:root {
+  --cat-tint-l: 0.962; --cat-tint-c: 0.03;
+  --cat-line-l: 0.87; --cat-line-c: 0.07;
+  --cat-solid-l: 0.64; --cat-solid-c: 0.15;
+  --cat-ink-l: 0.47; --cat-ink-c: 0.14;
+
+  --cat-tint: var(--color-sunken);
+  --cat-line: var(--color-line);
+  --cat-solid: var(--color-ink-muted);
+  --cat-ink: var(--color-ink-soft);
+}
+
+/* After :root on purpose: the two selectors weigh the same, so the later one wins */
+[data-theme="dark"] {
+  --cat-tint-l: 0.27; --cat-tint-c: 0.045;
+  --cat-line-l: 0.4; --cat-line-c: 0.08;
+  --cat-solid-l: 0.7; --cat-solid-c: 0.14;
+  --cat-ink-l: 0.83; --cat-ink-c: 0.1;
+}
+
+[data-cat] {
+  --cat-tint: oklch(var(--cat-tint-l) var(--cat-tint-c) var(--cat-h));
+  --cat-line: oklch(var(--cat-line-l) var(--cat-line-c) var(--cat-h));
+  --cat-solid: oklch(var(--cat-solid-l) var(--cat-solid-c) var(--cat-h));
+  --cat-ink: oklch(var(--cat-ink-l) var(--cat-ink-c) var(--cat-h));
+}
+
+[data-cat="0"] { --cat-h: 40; }
+[data-cat="1"] { --cat-h: 80; }
+[data-cat="2"] { --cat-h: 120; }
+[data-cat="3"] { --cat-h: 150; }
+[data-cat="4"] { --cat-h: 220; }
+[data-cat="5"] { --cat-h: 255; }
+[data-cat="6"] { --cat-h: 320; }
+[data-cat="7"] { --cat-h: 355; }
 
 @layer base {
   body {

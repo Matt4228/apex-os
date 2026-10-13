@@ -18,9 +18,9 @@ type BoardTask = Task & { plannedFor: Date | null; scheduleBlockId: string | nul
 type BoardGoal = { id: string; title: string; status: string }
 
 const priorityStyles: Record<string, string> = {
-    high: "bg-danger/10 text-danger-ink",
-    medium: "bg-warning/10 text-warning-ink",
-    low: "bg-success/10 text-success-ink",
+    high: "bg-danger-tint text-danger-ink",
+    medium: "bg-warning-tint text-warning-ink",
+    low: "bg-success-tint text-success-ink",
 }
 
 // Radix reserves the empty string for "no choice", so "Anytime" needs a value of its own

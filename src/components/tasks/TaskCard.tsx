@@ -11,9 +11,9 @@ import GoalSelect from "./GoalSelect"
 import type { GoalOption, Task } from "./types"
 
 const priorityStyles = {
-    high: "bg-danger/10 text-danger-ink",
-    medium: "bg-warning/10 text-warning-ink",
-    low: "bg-success/10 text-success-ink",
+    high: "bg-danger-tint text-danger-ink",
+    medium: "bg-warning-tint text-warning-ink",
+    low: "bg-success-tint text-success-ink",
 }
 
 export default function TaskCard({
