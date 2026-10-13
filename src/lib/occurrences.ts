@@ -58,7 +58,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 /** "YYYY-MM-DD", from a Prisma date or a string already in that form */
 const dayOf = (date: DateLike) => (typeof date === "string" ? date : toDateInputValue(date))
-const addDays = (day: string, days: number) => toDateInputValue(new Date(parseDateOnly(day).getTime() + days * DAY_MS))
+/** "2026-10-14" moved by a number of days */
+export const addDays = (day: string, days: number) => toDateInputValue(new Date(parseDateOnly(day).getTime() + days * DAY_MS))
 const weekdayOf = (day: string) => parseDateOnly(day).getUTCDay()
 
 /** Does a repeating series land on this day, by its rule alone? */

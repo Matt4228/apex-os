@@ -3,7 +3,8 @@
 import ScheduleGrid from "@/components/schedule/ScheduleGrid"
 import { parseDateOnly } from "@/lib/dates"
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/app/actions/schedule", () => ({
     createScheduleBlock: vi.fn(),
@@ -66,5 +67,33 @@ describe("ScheduleGrid week", () => {
 
         // Wednesday and Thursday only, in the desktop columns (the phone shows Sunday, which has none)
         expect(screen.getAllByText("Deep work")).toHaveLength(2)
+    })
+})
+
+describe("ScheduleGrid zoom", () => {
+    afterEach(() => {
+        localStorage.clear()
+    })
+
+    // A day column is 24 hours tall at the zoom's height per minute
+    const columnHeight = () => (document.querySelector("[style*='height']") as HTMLElement).style.height
+
+    it("starts at Comfortable", () => {
+        render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+
+        expect(screen.getByRole("button", { name: "Comfortable" })).toHaveAttribute("aria-pressed", "true")
+        expect(columnHeight()).toBe(`${24 * 60 * 1.2}px`)
+    })
+
+    it("changes the scale and remembers it for the next visit", async () => {
+        const user = userEvent.setup()
+        const { unmount } = render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+
+        await user.click(screen.getByRole("button", { name: "Large" }))
+        expect(columnHeight()).toBe(`${24 * 60 * 1.8}px`)
+        unmount()
+
+        render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+        expect(screen.getByRole("button", { name: "Large" })).toHaveAttribute("aria-pressed", "true")
     })
 })
