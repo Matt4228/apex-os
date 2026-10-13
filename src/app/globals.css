@@ -72,3 +72,8 @@
     @apply bg-canvas text-ink;
   }
 }
+/* The welcome screen's form fades up when its tab is picked */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}

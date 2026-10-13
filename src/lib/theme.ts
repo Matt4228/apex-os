@@ -2,7 +2,7 @@ export const THEME_COOKIE = "theme"
 
 export type Theme = "dark" | "light"
 
-/** Dark unless the user has chosen light. Unknown values fall back to dark. */
+/** Light unless the user has chosen dark. Unknown values fall back to light. */
 export function parseTheme(value: string | undefined): Theme {
-    return value === "light" ? "light" : "dark"
+    return value === "dark" ? "dark" : "light"
 }

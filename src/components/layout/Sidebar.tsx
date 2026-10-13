@@ -8,6 +8,7 @@ import {
     CalendarDays, House, ListChecks, LogOut, Menu, Repeat, Target, Trophy, X, type LucideIcon,
 } from "lucide-react"
 import ThemeToggle from "@/components/layout/ThemeToggle"
+import { Wordmark } from "@/components/layout/Wordmark"
 import type { Theme } from "@/lib/theme"
 
 const links: { href: string; label: string; icon: LucideIcon }[] = [
@@ -63,8 +64,8 @@ border-line bg-surface">
 
             {/* Mobile: a slim top bar; the same content opens as a drawer */}
             <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-line bg-surface">
-                <Link href="/dashboard" className="font-semibold text-ink">
-                    Apex OS
+                <Link href="/dashboard">
+                    <Wordmark />
                 </Link>
                 <button
                     ref={menuButtonRef}
@@ -108,8 +109,8 @@ function SidebarContent({ userName, theme, onNavigate }: SidebarProps & { onNavi
 
     return (
         <>
-            <Link href="/dashboard" onClick={onNavigate} className="px-5 py-5 text-lg font-semibold text-ink">
-                Apex OS
+            <Link href="/dashboard" onClick={onNavigate} className="px-5 py-5">
+                <Wordmark className="text-lg" />
             </Link>
 
             <nav aria-label="Main" className="flex-1 flex flex-col gap-0.5 px-3">
