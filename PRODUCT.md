@@ -30,7 +30,7 @@ with moments of satisfaction when you finish something.
 - Loud color everywhere; gradients and glass for decoration.
 
 ## Theme
-Dark by default, with a light option.
+Light by default, with a dark option.
 
 ## Principles
 1. Structure should be felt, not seen: hierarchy from type and spacing before boxes and borders.
