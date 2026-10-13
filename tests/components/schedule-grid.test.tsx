@@ -7,6 +7,9 @@ import { renderToString } from "react-dom/server"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+// The week bar inside the grid jumps weeks with the router
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
 vi.mock("@/app/actions/schedule", () => ({
     createScheduleBlock: vi.fn(),
     deleteScheduleBlock: vi.fn(),
@@ -60,7 +63,7 @@ describe("ScheduleGrid week", () => {
         render(<ScheduleGrid initialBlocks={[series({})]} initialExceptions={exceptions} days={DAYS} today="2026-10-11" />)
 
         expect(screen.getAllByText("Deep work")).toHaveLength(4)
-        expect(screen.getByText("10:00 - 11:00")).toBeInTheDocument()
+        expect(screen.getByText("10:00 to 11:00")).toBeInTheDocument()
     })
 
     it("doesn't show a block before its start or after its end", () => {
@@ -99,7 +102,44 @@ describe("ScheduleGrid zoom", () => {
     })
 })
 
+describe("ScheduleGrid toolbar and legend", () => {
+    it("opens New block on today when this week holds it", async () => {
+        const user = userEvent.setup()
+        render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+
+        await user.click(screen.getByRole("button", { name: "New block" }))
+
+        expect(screen.getByRole("dialog", { name: "New block" })).toBeInTheDocument()
+        expect(screen.getByLabelText("Date")).toHaveValue("2026-10-13")
+        expect(screen.getByLabelText("Start")).toHaveValue("09:00")
+    })
+
+    it("opens New block on Monday when looking at another week", async () => {
+        const user = userEvent.setup()
+        render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-11-20" />)
+
+        await user.click(screen.getByRole("button", { name: "New block" }))
+
+        expect(screen.getByLabelText("Date")).toHaveValue("2026-10-12")
+    })
+
+    it("explains the loop icon and the dashed border, and labels hours like every other time", () => {
+        render(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+
+        expect(screen.getByText("Repeats")).toBeInTheDocument()
+        expect(screen.getByText("Changed for one day")).toBeInTheDocument()
+        expect(screen.getByText("07:00")).toBeInTheDocument()
+        expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument()
+    })
+})
+
 describe("ScheduleGrid on the server", () => {
+    it("leaves the time-now line for the browser, which knows the visitor's clock", () => {
+        const html = renderToString(<ScheduleGrid initialBlocks={[]} days={DAYS} today="2026-10-13" />)
+
+        expect(html).not.toContain("now-line")
+    })
+
     it("labels its draggable blocks the same way every render, so the browser can hydrate it", () => {
         const page = () => renderToString(<ScheduleGrid initialBlocks={[series({})]} days={DAYS} today="2026-10-13" />)
         const labels = (html: string) => [...html.matchAll(/aria-describedby="([^"]+)"/g)].map(m => m[1])

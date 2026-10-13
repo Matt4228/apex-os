@@ -95,47 +95,44 @@ export default function BlockForm({
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-canvas border border-line rounded-lg p-3 space-y-3">
-            <Input
-                name="label"
-                placeholder="Block label"
-                aria-label="Label"
-                value={fields.label}
-                onChange={e => set({ label: e.target.value })}
-                required
-                autoFocus
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block space-y-1">
+                <span className="text-xs text-ink-muted">Label</span>
+                <Input
+                    name="label"
+                    placeholder="Deep work, Dentist..."
+                    value={fields.label}
+                    onChange={e => set({ label: e.target.value })}
+                    required
+                    autoFocus
+                />
+            </label>
 
             <label className="block space-y-1">
                 <span className="text-xs text-ink-muted">{repeats ? "Starts" : "Date"}</span>
                 <Input type="date" value={fields.startDate} onChange={e => set({ startDate: e.target.value })} required />
             </label>
 
-            <div className="flex gap-2">
-                <Input
-                    type="time"
-                    aria-label="Start time"
-                    value={fields.startTime}
-                    onChange={e => set({ startTime: e.target.value })}
-                    className="flex-1"
-                    required
-                />
-                <Input
-                    type="time"
-                    aria-label="End time"
-                    value={fields.endTime}
-                    onChange={e => set({ endTime: e.target.value })}
-                    className="flex-1"
-                    required
-                />
+            <div className="flex gap-3">
+                <label className="flex-1 space-y-1">
+                    <span className="text-xs text-ink-muted">Start</span>
+                    <Input type="time" value={fields.startTime} onChange={e => set({ startTime: e.target.value })} required />
+                </label>
+                <label className="flex-1 space-y-1">
+                    <span className="text-xs text-ink-muted">End</span>
+                    <Input type="time" value={fields.endTime} onChange={e => set({ endTime: e.target.value })} required />
+                </label>
             </div>
 
             {/* The block's color comes from its category */}
-            <CategorySelect defaultValue={block?.category} onChange={category => set({ category })} />
+            <div className="space-y-1">
+                <span className="text-xs text-ink-muted">Category</span>
+                <CategorySelect defaultValue={block?.category} onChange={category => set({ category })} />
+            </div>
 
             <label className="block space-y-1">
                 <span className="text-xs text-ink-muted">Repeat</span>
-                <select value={fields.repeat} onChange={e => changeRepeat(e.target.value)} className={selectClass}>
+                <select value={fields.repeat} onChange={e => changeRepeat(e.target.value)} className={`${selectClass} h-10`}>
                     <option value="none">Does not repeat</option>
                     <option value="daily">Daily</option>
                     <option value="weekday">Every weekday (Mon to Fri)</option>
@@ -155,7 +152,7 @@ export default function BlockForm({
                                 aria-label={name}
                                 aria-pressed={fields.repeatDays.includes(weekday)}
                                 onClick={() => toggleDay(weekday)}
-                                className={`h-8 w-8 rounded-full border text-xs font-medium transition-colors ${
+                                className={`h-9 w-9 rounded-full border text-xs font-medium transition-colors ${
                                     fields.repeatDays.includes(weekday)
                                         ? "bg-accent-ink border-accent-ink text-surface"
                                         : "border-line text-ink-soft hover:border-line-strong"

@@ -1,24 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { minutesToPixels } from "@/lib/schedule-time"
+import { useMinutesNow } from "@/lib/useMinutesNow"
 
+/**
+ * A line at the current time, in brand purple. The server doesn't know the visitor's clock, so the line appears
+ * once the page is running in the browser
+ */
 export default function CurrentTimeLine({ pxPerMinute }: { pxPerMinute: number }) {
-    const [now, setNow] = useState(() => new Date())
-
-    useEffect(() => {
-        const interval = setInterval(() => setNow(new Date()), 30000)
-        return () => clearInterval(interval)
-    }, [])
-
-    const minutes = now.getHours() * 60 + now.getMinutes()
-    const top = minutesToPixels(minutes, pxPerMinute)
+    const minutes = useMinutesNow()
+    if (minutes === null) return null
 
     return (
-        <div className="absolute inset-x-0 z-10 pointer-events-none" style={{ top }}>
+        <div data-testid="now-line" className="absolute inset-x-0 z-10 pointer-events-none" style={{ top: minutesToPixels(minutes, pxPerMinute) }}>
             <div className="relative">
-                <div className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-red-500" />
-                <div className="border-t-2 border-red-500" />
+                <div className="absolute -left-1 -top-[3px] h-2 w-2 rounded-full bg-primary-ink" />
+                <div className="border-t-2 border-primary-ink" />
             </div>
         </div>
     )
