@@ -1,4 +1,5 @@
-import { formatDateOnly, toDateInputValue } from "@/lib/dates"
+import type { Scope } from "@/app/actions/schedule"
+import { toDateInputValue } from "@/lib/dates"
 import type { BlockFields, CalendarBlock, Series } from "./types"
 
 /** A saved block's fields, ready for the form or for saving again after a drag */
@@ -27,12 +28,9 @@ export function toFormData(fields: BlockFields): FormData {
 }
 
 /**
- * Why a drag or resize can't be saved, or null when it can. Dragging changes the whole block: a repeating block can
- * move to other times but not to other days (its days are part of its repeat rule), and a day changed on its own
- * keeps its own times
+ * Which days a drag or resize of a repeating block can change. Moving to another day only makes sense for that one
+ * day ("every Monday from now on, moved to Tuesday" has no clear meaning), so it only offers "This block"
  */
-export function whyNotMove(block: CalendarBlock, toDay: string): string | null {
-    if (block.changed) return `${formatDateOnly(block.date, "EEEE")}'s "${block.label}" has its own times, so it can't be dragged.`
-    if (block.repeats && toDay !== block.date) return `"${block.label}" repeats. Open it to change the days it happens on.`
-    return null
+export function scopesFor(block: CalendarBlock, toDay: string): Scope[] {
+    return toDay === block.date ? ["this", "following", "all"] : ["this"]
 }

@@ -1,5 +1,5 @@
 // tests/lib/block-fields.test.ts
-import { fieldsOf, toFormData, whyNotMove } from "@/components/schedule/blockFields"
+import { fieldsOf, scopesFor, toFormData } from "@/components/schedule/blockFields"
 import type { CalendarBlock } from "@/components/schedule/types"
 import { parseDateOnly } from "@/lib/dates"
 import { describe, expect, it } from "vitest"
@@ -54,20 +54,12 @@ describe("fieldsOf and toFormData", () => {
     })
 })
 
-describe("whyNotMove", () => {
-    it("lets a repeating block move to another time on its own day", () => {
-        expect(whyNotMove(shown(), "2026-10-13")).toBeNull()
+describe("scopesFor", () => {
+    it("offers all three when a repeating block moves to another time on its own day", () => {
+        expect(scopesFor(shown(), "2026-10-13")).toEqual(["this", "following", "all"])
     })
 
-    it("lets a one-off block move to another day", () => {
-        expect(whyNotMove(shown({ repeats: false }), "2026-10-15")).toBeNull()
-    })
-
-    it("explains that a repeating block's days come from its rule", () => {
-        expect(whyNotMove(shown(), "2026-10-14")).toBe('"Course" repeats. Open it to change the days it happens on.')
-    })
-
-    it("won't drag a day that was changed on its own", () => {
-        expect(whyNotMove(shown({ changed: true }), "2026-10-13")).toBe('Tuesday\'s "Course" has its own times, so it can\'t be dragged.')
+    it("offers only this block when it moves to another day", () => {
+        expect(scopesFor(shown(), "2026-10-14")).toEqual(["this"])
     })
 })

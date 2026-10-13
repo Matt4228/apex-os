@@ -8,7 +8,7 @@ import {
     useSensors,
     DragEndEvent,
 } from "@dnd-kit/core"
-import { deleteScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
+import { deleteScheduleBlock, removeBlockDays, updateScheduleBlock, type Scope } from "@/app/actions/schedule"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { occurrences, type Exception } from "@/lib/occurrences"
 import { SCROLL_TO_HOUR, timeToMinutes, minutesToTime, pixelsToMinutes, snapToGrid } from "@/lib/schedule-time"
@@ -18,7 +18,8 @@ import HourLabels from "./HourLabels"
 import WeekNav from "./WeekNav"
 import DayColumn from "./DayColumn"
 import BlockForm, { type Saved } from "./BlockForm"
-import { fieldsOf, toFormData, whyNotMove } from "./blockFields"
+import { fieldsOf, scopesFor, toFormData } from "./blockFields"
+import ScopeDialog from "./ScopeDialog"
 import type { CalendarBlock, Series } from "./types"
 import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
@@ -55,7 +56,15 @@ export default function ScheduleGrid({
     const pxPerMinute = fixedPxPerMinute ?? zoom.pxPerMinute
     const [blocks, setBlocks] = useState<Series[]>(initialBlocks)
     const [exceptions, setExceptions] = useState<Exception[]>(initialExceptions)
-    const [editing, setEditing] = useState<{ block: Series; day: string } | null>(null)
+    const [editing, setEditing] = useState<{ block: Series; shown: CalendarBlock } | null>(null)
+    // A change or delete waiting for "this, following or all": `move` holds a drag or resize's new day and times
+    const [asking, setAsking] = useState<{
+        action: "change" | "delete"
+        shown: CalendarBlock
+        scopes: Scope[]
+        move?: { day: string; startTime: string; endTime: string }
+    } | null>(null)
+    const [notice, setNotice] = useState<string | null>(null)
     const [createDraft, setCreateDraft] = useState<{ day: string; startTime: string; endTime: string } | null>(null)
     const [activeDay, setActiveDay] = useState(() => (days.includes(today) ? today : days[0]))
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -94,22 +103,27 @@ export default function ScheduleGrid({
         return () => window.removeEventListener("keydown", onKeyDown)
     }, [dialogOpen])
 
-    /** Put a saved block and its remaining changed days into the grid */
-    function apply({ block, exceptions: blockExceptions }: Saved) {
+    /** Put a saved block and its remaining changed days into the grid, and the new series if one was split off */
+    function apply({ block, exceptions: blockExceptions, created }: Saved) {
         setBlocks(current => (current.some(b => b.id === block.id) ? current.map(b => (b.id === block.id ? block : b)) : [...current, block]))
         setExceptions(current => [...current.filter(e => e.blockId !== block.id), ...blockExceptions])
+        if (created) apply(created)
     }
 
+    /** × on a block, or Delete in the form. A one-off goes with an undo; a repeating block asks which days first */
     function handleDelete(key: string) {
         const shownBlock = shown.find(o => o.id === key)
-        if (!shownBlock) return
+        const block = shownBlock && seriesOf(shownBlock)
+        if (!shownBlock || !block) return
         setError(null)
-        requestDelete(shownBlock.blockId, shownBlock.label)
+        setNotice(null)
+        if (block.repeat === "none") requestDelete(block.id, block.label)
+        else setAsking({ action: "delete", shown: shownBlock, scopes: ["this", "following", "all"] })
     }
 
     function handleEdit(shownBlock: CalendarBlock) {
         const block = seriesOf(shownBlock)
-        if (block) setEditing({ block, day: shownBlock.date })
+        if (block) setEditing({ block, shown: shownBlock })
     }
 
     function handleSaved(saved: Saved) {
@@ -130,7 +144,7 @@ export default function ScheduleGrid({
         })
     }
 
-    /** Save a changed block; put it back and explain if the server says no */
+    /** Save a changed one-off block; put it back and explain if the server says no */
     async function persist(updated: Series, previous: Series) {
         setError(null)
         setBlocks(current => current.map(b => (b.id === updated.id ? updated : b)))
@@ -143,50 +157,91 @@ export default function ScheduleGrid({
             return
         }
         const result = await action
-        if (result?.block) apply({ block: result.block, exceptions: result.exceptions ?? [] })
+        if (result && "block" in result && result.block) apply(result as Saved)
+    }
+
+    /** A drag or resize: a one-off saves at once, a repeating block asks which days first */
+    function move(shownBlock: CalendarBlock, day: string, startTime: string, endTime: string) {
+        const block = seriesOf(shownBlock)
+        if (!block) return
+        setError(null)
+        setNotice(null)
+        if (block.repeat === "none") {
+            persist({ ...block, startDate: parseDateOnly(day), startTime, endTime }, block)
+            return
+        }
+        setAsking({ action: "change", shown: shownBlock, scopes: scopesFor(shownBlock, day), move: { day, startTime, endTime } })
+    }
+
+    /** The answer to "this, following or all" */
+    async function answer(scope: Scope) {
+        if (!asking) return
+        const { action, shown: shownBlock, move: moved } = asking
+        const block = seriesOf(shownBlock)
+        setAsking(null)
+        if (!block) return
+        const target = { date: shownBlock.originalDate, scope }
+        const when = formatDateOnly(shownBlock.date, "EEEE, MMM d")
+
+        if (action === "delete") {
+            if (scope === "all") {
+                requestDelete(block.id, block.label)
+                return
+            }
+            const result = await removeBlockDays(block.id, shownBlock.originalDate, scope)
+            if ("error" in result) {
+                setError(`Couldn't delete "${shownBlock.label}". ${result.error}.`)
+                return
+            }
+            if ("deleted" in result) {
+                setBlocks(current => current.filter(b => b.id !== block.id))
+                setExceptions(current => current.filter(e => e.blockId !== block.id))
+            } else {
+                apply(result as Saved)
+            }
+            setNotice(scope === "this" ? `Removed "${shownBlock.label}" on ${when}.` : `Removed "${shownBlock.label}" from ${when} on.`)
+            return
+        }
+
+        if (!moved) return
+        // "All" changes the series' own times; one day, or the days from here, start from this day as it shows
+        const fields = scope === "all"
+            ? { ...fieldsOf(block), startTime: moved.startTime, endTime: moved.endTime }
+            : {
+                  ...fieldsOf(block),
+                  label: shownBlock.label,
+                  category: shownBlock.category ?? "",
+                  startDate: moved.day,
+                  startTime: moved.startTime,
+                  endTime: moved.endTime,
+              }
+        const result = await updateScheduleBlock(block.id, toFormData(fields), target)
+        if (!result || "error" in result) {
+            setError(`Couldn't move "${shownBlock.label}". ${result?.error ?? "Something went wrong"}.`)
+            return
+        }
+        apply(result as Saved)
     }
 
     function handleDragEnd(event: DragEndEvent) {
         const { active, over, delta } = event
         const shownBlock = shown.find(o => o.id === active.id)
-        const block = shownBlock && seriesOf(shownBlock)
-        if (!shownBlock || !block) return
+        if (!shownBlock) return
 
-        const toDay = (over?.id as string) ?? shownBlock.date
-        const reason = whyNotMove(shownBlock, toDay)
-        if (reason) {
-            setError(reason)
-            return
-        }
-
-        const duration = timeToMinutes(block.endTime) - timeToMinutes(block.startTime)
-        const rawStart = timeToMinutes(block.startTime) + pixelsToMinutes(delta.y, pxPerMinute)
+        const duration = timeToMinutes(shownBlock.endTime) - timeToMinutes(shownBlock.startTime)
+        const rawStart = timeToMinutes(shownBlock.startTime) + pixelsToMinutes(delta.y, pxPerMinute)
         const clampedStart = Math.min(Math.max(rawStart, 0), 24 * 60 - duration)
         const newStartMinutes = snapToGrid(clampedStart, 5)
+        const toDay = (over?.id as string) ?? shownBlock.date
+        if (toDay === shownBlock.date && newStartMinutes === timeToMinutes(shownBlock.startTime)) return
 
-        persist(
-            {
-                ...block,
-                // Only a one-off moves to another day, so its date is its start date
-                startDate: block.repeat === "none" ? parseDateOnly(toDay) : block.startDate,
-                startTime: minutesToTime(newStartMinutes),
-                endTime: minutesToTime(newStartMinutes + duration),
-            },
-            block,
-        )
+        move(shownBlock, toDay, minutesToTime(newStartMinutes), minutesToTime(newStartMinutes + duration))
     }
 
     function handleResize(key: string, newEndTime: string) {
         const shownBlock = shown.find(o => o.id === key)
-        const block = shownBlock && seriesOf(shownBlock)
-        if (!shownBlock || !block) return
-
-        const reason = whyNotMove(shownBlock, shownBlock.date)
-        if (reason) {
-            setError(reason)
-            return
-        }
-        persist({ ...block, endTime: newEndTime }, block)
+        if (!shownBlock || newEndTime === shownBlock.endTime) return
+        move(shownBlock, shownBlock.date, shownBlock.startTime, newEndTime)
     }
 
     const column = (day: string) => (
@@ -206,6 +261,16 @@ export default function ScheduleGrid({
     return (
         <div>
             {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
+            {notice && <p role="status" className="text-sm text-ink-soft mb-3">{notice}</p>}
+            {asking && (
+                <ScopeDialog
+                    action={asking.action}
+                    date={asking.shown.date}
+                    scopes={asking.scopes}
+                    onChoose={answer}
+                    onCancel={() => setAsking(null)}
+                />
+            )}
             {dialogOpen && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
                     <div
@@ -218,8 +283,14 @@ export default function ScheduleGrid({
                             {editing ? "Edit block" : "New block"}
                         </h3>
                         <BlockForm
-                            day={editing ? editing.day : createDraft!.day}
+                            day={editing ? editing.shown.date : createDraft!.day}
                             block={editing?.block}
+                            shown={editing?.shown}
+                            onDelete={editing ? () => {
+                                const key = editing.shown.id
+                                closeDialog()
+                                handleDelete(key)
+                            } : undefined}
                             initialStartTime={createDraft?.startTime}
                             initialEndTime={createDraft?.endTime}
                             onCreated={handleSaved}
