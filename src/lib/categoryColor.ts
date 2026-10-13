@@ -50,6 +50,9 @@ const KNOWN: Record<string, number> = {
     personal: 7,
 }
 
+/** The categories offered first in a category picker, each with its own fixed color */
+export const STANDARD_CATEGORIES = ["Career", "Finance", "Fitness", "Health", "Learning", "Personal", "Wellness", "Work"]
+
 /** Which of the eight hues a category gets (0 to 7), or null for no category. Same name, same hue, everywhere */
 export function categoryHue(name: string | null | undefined): number | null {
     const key = name?.trim().toLowerCase()

@@ -11,6 +11,16 @@ import { cn } from "@/lib/utils"
 
 export const Select = SelectPrimitive.Root
 export const SelectValue = SelectPrimitive.Value
+export const SelectGroup = SelectPrimitive.Group
+
+/** A small heading over a group of options */
+export function SelectLabel({ className, ...props }: ComponentProps<typeof SelectPrimitive.Label>) {
+    return <SelectPrimitive.Label className={cn("px-2 pt-2 pb-1 text-xs font-medium text-ink-muted", className)} {...props} />
+}
+
+export function SelectSeparator({ className, ...props }: ComponentProps<typeof SelectPrimitive.Separator>) {
+    return <SelectPrimitive.Separator className={cn("my-1 h-px bg-line", className)} {...props} />
+}
 
 export function SelectTrigger({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Trigger>) {
     return (
