@@ -35,22 +35,35 @@ function parse(raw: string | null): Record<string, boolean> {
 }
 
 /**
+ * One text value remembered in this browser, or null before anything is saved. The server and the first render
+ * in the browser see null, then the saved value applies
+ */
+export function useStoredValue(key: string): [string | null, (value: string) => void] {
+    const raw = useSyncExternalStore(subscribe, () => read(key), () => null)
+
+    function save(value: string) {
+        try {
+            window.localStorage.setItem(key, value)
+        } catch {
+            memory.set(key, value) // Remembered for this visit only
+        }
+        listeners.forEach(listener => listener())
+    }
+
+    return [raw, save]
+}
+
+/**
  * Which sections are open, by id. The server doesn't know what this browser saved, so the server and the
  * first render in the browser use `defaults`, then the saved choices apply
  */
 export function useStoredToggles(key: string, defaults: Record<string, boolean>) {
-    const raw = useSyncExternalStore(subscribe, () => read(key), () => null)
+    const [raw, save] = useStoredValue(key)
     const saved = parse(raw)
     const isOpen = (id: string) => saved[id] ?? defaults[id] ?? false
 
     function toggle(id: string) {
-        const next = JSON.stringify({ ...saved, [id]: !isOpen(id) })
-        try {
-            window.localStorage.setItem(key, next)
-        } catch {
-            memory.set(key, next) // Remembered for this visit only
-        }
-        listeners.forEach(listener => listener())
+        save(JSON.stringify({ ...saved, [id]: !isOpen(id) }))
     }
 
     return { isOpen, toggle }

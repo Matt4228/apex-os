@@ -19,9 +19,16 @@ import { fieldsOf, toFormData, whyNotMove } from "./blockFields"
 import type { CalendarBlock, Series } from "./types"
 import { failureMessage } from "@/lib/optimistic"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { useStoredValue } from "@/lib/useStoredToggles"
 import { UndoToast } from "@/components/ui/undo-toast"
 
-export const PX_PER_MINUTE = 1
+/** Heights of one minute. Large makes a 10-minute block easy to grab (walkthrough note #59) */
+export const ZOOMS = [
+    { id: "fit", label: "Fit", pxPerMinute: 0.8 },
+    { id: "comfortable", label: "Comfortable", pxPerMinute: 1.2 },
+    { id: "large", label: "Large", pxPerMinute: 1.8 },
+] as const
+const DEFAULT_ZOOM = "comfortable"
 
 /** A week of the calendar: seven dated columns, built from the user's blocks and their changed days */
 export default function ScheduleGrid({
@@ -29,7 +36,7 @@ export default function ScheduleGrid({
     initialExceptions = [],
     days,
     today,
-    pxPerMinute = PX_PER_MINUTE,
+    pxPerMinute: fixedPxPerMinute,
 }: {
     initialBlocks: Series[]
     initialExceptions?: Exception[]
@@ -37,9 +44,12 @@ export default function ScheduleGrid({
     days: string[]
     /** The user's today, "YYYY-MM-DD" */
     today: string
-    /** Height of one minute */
+    /** Height of one minute. Leave it out to use the zoom control, remembered in this browser */
     pxPerMinute?: number
 }) {
+    const [storedZoom, setZoom] = useStoredValue("apex.schedule.zoom")
+    const zoom = ZOOMS.find(z => z.id === storedZoom) ?? ZOOMS.find(z => z.id === DEFAULT_ZOOM)!
+    const pxPerMinute = fixedPxPerMinute ?? zoom.pxPerMinute
     const [blocks, setBlocks] = useState<Series[]>(initialBlocks)
     const [exceptions, setExceptions] = useState<Exception[]>(initialExceptions)
     const [editing, setEditing] = useState<{ block: Series; day: string } | null>(null)
@@ -212,6 +222,24 @@ export default function ScheduleGrid({
                 </div>
             )}
 
+            <div className="flex justify-end mb-3">
+                <div role="group" aria-label="Zoom" className="inline-flex gap-0.5 rounded-lg bg-sunken p-0.5">
+                    {ZOOMS.map(z => (
+                        <button
+                            key={z.id}
+                            type="button"
+                            aria-pressed={zoom.id === z.id}
+                            onClick={() => setZoom(z.id)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                                zoom.id === z.id ? "bg-surface text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+                            }`}
+                        >
+                            {z.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Mobile day picker: the week's dates */}
             <div className="md:hidden flex gap-1 overflow-x-auto pb-2 mb-4">
                 {days.map(day => (
@@ -247,7 +275,9 @@ export default function ScheduleGrid({
                 ))}
             </div>
 
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            {/* A fixed id: otherwise dnd-kit numbers its labels with a counter, and the server's count and the
+                browser's differ, so React can't hydrate the page (DndDescribedBy-0 vs -1) */}
+            <DndContext id="schedule-grid" sensors={sensors} onDragEnd={handleDragEnd}>
                 <div ref={scrollRef} className="flex overflow-y-auto max-h-[70vh] border border-line rounded-xl">
                     <HourLabels pxPerMinute={pxPerMinute} />
 
