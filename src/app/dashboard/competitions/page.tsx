@@ -22,11 +22,16 @@ export default async function CompetitionPage() {
                     <h2 className="text-2xl font-semibold text-ink">Competitions</h2>
                     <p className="text-ink-muted text-sm mt-1">{running} running &middot; {competitions.length} in all</p>
                 </div>
-                {competitions.length > 0 && (
-                    <Button asChild size="sm">
-                        <Link href="/dashboard/competitions/new">+ New competition</Link>
+                <div className="flex gap-2">
+                    <Button asChild size="sm" variant="outline">
+                        <Link href="/dashboard/friends">Friends</Link>
                     </Button>
-                )}
+                    {competitions.length > 0 && (
+                        <Button asChild size="sm">
+                            <Link href="/dashboard/competitions/new">+ New competition</Link>
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <CompetitionList competitions={competitions} />

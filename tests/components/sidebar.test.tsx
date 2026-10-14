@@ -45,4 +45,17 @@ describe("Sidebar", () => {
         await user.keyboard("{Escape}")
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     })
+
+    it("keeps Competitions marked on the Friends page", () => {
+        renderAt("/dashboard/friends")
+
+        expect(screen.getAllByRole("link", { name: "Competitions" })[0]).toHaveAttribute("aria-current", "page")
+    })
+
+    it("shows how many requests and invites are waiting", () => {
+        vi.mocked(usePathname).mockReturnValue("/dashboard")
+        render(<Sidebar userName="Matt" theme="dark" waiting={2} />)
+
+        expect(screen.getAllByRole("link", { name: "Competitions, 2 waiting" }).length).toBeGreaterThan(0)
+    })
 })

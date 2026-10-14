@@ -79,7 +79,8 @@ function seededCompetitions(today: string) {
 
 describe("seedDemo", () => {
     beforeEach(() => {
-        prismaMock.user.upsert.mockResolvedValue({ id: "demo-1" } as never)
+        // Each account gets its own id, from its email: demo@apex-os.app becomes "demo"
+        prismaMock.user.upsert.mockImplementation((async (args: { where: { email: string } }) => ({ id: args.where.email.split("@")[0] })) as never)
         returnBlocksWithIds()
         returnCompetitionsWithIds()
     })
@@ -233,5 +234,25 @@ describe("seedDemo", () => {
 
         expect(club.position).toEqual({ state: "active", week: 4 })
         expect(logs.filter(l => l.week === 4)).toHaveLength(0)
+    })
+
+    it("resets the rivals with the demo password, and their friendships with the demo", async () => {
+        await run()
+
+        const emails = prismaMock.user.upsert.mock.calls.map(([args]) => args.where.email)
+        expect(emails).toEqual(["demo@apex-os.app", "alex@apex-os.app", "sam@apex-os.app", "jordan@apex-os.app"])
+        const passwords = new Set(prismaMock.user.upsert.mock.calls.map(([args]) => (args.update as { password: string }).password))
+        expect(passwords.size).toBe(1)
+
+        expect(prismaMock.friendship.deleteMany).toHaveBeenCalledWith({
+            where: { OR: [{ requesterId: { in: ["demo", "alex", "sam", "jordan"] } }, { addresseeId: { in: ["demo", "alex", "sam", "jordan"] } }] },
+        })
+        expect(prismaMock.friendship.createMany).toHaveBeenCalledWith({
+            data: [
+                { requesterId: "demo", addresseeId: "alex", status: "accepted" },
+                { requesterId: "sam", addresseeId: "demo", status: "accepted" },
+                { requesterId: "jordan", addresseeId: "demo", status: "pending" },
+            ],
+        })
     })
 })
