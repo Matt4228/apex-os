@@ -8,7 +8,9 @@ import { loadBlocks } from "@/lib/scheduleData"
 import { getUserToday } from "@/lib/user-today"
 import DayStrip from "@/components/today/DayStrip"
 import TodayBoard from "@/components/today/TodayBoard"
+import TodayCompetitions from "@/components/today/TodayCompetitions"
 import TodayHabits from "@/components/today/TodayHabits"
+import { loadCompetitions } from "@/lib/competitionData"
 
 export const dynamic = "force-dynamic"
 
@@ -21,7 +23,7 @@ export default async function DashboardPage() {
     const todayDate = parseDateOnly(today)
     const { start: weekStart, end: weekEnd } = weekRangeOf(today)
 
-    const [tasks, goals, habits, calendar] = await Promise.all([
+    const [tasks, goals, habits, calendar, competitions] = await Promise.all([
         // Everything still open (for suggestions and goal steps), plus anything finished from today's plan
         prisma.task.findMany({
             where: { userId, OR: [{ status: "todo" }, { plannedFor: todayDate }] },
@@ -43,6 +45,7 @@ export default async function DashboardPage() {
             },
         }),
         loadBlocks(userId, today, today),
+        loadCompetitions(userId, today),
     ])
 
     // Today's blocks from the calendar, in time order. A block keeps its series id, which is what tasks point at
@@ -78,7 +81,11 @@ export default async function DashboardPage() {
                 on desktop the plan and suggestions fill column 1 and the rail fills column 2 */}
             <div className="grid gap-x-12 gap-y-10 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start">
                 <TodayBoard initialTasks={tasks} goals={goals} today={today} blocks={scheduleBlocks} />
-                <TodayHabits habits={habitItems} today={today} className="order-3 md:col-start-2 md:row-start-2" />
+                {/* The rail's second row: habits, then the competitions running this week */}
+                <div className="order-3 space-y-10 md:col-start-2 md:row-start-2">
+                    <TodayHabits habits={habitItems} today={today} />
+                    <TodayCompetitions competitions={competitions} today={today} />
+                </div>
             </div>
         </main>
     )

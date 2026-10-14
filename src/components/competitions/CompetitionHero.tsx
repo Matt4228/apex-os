@@ -1,6 +1,6 @@
 import type { Metric, Position, Season, WeekProgress } from "@/lib/competition"
 import { formatDateOnly } from "@/lib/dates"
-import { amountText } from "./format"
+import { leftText } from "./format"
 
 /** The big ring for this week, drawn for the dark hero panel */
 function HeroRing({ percent }: { percent: number }) {
@@ -68,7 +68,7 @@ export default function CompetitionHero({
         .filter(m => m.total < m.target)
         .map(m => {
             const metric = metrics.find(x => x.id === m.metricId)!
-            return amountText(m.target - m.total, metric.unit ?? metric.name.toLowerCase())
+            return leftText(m.target - m.total, metric)
         })
 
     return (
