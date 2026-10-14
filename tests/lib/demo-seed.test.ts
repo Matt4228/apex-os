@@ -208,15 +208,18 @@ describe("seedDemo", () => {
         expect(anytime.length).toBeGreaterThan(0)
     })
 
-    it("seeds a competition in its fourth week, one just started, and one finished with a missed week", async () => {
+    it("seeds a competition in its fourth week, one just started, a year-long one, and one finished with a missed week", async () => {
         // Tuesday, October 13: the run club's fourth week has started but isn't done
         await run(new Date("2026-10-13T16:00:00Z"))
-        const [club, sprint, reading] = seededCompetitions("2026-10-13")
+        const [club, sprint, year, reading] = seededCompetitions("2026-10-13")
 
         expect(club).toMatchObject({ title: "October Run Club", position: { state: "active", week: 4 } })
         expect(club.season.weeks).toEqual(["complete", "complete", "complete", "current", "ahead", "ahead", "ahead", "ahead"])
         expect(sprint).toMatchObject({ title: "LeetCode Sprint", position: { state: "active", week: 2 } })
         expect(sprint.season.weeks.slice(0, 2)).toEqual(["complete", "current"])
+        expect(year).toMatchObject({ title: "Year of Running", position: { state: "active", week: 20 } })
+        expect(year.season.weeks).toHaveLength(52)
+        expect(year.season.completedWeeks).toBe(15) // 19 finished weeks, 4 of them missed
         expect(reading).toMatchObject({ title: "Summer Reading", position: { state: "finished" } })
         expect(reading.season.completedWeeks).toBe(5)
         expect(reading.season.weeks).toContain("missed")

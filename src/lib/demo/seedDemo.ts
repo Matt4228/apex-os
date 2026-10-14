@@ -3,6 +3,7 @@
 import type { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { parseDateOnly, toDateInputValue, todayIn } from "../dates"
+import { rampTargets } from "../competition"
 import { occurrences } from "../occurrences"
 
 export const DEMO_EMAIL = "demo@apex-os.app"
@@ -41,6 +42,7 @@ type SeedCompetition = {
  */
 function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedCompetition[] {
     const sunday = (week: number) => -weekday + week * 7
+    const yearTargets = rampTargets(15, 40, 52)
     // A log at 7 in the evening of a weekday in a competition week; the current week keeps only days up to today
     const logs = (startWeek: number, entries: [number, number, number, string?][], currentWeek?: number) =>
         entries
@@ -94,6 +96,29 @@ function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedC
                     unit: null,
                     targets: [10, 10, 10, 10],
                     logs: logs(-1, [[1, 1, 3], [1, 3, 4, "Graphs"], [1, 5, 4], [2, 1, 2], [2, 2, 3]], 2),
+                },
+            ],
+        },
+        {
+            // A year-long one, about 20 weeks in, with targets that ramp up: shows how long seasons look
+            title: "Year of Running",
+            category: "Fitness",
+            startDate: day(sunday(-19)),
+            weeks: 52,
+            metrics: [
+                {
+                    name: "km run",
+                    unit: "km",
+                    targets: yearTargets,
+                    logs: logs(-19, Array.from({ length: 20 }, (_, i) => i + 1).flatMap(week => {
+                        // Weeks 6, 12, 13 and 17 fell short; this week has two runs in so far
+                        const target = yearTargets[week - 1]
+                        const share = [6, 12, 13, 17].includes(week) ? 0.6 : week === 20 ? 0.45 : 1.05
+                        const total = Math.round(target * share * 10) / 10
+                        const runs: [number, number, number][] = [[week, 1, Math.round(total * 0.3 * 10) / 10], [week, 3, Math.round(total * 0.3 * 10) / 10]]
+                        if (week !== 20) runs.push([week, 6, Math.round((total - 2 * Math.round(total * 0.3 * 10) / 10) * 10) / 10])
+                        return runs
+                    }), 20),
                 },
             ],
         },

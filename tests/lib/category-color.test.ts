@@ -151,6 +151,20 @@ describe("globals.css", () => {
         expect(contrast(linearRgb(0.75, 0.12, 290), step("dark", "tint", 290))).toBeGreaterThanOrEqual(4.5)
     })
 
+    it("keeps the competition hero and the gold of a completed week readable", () => {
+        const hero = { light: linearRgb(0.27, 0.06, 290), dark: linearRgb(0.24, 0.05, 290) }
+        for (const theme of THEMES) {
+            expect(contrast(linearRgb(0.97, 0.01, 290), hero[theme]), `hero text, ${theme}`).toBeGreaterThanOrEqual(4.5)
+            expect(contrast(linearRgb(0.82, 0.04, 290), hero[theme]), `hero soft text, ${theme}`).toBeGreaterThanOrEqual(4.5)
+            expect(contrast(linearRgb(0.88, 0.12, 85), hero[theme]), `hero gold, ${theme}`).toBeGreaterThanOrEqual(4.5)
+        }
+        expect(contrast(linearRgb(0.3, 0.05, 70), linearRgb(0.78, 0.15, 80)), "text on gold").toBeGreaterThanOrEqual(4.5)
+        expect(contrast(linearRgb(0.47, 0.12, 70), SURFACE.light), "gold text, light").toBeGreaterThanOrEqual(4.5)
+        expect(contrast(linearRgb(0.85, 0.12, 85), SURFACE.dark), "gold text, dark").toBeGreaterThanOrEqual(4.5)
+        expect(css).toContain("--color-hero: oklch(0.27 0.06 290);")
+        expect(css).toContain("--color-win-ink: oklch(0.85 0.12 85);")
+    })
+
     it("writes text on solid fills in the table's color", () => {
         expect(css).toContain(`--cat-on-solid: oklch(${ON_SOLID.l} ${ON_SOLID.c} ${ON_SOLID.h});`)
     })

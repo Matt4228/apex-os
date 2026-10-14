@@ -40,6 +40,16 @@
   /* Brand purple on the palette's tint step: empty-state icons */
   --color-primary-tint: oklch(0.962 0.03 290);
 
+  /* Competitions: the hero panel, and gold for a completed week */
+  --color-hero: oklch(0.27 0.06 290);
+  --color-hero-ink: oklch(0.97 0.01 290);
+  --color-hero-soft: oklch(0.82 0.04 290);
+  --color-hero-line: oklch(0.38 0.06 290);
+  --color-hero-gold: oklch(0.88 0.12 85);
+  --color-win: oklch(0.78 0.15 80);
+  --color-on-win: oklch(0.3 0.05 70);
+  --color-win-ink: oklch(0.47 0.12 70);
+
   /* Priority chips: the palette's tint step at the same hues */
   --color-danger-tint: oklch(0.962 0.03 25);
   --color-warning-tint: oklch(0.962 0.03 55);
@@ -84,6 +94,9 @@
   --color-warning-ink: oklch(0.83 0.1 55);
   --color-success-ink: oklch(0.83 0.1 125);
   --color-primary-tint: oklch(0.27 0.045 290);
+  --color-hero: oklch(0.24 0.05 290);
+  --color-hero-line: oklch(0.34 0.05 290);
+  --color-win-ink: oklch(0.85 0.12 85);
   --color-danger-tint: oklch(0.27 0.045 25);
   --color-warning-tint: oklch(0.27 0.045 55);
   --color-success-tint: oklch(0.27 0.045 125);
@@ -137,6 +150,17 @@
     @apply bg-canvas text-ink;
   }
 }
+/* Competitions: a lane fills in from the left (clip-path, not width, so nothing reflows), and this week's square pulses */
+@keyframes lane-in {
+  from { clip-path: inset(0 100% 0 0 round 999px); }
+  to { clip-path: inset(0 0 0 0 round 999px); }
+}
+
+@keyframes week-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
 @keyframes check-pop {
   0% { transform: scale(1); }
   50% { transform: scale(1.2); }

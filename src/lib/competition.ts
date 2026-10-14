@@ -94,3 +94,52 @@ export function rank<T extends { completedWeeks: number; totalProgress: number }
         return { ...row, place: (first === -1 ? i : first) + 1 }
     })
 }
+
+/** Completed weeks in a row, counting back from the latest finished week. This week doesn't break it while it runs */
+export function streak(weeks: WeekState[]): number {
+    let count = 0
+    for (let i = weeks.length - 1; i >= 0; i--) {
+        if (weeks[i] === "ahead" || weeks[i] === "current") continue
+        if (weeks[i] !== "complete") break
+        count++
+    }
+    return count
+}
+
+/**
+ * Targets that climb steadily from the first week's to the last week's, each rounded to `roundTo` (1, 0.5, 5...),
+ * the way a training plan builds up. One week gets the first target
+ */
+export function rampTargets(first: number, last: number, weeks: number, roundTo = 1): number[] {
+    const round = (value: number) => Math.round(Math.round(value / roundTo) * roundTo * 1000) / 1000
+    return Array.from({ length: weeks }, (_, i) => round(weeks === 1 ? first : first + ((last - first) * i) / (weeks - 1)))
+}
+
+/** Quick log buttons sized to a week's target: about a tenth, a quarter and a half, on round numbers */
+export function quickAmounts(target: number): number[] {
+    if (target <= 5) return [1]
+    const nice = (value: number) => {
+        const scale = 10 ** Math.floor(Math.log10(value))
+        const step = [1, 2, 5, 10].find(s => s * scale >= value * 0.8) ?? 10
+        return step * scale
+    }
+    return [...new Set([target / 10, target / 4, target / 2].map(v => nice(Math.max(v, 1))))]
+}
+
+/** The competition's weeks grouped by the month each week starts in: "October 2026", weeks 1 to 4 */
+export function monthGroups(competition: CompetitionShape): { month: string; weeks: number[] }[] {
+    const groups: { month: string; weeks: number[] }[] = []
+    for (let week = 1; week <= competition.weeks; week++) {
+        const month = weekDates(competition, week).from.slice(0, 7)
+        const last = groups[groups.length - 1]
+        if (last?.month === month) last.weeks.push(week)
+        else groups.push({ month, weeks: [week] })
+    }
+    return groups
+}
+
+/** Days left in a week, today included: 7 on its Sunday, 1 on its Saturday */
+export function daysLeft(competition: CompetitionShape, week: number, today: string): number {
+    const saturday = parseDateOnly(weekDates(competition, week).to).getTime()
+    return Math.round((saturday - parseDateOnly(today).getTime()) / DAY_MS) + 1
+}
