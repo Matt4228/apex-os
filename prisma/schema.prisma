@@ -20,6 +20,7 @@ model User {
   habits          Habit[]
   tasks           Task[]
   competitions    Competition[]
+  participations  Participant[]
 }
 
 /// A block on the calendar: one day, or a series that repeats. src/lib/occurrences.ts turns it into dated blocks
@@ -148,30 +149,84 @@ model Task {
   @@index([scheduleBlockId])
 }
 
+/// A contest over a number of calendar weeks (Sunday to Saturday). src/lib/competition.ts does the scoring
 model Competition {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  rulesJson String?
-  startDate DateTime
-  endDate   DateTime
-  status    String   @default("active")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  /// The creator, who sets the weekly targets
+  ownerId     String
+  title       String
+  category    String?
+  /// Always a Sunday
+  startDate   DateTime
+  /// How many weeks it runs, 1 to 26
+  weeks       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries   CompetitionEntry[]
+  owner        User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  metrics      CompetitionMetric[]
+  participants Participant[]
+
+  @@index([ownerId])
 }
 
-model CompetitionEntry {
+/// Something measured each week, like "km run" or "workouts"
+model CompetitionMetric {
   id            String   @id @default(cuid())
   competitionId String
-  weekNumber    Int
-  value         Float
-  metric        String
-  weekComplete  Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  name          String
+  unit          String?
+  sortOrder     Int      @default(0)
 
-  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competition   Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  targets       WeekTarget[]
+  logs          ProgressLog[]
+
+  @@index([competitionId])
+}
+
+/// A metric's target for one week, the same for every competitor
+model WeekTarget {
+  id        String   @id @default(cuid())
+  metricId  String
+  week      Int
+  target    Float
+
+  metric    CompetitionMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  @@unique([metricId, week])
+}
+
+/// A user in a competition. Every log belongs to one, so more competitors can join without changing logs
+model Participant {
+  id            String   @id @default(cuid())
+  competitionId String
+  userId        String
+  /// "owner" or "member"
+  role          String   @default("member")
+  joinedAt      DateTime @default(now())
+
+  competition   Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs          ProgressLog[]
+
+  @@unique([competitionId, userId])
+  @@index([userId])
+}
+
+/// Progress toward a metric in one week. Many per week; totals can pass the target
+model ProgressLog {
+  id            String   @id @default(cuid())
+  participantId String
+  metricId      String
+  week          Int
+  amount        Float
+  note          String?
+  createdAt     DateTime @default(now())
+
+  participant   Participant       @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  metric        CompetitionMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  @@index([participantId, week])
+  @@index([metricId])
 }

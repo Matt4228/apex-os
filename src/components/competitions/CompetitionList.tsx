@@ -1,133 +1,91 @@
 "use client"
 
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { deleteCompetition, updateCompetitionStatus } from "@/app/actions/competitions"
-import CompetitionCard from "./CompetitionCard"
-import CreateCompetitionForm from "./CreateCompetitionForm"
-import { failureMessage } from "@/lib/optimistic"
-import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { Trophy, X } from "lucide-react"
+import { deleteCompetition } from "@/app/actions/competitions"
+import { EmptyState, type EmptyCopy } from "@/components/ui/empty-state"
 import { UndoToast } from "@/components/ui/undo-toast"
-import type { EmptyCopy } from "@/components/ui/empty-state"
-import { Trophy } from "lucide-react"
-
-type Entry = {
-    id: string
-    weekNumber: number
-    value: number
-    metric: string
-    weekComplete: boolean
-}
-
-type Competition = {
-    id: string
-    title: string
-    status: string
-    startDate: Date
-    endDate: Date
-    rulesJson: string | null
-    entries: Entry[]
-}
+import { catProps } from "@/lib/categoryColor"
+import { lastDay } from "@/lib/competition"
+import type { CompetitionView } from "@/lib/competitionData"
+import { formatDateOnly } from "@/lib/dates"
+import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import SeasonPips from "./SeasonPips"
 
 const NO_COMPETITIONS: EmptyCopy = {
     icon: Trophy,
     title: "No competitions yet",
-    description: "A competition is a challenge with weekly targets over a set number of weeks. Log each week and count the weeks you win.",
+    description: "A competition runs for a set number of weeks, with a target for each week. Log your progress and count the weeks you complete.",
     action: "Create your first competition",
 }
 
-export default function CompetitionList({
-    initialCompetitions,
-}: {
-    initialCompetitions: Competition[]
-}) {
-    const [competitions, setCompetitions] = useState<Competition[]>(initialCompetitions)
+/** "Week 4 of 8", "Starts Oct 18" or "Finished Oct 24" */
+function when(c: CompetitionView) {
+    if (c.position.state === "active") return `Week ${c.position.week} of ${c.weeks}`
+    if (c.position.state === "upcoming") return `Starts ${formatDateOnly(c.startDate, "MMM d")}`
+    return `Finished ${formatDateOnly(lastDay(c), "MMM d")}`
+}
+
+/** Your competitions: running, coming up, and finished */
+export default function CompetitionList({ competitions }: { competitions: CompetitionView[] }) {
+    const router = useRouter()
     const [error, setError] = useState<string | null>(null)
     const { pending, undo, requestDelete, isHidden } = useUndoableDelete("competition", deleteCompetition, setError)
+    const visible = competitions.filter(c => !isHidden(c.id))
 
-    function handleCreate(competition: Competition) {
-        setCompetitions(current => [competition, ...current])
-    }
-
-    function handleDelete(id: string) {
-      const competition = competitions.find(c => c.id === id)
-      if (!competition) return
-      setError(null)
-      requestDelete(id, competition.title)
-    }
-
-    async function handleStatusChange(id: string, status: string) {
-        const oldStatus = competitions.find(c => c.id === id)?.status
-        if (!oldStatus) return
-        setError(null)
-        setCompetitions(current => current.map(c => c.id === id ? { ...c, status } : c))
-
-        const problem = await failureMessage(updateCompetitionStatus(id, status), "update that competition")
-        if (problem) {
-            setCompetitions(current => current.map(c => c.id === id ? { ...c, status: oldStatus } : c))
-            setError(problem)
-        }
-    }
-
-    function handleEntryLogged(competitionId: string, entry: Entry) {
-        setCompetitions(current =>
-            current.map(c => 
-                c.id === competitionId
-                    ? {
-                        ...c,
-                        entries: [
-                            entry,
-                            ...c.entries.filter(e =>
-                                !(e.weekNumber === entry.weekNumber && e.metric === entry.metric)
-                            ),
-                        ],
-                    }
-                : c
-            )
-        )
-    }
-
-
-    const visibleCompetitions = competitions.filter(c => !isHidden(c.id))
-    const active = visibleCompetitions.filter(c => c.status === "active")
-    const complete = visibleCompetitions.filter(c => c.status === "complete")
+    const groups = [
+        { id: "running", title: "Running", items: visible.filter(c => c.position.state === "active") },
+        { id: "upcoming", title: "Coming up", items: visible.filter(c => c.position.state === "upcoming") },
+        { id: "finished", title: "Finished", items: visible.filter(c => c.position.state === "finished") },
+    ].filter(g => g.items.length > 0)
 
     return (
-        <div>
-            {error && <p role="alert" className="text-sm text-danger-ink mb-3">{error}</p>}
-            <div className="space-y-4 mb-6">
-                {active.map(competition => (
-                    <CompetitionCard 
-                        key={competition.id}
-                        competition={competition}
-                        onDelete={handleDelete}
-                        onStatusChange={handleStatusChange}
-                        onEntryLogged={handleEntryLogged}
-                    />
-                ))}
-                <CreateCompetitionForm
-                    onCreated={handleCreate}
-                    empty={visibleCompetitions.length === 0 ? NO_COMPETITIONS : undefined}
-                />
-            </div>
+        <div className="space-y-8">
+            {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 
-            {complete.length > 0 && (
-                <div>
-                    <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-3">
-                        Completed
-                    </p>
-                    <div className="space-y-4">
-                        {complete.map(competition => (
-                            <CompetitionCard 
-                                key={competition.id}
-                                competition={competition}
-                                onDelete={handleDelete}
-                                onStatusChange={handleStatusChange}
-                                onEntryLogged={handleEntryLogged}
-                            />
-                        ))}
-                    </div>
-                </div>
+            {visible.length === 0 ? (
+                <EmptyState {...NO_COMPETITIONS} onAction={() => router.push("/dashboard/competitions/new")} />
+            ) : (
+                groups.map(group => (
+                    // A fixed id: aria-labelledby reads a space as two ids, so "Coming up" can't be one
+                    <section key={group.id} aria-labelledby={`group-${group.id}`}>
+                        <h3 id={`group-${group.id}`} className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-muted">
+                            {group.title}
+                        </h3>
+                        <ul className="grid gap-3 sm:grid-cols-2">
+                            {group.items.map(c => (
+                                <li key={c.id} {...catProps(c.category)} className="relative rounded-xl border border-line bg-surface p-4">
+                                    <Link href={`/dashboard/competitions/${c.id}`} className="block space-y-2 pr-6">
+                                        <span className="block font-semibold text-ink">{c.title}</span>
+                                        <span className="block text-xs text-ink-muted">
+                                            {when(c)} &middot; {c.metrics.map(m => m.name).join(", ")}
+                                        </span>
+                                        <SeasonPips weeks={c.season.weeks} label={`${c.title} weeks`} />
+                                        <span className="block text-xs text-ink-soft">
+                                            {c.season.completedWeeks} of {c.weeks} weeks complete
+                                        </span>
+                                    </Link>
+                                    {c.isOwner && (
+                                        <button
+                                            onClick={() => {
+                                                setError(null)
+                                                requestDelete(c.id, c.title)
+                                            }}
+                                            aria-label={`Delete ${c.title}`}
+                                            className="absolute right-2 top-2 rounded-md p-1.5 text-ink-muted transition-colors hover:bg-sunken hover:text-danger-ink"
+                                        >
+                                            <X size={14} aria-hidden="true" />
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                ))
             )}
+
             {pending && <UndoToast message={`Deleted "${pending.label}"`} onUndo={undo} />}
         </div>
     )

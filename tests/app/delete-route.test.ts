@@ -56,16 +56,17 @@ describe("DELETE /api/items/[kind]/[id]", () => {
     })
 
     it.each([
-        ["goal", "goal"],
-        ["habit", "habit"],
-        ["schedule-block", "scheduleBlock"],
-        ["competition", "competition"],
-    ] as const)("deletes a %s", async (kind, model) => {
+        ["goal", "goal", "userId"],
+        ["habit", "habit", "userId"],
+        ["schedule-block", "scheduleBlock", "userId"],
+        // A competition belongs to its owner: the one who can delete it
+        ["competition", "competition", "ownerId"],
+    ] as const)("deletes a %s", async (kind, model, owner) => {
         signedIn()
 
         const res = await send(kind, "id-1")
 
         expect(res.status).toBe(204)
-        expect(prismaMock[model].delete).toHaveBeenCalledWith({ where: { id: "id-1", userId: "user-1" } })
+        expect(prismaMock[model].delete).toHaveBeenCalledWith({ where: { id: "id-1", [owner]: "user-1" } })
     })
 })

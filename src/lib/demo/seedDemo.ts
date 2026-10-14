@@ -26,6 +26,97 @@ type SeedBlock = {
 
 type SeedChange = { label: string; date: Date; cancelled?: boolean; startTime?: string; endTime?: string }
 
+type SeedLog = { week: number; amount: number; at: Date; note?: string }
+type SeedCompetition = {
+    title: string
+    category: string
+    startDate: Date
+    weeks: number
+    metrics: { name: string; unit: string | null; targets: number[]; logs: SeedLog[] }[]
+}
+
+/**
+ * The demo's competitions, relative to its today. Logs in the current week only reach today, so the week fills in
+ * as the real week goes by. `logs` lists [week, weekday, amount]: Sunday is 0
+ */
+function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedCompetition[] {
+    const sunday = (week: number) => -weekday + week * 7
+    // A log at 7 in the evening of a weekday in a competition week; the current week keeps only days up to today
+    const logs = (startWeek: number, entries: [number, number, number, string?][], currentWeek?: number) =>
+        entries
+            .filter(([week, dow]) => week !== currentWeek || dow <= weekday)
+            .map(([week, dow, amount, note]) => ({
+                week,
+                amount,
+                note,
+                at: new Date(day(sunday(startWeek + week - 1) + dow).getTime() + 19 * 60 * 60 * 1000),
+            }))
+
+    return [
+        {
+            title: "October Run Club",
+            category: "Fitness",
+            startDate: day(sunday(-3)),
+            weeks: 8,
+            metrics: [
+                {
+                    name: "km run",
+                    unit: "km",
+                    targets: [15, 18, 20, 22, 24, 26, 28, 30],
+                    logs: logs(-3, [
+                        [1, 1, 5], [1, 3, 4], [1, 6, 6.5, "Long run by the river"],
+                        [2, 1, 6], [2, 3, 5], [2, 6, 8],
+                        [3, 1, 7], [3, 3, 6], [3, 6, 8.5, "New best pace"],
+                        [4, 1, 5.2], [4, 3, 4.5], [4, 5, 6],
+                    ], 4),
+                },
+                {
+                    name: "Workouts",
+                    unit: null,
+                    targets: [3, 3, 4, 4, 4, 5, 5, 5],
+                    logs: logs(-3, [
+                        [1, 2, 1], [1, 4, 1], [1, 5, 1],
+                        [2, 2, 1], [2, 4, 1], [2, 5, 1],
+                        [3, 1, 1], [3, 2, 1], [3, 4, 1], [3, 5, 1],
+                        [4, 1, 1], [4, 3, 1],
+                    ], 4),
+                },
+            ],
+        },
+        {
+            title: "LeetCode Sprint",
+            category: "Career",
+            startDate: day(sunday(-1)),
+            weeks: 4,
+            metrics: [
+                {
+                    name: "Problems solved",
+                    unit: null,
+                    targets: [10, 10, 10, 10],
+                    logs: logs(-1, [[1, 1, 3], [1, 3, 4, "Graphs"], [1, 5, 4], [2, 1, 2], [2, 2, 3]], 2),
+                },
+            ],
+        },
+        {
+            title: "Summer Reading",
+            category: "Learning",
+            startDate: day(sunday(-11)),
+            weeks: 6,
+            metrics: [
+                {
+                    name: "Pages read",
+                    unit: "pages",
+                    targets: [150, 150, 150, 150, 150, 150],
+                    logs: logs(-11, [
+                        [1, 2, 80], [1, 5, 80], [2, 2, 75], [2, 6, 80], [3, 3, 90, "Busy week"],
+                        [4, 1, 90], [4, 4, 80], [5, 2, 70], [5, 5, 80], [6, 1, 100], [6, 4, 80],
+                    ]),
+                },
+            ],
+        },
+    ]
+}
+
 const WEEKDAYS = [1, 2, 3, 4, 5]
 
 /**
@@ -131,7 +222,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         prisma.task.deleteMany({ where: { userId } }),
         prisma.goal.deleteMany({ where: { userId } }),
         prisma.habit.deleteMany({ where: { userId } }),
-        prisma.competition.deleteMany({ where: { userId } }),
+        prisma.competition.deleteMany({ where: { ownerId: userId } }),
         prisma.scheduleBlock.deleteMany({ where: { userId } }),
     ])
 
@@ -316,26 +407,38 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         ].map(task => ({ ...task, userId })),
     })
 
-    await prisma.competition.create({
-        data: {
-            userId,
-            title: "2026 Technical Growth Challenge",
-            rulesJson: JSON.stringify({
-                criteria: ["Complete 6+ LeetCode problems", "Log 1+ system design session", "Work on side project 2+ hours", "Read technical content 5+ days"],
-                scoring: "25 points per criterion met per week",
-                reward: "Winner picks the restaurant for team lunch",
-            }),
-            startDate: day(-112),
-            endDate: day(60),
-            status: "active",
-            entries: {
-                create: Array.from({ length: 16 }, (_, i) => ({
-                    weekNumber: i + 1,
-                    value: i < 3 ? 60 + i * 10 : 80 + ((i * 7) % 21),
-                    metric: "weekly score",
-                    weekComplete: i >= 3 && i % 5 !== 0,
-                })),
+    // Competitions: one in its fourth week, one just started, one finished with a missed week
+    for (const competition of demoCompetitions(day, today.getUTCDay())) {
+        const created = await prisma.competition.create({
+            data: {
+                ownerId: userId,
+                title: competition.title,
+                category: competition.category,
+                startDate: competition.startDate,
+                weeks: competition.weeks,
+                participants: { create: { userId, role: "owner" } },
+                metrics: {
+                    create: competition.metrics.map((metric, i) => ({
+                        name: metric.name,
+                        unit: metric.unit,
+                        sortOrder: i,
+                        targets: { create: metric.targets.map((target, w) => ({ week: w + 1, target })) },
+                    })),
+                },
             },
-        },
-    })
+            include: { participants: true, metrics: true },
+        })
+        await prisma.progressLog.createMany({
+            data: competition.metrics.flatMap((metric, i) =>
+                metric.logs.map(log => ({
+                    participantId: created.participants[0].id,
+                    metricId: created.metrics.find(m => m.sortOrder === i)!.id,
+                    week: log.week,
+                    amount: log.amount,
+                    note: log.note ?? null,
+                    createdAt: log.at,
+                })),
+            ),
+        })
+    }
 }

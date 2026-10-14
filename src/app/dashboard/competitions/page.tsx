@@ -1,34 +1,35 @@
+import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
 import CompetitionList from "@/components/competitions/CompetitionList"
+import { Button } from "@/components/ui/button"
+import { loadCompetitions } from "@/lib/competitionData"
+import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
 
 export default async function CompetitionPage() {
     const session = await auth()
     if (!session?.user?.id) redirect("/login")
-    
-    const competitions = await prisma.competition.findMany({
-        where: { userId: session.user.id },
-        orderBy: { createdAt: "desc" },
-        include: {
-            entries: {
-                orderBy: { weekNumber: "desc" },
-            },
-        },
-    })
+
+    const competitions = await loadCompetitions(session.user.id, await getUserToday())
+    const running = competitions.filter(c => c.position.state === "active").length
 
     return (
         <main className="max-w-5xl mx-auto px-6 py-10">
-            <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-ink">Competitions</h2>
-                <p className="text-ink-muted text-sm mt-1">
-                    {competitions.filter(c => c.status === "active").length} active · {competitions.filter(c => c.status === "complete").length} completed
-                </p>
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-2xl font-semibold text-ink">Competitions</h2>
+                    <p className="text-ink-muted text-sm mt-1">{running} running &middot; {competitions.length} in all</p>
+                </div>
+                {competitions.length > 0 && (
+                    <Button asChild size="sm">
+                        <Link href="/dashboard/competitions/new">+ New competition</Link>
+                    </Button>
+                )}
             </div>
 
-            <CompetitionList initialCompetitions={competitions} />
+            <CompetitionList competitions={competitions} />
         </main>
     )
 }
