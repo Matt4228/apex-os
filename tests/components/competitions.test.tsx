@@ -18,6 +18,11 @@ vi.mock("@/app/actions/competitions", () => ({
     deleteLog: vi.fn(),
     logProgress: vi.fn(),
     updateFutureTargets: vi.fn(),
+    inviteFriends: vi.fn(),
+    leaveCompetition: vi.fn(),
+    removeParticipant: vi.fn(),
+    resetJoinCode: vi.fn(),
+    respondToInvite: vi.fn(),
 }))
 
 // A 4-week run club in its second week: week 1 done, this week 9 of 12 km
@@ -29,7 +34,7 @@ const logs = [
 ]
 function view(o: Partial<CompetitionView> = {}): CompetitionView {
     const position: Position = o.position ?? { state: "active", week: 2 }
-    const base = { id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs }
+    const base = { id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs, people: [], invited: [], joinCode: null }
     const merged = { ...base, ...o }
     return { ...merged, season: season(merged.metrics, merged.targets, merged.logs, merged, position) }
 }

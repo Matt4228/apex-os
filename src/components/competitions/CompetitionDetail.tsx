@@ -11,6 +11,8 @@ import type { CompetitionView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
 import CompetitionHero from "./CompetitionHero"
+import PeoplePanel from "./PeoplePanel"
+import type { Person } from "@/lib/friends"
 import SeasonGrid from "./SeasonGrid"
 import TargetsByMonth from "./TargetsByMonth"
 import WeekRace from "./WeekRace"
@@ -23,7 +25,19 @@ const selectClass = "h-10 w-full rounded-md border border-line bg-surface px-2 t
  * One competition, the second centerpiece next to Today: the standing, this week's lanes, logging, the season,
  * the weekly targets and your recent logs. Everything is scored in the browser with the same functions as the server
  */
-export default function CompetitionDetail({ competition, today }: { competition: CompetitionView; today: string }) {
+export default function CompetitionDetail({
+    competition,
+    today,
+    friends = [],
+    origin = "",
+}: {
+    competition: CompetitionView
+    today: string
+    /** The owner's friends, for inviting */
+    friends?: Person[]
+    /** The site's address, for the invite link */
+    origin?: string
+}) {
     const [logs, setLogs] = useState(competition.logs)
     const [targets, setTargets] = useState(competition.targets)
     const [error, setError] = useState<string | null>(null)
@@ -209,6 +223,24 @@ export default function CompetitionDetail({ competition, today }: { competition:
                     </span>
                 </div>
                 <SeasonGrid competition={competition} season={seasonNow} popWeek={popWeek} />
+            </section>
+
+            <section aria-labelledby="people" className={card}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 id="people" className="text-[15px] font-semibold text-ink">People</h3>
+                    <span className="text-xs text-ink-muted">{competition.people.length} competing</span>
+                </div>
+                <PeoplePanel
+                    competitionId={competition.id}
+                    title={competition.title}
+                    people={competition.people}
+                    invited={competition.invited}
+                    joinCode={competition.joinCode}
+                    isOwner={competition.isOwner}
+                    friends={friends}
+                    finished={position.state === "finished"}
+                    origin={origin}
+                />
             </section>
 
             <section aria-labelledby="targets" className={card}>

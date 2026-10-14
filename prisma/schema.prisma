@@ -23,6 +23,8 @@ model User {
   participations  Participant[]
   friendsAsked    Friendship[] @relation("FriendRequester")
   friendsAnswered Friendship[] @relation("FriendAddressee")
+  invitesSent     CompetitionInvite[] @relation("InvitesSent")
+  invitesReceived CompetitionInvite[] @relation("InvitesReceived")
 }
 
 /// Two users who are friends, or a request from one to the other. One row per pair
@@ -176,16 +178,37 @@ model Competition {
   category    String?
   /// Always a Sunday
   startDate   DateTime
-  /// How many weeks it runs, 1 to 26
+  /// How many weeks it runs, 1 to 156 (three years)
   weeks       Int
+  /// The code in its invite link, /join/CODE. Random, and the owner can reset it
+  joinCode    String   @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   owner        User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   metrics      CompetitionMetric[]
   participants Participant[]
+  invites      CompetitionInvite[]
 
   @@index([ownerId])
+}
+
+/// A friend asked to join a competition. Accepting removes it and adds them as a participant
+model CompetitionInvite {
+  id            String   @id @default(cuid())
+  competitionId String
+  inviterId     String
+  inviteeId     String
+  /// "pending" or "declined"
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  inviter       User        @relation("InvitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee       User        @relation("InvitesReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, inviteeId])
+  @@index([inviteeId])
 }
 
 /// Something measured each week, like "km run" or "workouts"
