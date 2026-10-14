@@ -108,15 +108,14 @@ describe("BlockForm", () => {
         expect(sent.get("category")).toBe("Career")
     })
 
-    it("opens a saved block with its rule, and says an edit changes every day", async () => {
+    it("opens a saved block with its rule", async () => {
         const user = userEvent.setup()
         const onUpdated = vi.fn()
         render(<BlockForm day="2026-10-14" block={series} onUpdated={onUpdated} onCancel={() => {}} />)
 
-        expect(screen.getByLabelText("Starts")).toHaveValue("2026-09-01")
+        expect(screen.getByLabelText("Date")).toHaveValue("2026-09-01")
         expect(repeatSelect()).toHaveValue("weekly")
         expect(screen.getByRole("radio", { name: /After/ })).toBeChecked()
-        expect(screen.getByText("Changes apply to every day of this block.")).toBeInTheDocument()
 
         await user.click(screen.getByRole("button", { name: "Update" }))
 

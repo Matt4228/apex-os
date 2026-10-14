@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 import { parseDateOnly, toDateInputValue } from "@/lib/dates"
-import { REPEATS, seriesDays } from "@/lib/occurrences"
+import { REPEATS, addDays, seriesDays } from "@/lib/occurrences"
 import { timeToMinutes } from "@/lib/schedule-time"
 
 // 00:00 to 23:59. End times may also be 24:00, which is where a block dragged to the bottom of the grid ends.
@@ -94,21 +94,48 @@ export async function createScheduleBlock(formData: FormData) {
     return { block, exceptions: [] }
 }
 
+/** Which days of a repeating block a change applies to, counted from the day it was made on */
+export type Scope = "this" | "following" | "all"
+const targetSchema = z.object({ date: z.string().regex(DATE), scope: z.enum(["this", "following", "all"]) })
+
+type Block = NonNullable<Awaited<ReturnType<typeof prisma.scheduleBlock.findFirst>>>
+type BlockData = Extract<ReturnType<typeof readBlockForm>, { data: unknown }>["data"]
+
+/** Is this one of the series' own days (before any changes)? */
+const happensOn = (block: Block, day: string) => seriesDays({ ...block }, day).includes(day)
+
 /**
- * Changes the whole series. Changed days keep their own changes, unless the new rule no longer lands on their day:
- * those are deleted, since they would point at a day that doesn't exist. Returns the block's remaining exceptions
+ * Saves a block. A one-off block, or a call without a target, changes the whole block. For a repeating block,
+ * `target` says which day the form was opened on and how far the change reaches:
+ * - "this": only that day, as a changed day (it can move to another date, but not onto a day the block already has)
+ * - "following": the series ends the day before, and a new series with the form's fields takes over from there
+ * - "all": every day; the series keeps its own start date, since the form shows the day it was opened on
+ *
+ * Changing the whole series keeps changed days, unless the new rule no longer lands on their day: those are deleted,
+ * since they would point at a day that doesn't exist. Returns the block and its changed days, plus the new series
+ * when "following" split it
  */
-export async function updateScheduleBlock(blockId: string, formData: FormData) {
+export async function updateScheduleBlock(blockId: string, formData: FormData, target?: { date: string; scope: Scope }) {
     const session = await auth()
     if (!session?.user?.id) return { error: "Unauthorized" }
 
     const form = readBlockForm(formData)
     if ("error" in form) return { error: form.error }
+    if (target && !targetSchema.safeParse(target).success) return { error: "Invalid input" }
 
     const owned = await prisma.scheduleBlock.findFirst({ where: { id: blockId, userId: session.user.id } })
     if (!owned) return { error: "Not found" }
 
-    const block = await prisma.scheduleBlock.update({ where: { id: blockId }, data: form.data })
+    if (target && owned.repeat !== "none") {
+        if (!happensOn(owned, target.date)) return { error: "That day isn't part of this block" }
+        if (target.scope === "this") return changeOneDay(owned, target.date, form.data)
+        if (target.scope === "following" && target.date !== toDateInputValue(owned.startDate)) {
+            return splitFrom(owned, target.date, form.data, session.user.id)
+        }
+    }
+
+    const data = target && owned.repeat !== "none" ? { ...form.data, startDate: owned.startDate } : form.data
+    const block = await prisma.scheduleBlock.update({ where: { id: blockId }, data })
 
     const exceptions = await prisma.blockException.findMany({ where: { blockId } })
     const latest = exceptions.reduce((max, e) => (toDateInputValue(e.date) > max ? toDateInputValue(e.date) : max), "")
@@ -119,6 +146,103 @@ export async function updateScheduleBlock(blockId: string, formData: FormData) {
     }
 
     return { block, exceptions: exceptions.filter(e => stillThere.has(toDateInputValue(e.date))) }
+}
+
+/**
+ * One day of a series, changed on its own. Fields that match the series are stored as null, so a later change to the
+ * whole series still reaches them; a change that matches the series everywhere removes the changed day altogether
+ */
+async function changeOneDay(block: Block, date: string, data: BlockData) {
+    const newDay = toDateInputValue(data.startDate)
+    const moved = newDay !== date
+    if (moved && happensOn(block, newDay)) return { error: "This block already happens on that day" }
+
+    const unlessSame = <T>(value: T, base: T) => (value === base ? null : value)
+    const fields = {
+        newDate: moved ? data.startDate : null,
+        startTime: unlessSame(data.startTime, block.startTime),
+        endTime: unlessSame(data.endTime, block.endTime),
+        label: unlessSame(data.label, block.label),
+        category: unlessSame(data.category, block.category),
+    }
+    const where = { blockId_date: { blockId: block.id, date: parseDateOnly(date) } }
+
+    if (Object.values(fields).every(value => value === null)) {
+        await prisma.blockException.deleteMany({ where: { blockId: block.id, date: parseDateOnly(date) } })
+    } else {
+        await prisma.blockException.upsert({
+            where,
+            create: { blockId: block.id, date: parseDateOnly(date), cancelled: false, ...fields },
+            update: { cancelled: false, ...fields },
+        })
+    }
+
+    return { block, exceptions: await prisma.blockException.findMany({ where: { blockId: block.id } }) }
+}
+
+/**
+ * "This and following": the old series ends the day before `date` (a count becomes that end date), and a new series
+ * with the form's fields starts on the form's date. Changed days from `date` on belong to the old version, so they
+ * go; tasks planned in the block from `date` on move to the new series, so they stay in their block
+ */
+async function splitFrom(block: Block, date: string, data: BlockData, userId: string) {
+    const from = parseDateOnly(date)
+    return prisma.$transaction(async tx => {
+        const ended = await tx.scheduleBlock.update({
+            where: { id: block.id },
+            data: { endsOn: parseDateOnly(addDays(date, -1)), endsAfter: null },
+        })
+        const created = await tx.scheduleBlock.create({ data: { ...data, userId } })
+        await tx.blockException.deleteMany({ where: { blockId: block.id, date: { gte: from } } })
+        await tx.task.updateMany({
+            where: { scheduleBlockId: block.id, plannedFor: { gte: from } },
+            data: { scheduleBlockId: created.id },
+        })
+        const exceptions = await tx.blockException.findMany({ where: { blockId: block.id } })
+        return { block: ended, exceptions, created: { block: created, exceptions: [] } }
+    })
+}
+
+/**
+ * Removes days of a repeating block. "this": that day is cancelled. "following": the series ends the day before
+ * (from its first day, that's the whole block). Tasks planned in it on removed days go back to anytime.
+ * Deleting the whole block is deleteScheduleBlock, which the undo toast uses
+ */
+export async function removeBlockDays(blockId: string, date: string, scope: "this" | "following") {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+    if (!targetSchema.safeParse({ date, scope }).success || scope === ("all" as string)) return { error: "Invalid input" }
+
+    const owned = await prisma.scheduleBlock.findFirst({ where: { id: blockId, userId: session.user.id } })
+    if (!owned) return { error: "Not found" }
+    if (!happensOn(owned, date)) return { error: "That day isn't part of this block" }
+
+    const day = parseDateOnly(date)
+    if (scope === "this") {
+        const cleared = { newDate: null, startTime: null, endTime: null, label: null, category: null }
+        await prisma.blockException.upsert({
+            where: { blockId_date: { blockId, date: day } },
+            create: { blockId, date: day, cancelled: true, ...cleared },
+            update: { cancelled: true, ...cleared },
+        })
+        await prisma.task.updateMany({ where: { scheduleBlockId: blockId, plannedFor: day }, data: { scheduleBlockId: null } })
+        return { block: owned, exceptions: await prisma.blockException.findMany({ where: { blockId } }) }
+    }
+
+    if (date === toDateInputValue(owned.startDate)) {
+        await prisma.scheduleBlock.delete({ where: { id: blockId } })
+        return { deleted: true as const }
+    }
+
+    return prisma.$transaction(async tx => {
+        const block = await tx.scheduleBlock.update({
+            where: { id: blockId },
+            data: { endsOn: parseDateOnly(addDays(date, -1)), endsAfter: null },
+        })
+        await tx.blockException.deleteMany({ where: { blockId, date: { gte: day } } })
+        await tx.task.updateMany({ where: { scheduleBlockId: blockId, plannedFor: { gte: day } }, data: { scheduleBlockId: null } })
+        return { block, exceptions: await tx.blockException.findMany({ where: { blockId } }) }
+    })
 }
 
 export async function deleteScheduleBlock(blockId: string) {

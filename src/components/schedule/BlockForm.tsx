@@ -1,46 +1,62 @@
 "use client"
 
 import { useState } from "react"
-import { createScheduleBlock, updateScheduleBlock } from "@/app/actions/schedule"
+import { createScheduleBlock, updateScheduleBlock, type Scope } from "@/app/actions/schedule"
 import { Button } from "@/components/ui/button"
 import { CategorySelect, useCategories } from "@/components/ui/category-select"
 import { Input } from "@/components/ui/input"
 import { parseDateOnly } from "@/lib/dates"
 import type { Exception } from "@/lib/occurrences"
 import { fieldsOf, toFormData } from "./blockFields"
-import type { BlockFields, Series } from "./types"
+import ScopeDialog from "./ScopeDialog"
+import type { BlockFields, CalendarBlock, Series } from "./types"
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 const selectClass =
     "w-full rounded-md border border-line px-2 py-2 text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent"
 
-export type Saved = { block: Series; exceptions: Exception[] }
+/** What the server saved: the block and its changed days, plus a new series when "following" split it */
+export type Saved = { block: Series; exceptions: Exception[]; created?: Saved }
 
 /**
- * Create a block, or edit one when `block` is given. Editing changes every day of a repeating block.
- * `day` is the day the form opened on ("YYYY-MM-DD"): a new block's date
+ * Create a block, or edit one when `block` is given. `day` is the day the form opened on ("YYYY-MM-DD"): a new
+ * block's date. Editing a repeating block starts from that day as it shows (`shown`), and asks which days the change
+ * is for before saving
  */
 export default function BlockForm({
     day,
     block,
+    shown,
     initialStartTime,
     initialEndTime,
     onCreated,
     onUpdated,
+    onDelete,
     onCancel,
 }: {
     day: string
     block?: Series
+    /** The day of a repeating block the form was opened from */
+    shown?: CalendarBlock
     initialStartTime?: string
     initialEndTime?: string
     onCreated?: (saved: Saved) => void
     onUpdated?: (saved: Saved) => void
+    /** Shows a Delete button for a saved block */
+    onDelete?: () => void
     onCancel: () => void
 }) {
+    const repeating = block !== undefined && block.repeat !== "none"
     const [fields, setFields] = useState<BlockFields>(() =>
         block
-            ? fieldsOf(block)
+            ? {
+                  ...fieldsOf(block),
+                  // A day of a repeating block opens as that day shows, on its own date
+                  ...(repeating && shown
+                      ? { label: shown.label, category: shown.category ?? "", startTime: shown.startTime, endTime: shown.endTime, startDate: shown.date }
+                      : {}),
+              }
             : {
                   label: "",
                   category: "",
@@ -56,6 +72,7 @@ export default function BlockForm({
     )
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [askingScope, setAskingScope] = useState(false)
     const { remember } = useCategories()
 
     const set = (change: Partial<BlockFields>) => setFields(current => ({ ...current, ...change }))
@@ -75,26 +92,34 @@ export default function BlockForm({
         })
     }
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
+        if (repeating && shown) setAskingScope(true)
+        else save()
+    }
+
+    /** Saves the form; for a repeating block, for the days `scope` says, counted from the day it opened on */
+    async function save(scope?: Scope) {
+        setAskingScope(false)
         setLoading(true)
         setError(null)
 
         const formData = toFormData(fields)
-        const result = block ? await updateScheduleBlock(block.id, formData) : await createScheduleBlock(formData)
+        const target = scope && shown ? { date: shown.originalDate, scope } : undefined
+        const result = block ? await updateScheduleBlock(block.id, formData, target) : await createScheduleBlock(formData)
         setLoading(false)
 
-        if ("error" in result) {
-            setError(result.error ?? "Something went wrong")
+        if (!result || "error" in result) {
+            setError(result?.error ?? "Something went wrong")
             return
         }
         remember(fields.category)
-        const saved = { block: result.block, exceptions: result.exceptions }
-        if (block) onUpdated?.(saved)
-        else onCreated?.(saved)
+        if (block) onUpdated?.(result as Saved)
+        else onCreated?.(result as Saved)
     }
 
     return (
+        <>
         <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block space-y-1">
                 <span className="text-xs text-ink-muted">Label</span>
@@ -109,7 +134,7 @@ export default function BlockForm({
             </label>
 
             <label className="block space-y-1">
-                <span className="text-xs text-ink-muted">{repeats ? "Starts" : "Date"}</span>
+                <span className="text-xs text-ink-muted">{repeats && !block ? "Starts" : "Date"}</span>
                 <Input type="date" value={fields.startDate} onChange={e => set({ startDate: e.target.value })} required />
             </label>
 
@@ -127,7 +152,7 @@ export default function BlockForm({
             {/* The block's color comes from its category */}
             <div className="space-y-1">
                 <span className="text-xs text-ink-muted">Category</span>
-                <CategorySelect defaultValue={block?.category} onChange={category => set({ category })} />
+                <CategorySelect defaultValue={fields.category || null} onChange={category => set({ category })} />
             </div>
 
             <label className="block space-y-1">
@@ -199,7 +224,6 @@ export default function BlockForm({
                 </fieldset>
             )}
 
-            {block && repeats && <p className="text-xs text-ink-muted">Changes apply to every day of this block.</p>}
 
             {error && <p role="alert" className="text-xs text-danger-ink">{error}</p>}
 
@@ -210,7 +234,18 @@ export default function BlockForm({
                 <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
                     Cancel
                 </Button>
+                {block && onDelete && (
+                    <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="ml-auto text-danger-ink hover:text-danger-ink">
+                        Delete
+                    </Button>
+                )}
             </div>
         </form>
+
+        {/* Outside the form: the question has a form of its own, and forms can't nest */}
+        {askingScope && shown && (
+            <ScopeDialog action="change" date={shown.date} onChoose={save} onCancel={() => setAskingScope(false)} />
+        )}
+        </>
     )
 }
