@@ -8,7 +8,8 @@ import { parseDateOnly } from "@/lib/dates"
 import { sundayOf, weekOf } from "@/lib/competition"
 import { getUserToday } from "@/lib/user-today"
 
-const MAX_WEEKS = 26
+/** Three years of weeks: few competitions run that long, so it's the worst case the screens plan for */
+const MAX_WEEKS = 156
 const MAX_METRICS = 3
 
 const metricSchema = z.object({
@@ -22,7 +23,7 @@ const competitionSchema = z
         title: z.string().trim().min(1, "Give the competition a name"),
         category: z.string().optional(),
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a start date"),
-        weeks: z.coerce.number().int().min(1, "It runs at least 1 week").max(MAX_WEEKS, `It runs at most ${MAX_WEEKS} weeks`),
+        weeks: z.coerce.number().int().min(1, "It runs at least 1 week").max(MAX_WEEKS, `It runs at most ${MAX_WEEKS} weeks (3 years)`),
         metrics: z.array(metricSchema).min(1, "Add at least one metric").max(MAX_METRICS, `Up to ${MAX_METRICS} metrics`),
     })
     .refine(c => c.metrics.every(m => m.targets.length === c.weeks), {

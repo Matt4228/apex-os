@@ -74,7 +74,7 @@ describe("createCompetition", () => {
     it.each([
         [{ title: " " }, "Give the competition a name"],
         [{ weeks: "0" }, "It runs at least 1 week"],
-        [{ weeks: "27" }, "It runs at most 26 weeks"],
+        [{ weeks: "157" }, "It runs at most 156 weeks (3 years)"],
         [{ metrics: "[]" }, "Add at least one metric"],
         [{ metrics: JSON.stringify(Array(4).fill({ name: "x", targets: [1, 1] })) }, "Up to 3 metrics"],
         [{ metrics: JSON.stringify([{ name: "km", targets: [15] }]) }, "Every metric needs a target for each week"],
@@ -84,6 +84,15 @@ describe("createCompetition", () => {
         expect(await createCompetition(newCompetition(overrides))).toEqual({ error: message })
         expect(prismaMock.competition.create).not.toHaveBeenCalled()
     })
+})
+
+it("accepts a three-year competition, the longest there can be", async () => {
+    prismaMock.competition.create.mockResolvedValue(competition() as never)
+    const targets = Array(156).fill(10)
+
+    await createCompetition(newCompetition({ weeks: "156", metrics: JSON.stringify([{ name: "km run", targets }]) }))
+
+    expect(prismaMock.competition.create).toHaveBeenCalledWith({ data: expect.objectContaining({ weeks: 156 }) })
 })
 
 describe("logProgress", () => {

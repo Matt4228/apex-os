@@ -126,6 +126,15 @@ describe("CompetitionForm", () => {
         expect(JSON.parse(String(sent.get("metrics")))).toEqual([{ name: "km run", unit: "km", targets: [12, 12, 12, 12] }])
     })
 
+    it("goes up to three years of weeks", () => {
+        render(<CompetitionForm today="2026-10-14" />)
+
+        fireEvent.change(screen.getByLabelText("Weeks"), { target: { value: "500" } })
+
+        expect(screen.getByLabelText("Weeks")).toHaveValue(156)
+        expect(screen.getByLabelText("Week 156")).toBeInTheDocument()
+    })
+
     it("allows up to three metrics", async () => {
         const user = userEvent.setup()
         render(<CompetitionForm today="2026-10-14" />)

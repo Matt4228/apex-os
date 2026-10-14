@@ -11,6 +11,8 @@ import { sundayOf } from "@/lib/competition"
 import { formatDateOnly } from "@/lib/dates"
 
 const MAX_METRICS = 3
+/** Matches the server: up to three years */
+const MAX_WEEKS = 156
 
 type MetricDraft = { name: string; unit: string; every: string; targets: string[] }
 
@@ -31,7 +33,7 @@ export default function CompetitionForm({ today }: { today: string }) {
     const [saving, setSaving] = useState(false)
 
     function changeWeeks(next: number) {
-        const count = Math.min(Math.max(next || 1, 1), 26)
+        const count = Math.min(Math.max(next || 1, 1), MAX_WEEKS)
         setWeeks(count)
         // Keep the targets already typed; new weeks start from the "every week" target
         setMetrics(current => current.map(m => ({
@@ -94,7 +96,7 @@ export default function CompetitionForm({ today }: { today: string }) {
                     </label>
                     <label className="w-32 space-y-1">
                         <span className="text-xs text-ink-muted">Weeks</span>
-                        <Input type="number" min={1} max={26} value={weeks} onChange={e => changeWeeks(Number(e.target.value))} required />
+                        <Input type="number" min={1} max={MAX_WEEKS} value={weeks} onChange={e => changeWeeks(Number(e.target.value))} required />
                     </label>
                 </div>
             </div>
