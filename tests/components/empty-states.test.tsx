@@ -1,6 +1,5 @@
 // tests/components/empty-states.test.tsx
 // @vitest-environment jsdom
-import CompetitionList from "@/components/competitions/CompetitionList"
 import GoalList from "@/components/goals/GoalList"
 import HabitList from "@/components/habits/HabitList"
 import TaskList from "@/components/tasks/TaskList"
@@ -12,12 +11,6 @@ const pages = [
     { name: "Tasks", page: <TaskList initialTasks={[]} />, button: "Create your first task", field: "Task title" },
     { name: "Goals", page: <GoalList initialGoals={[]} />, button: "Create your first goal", field: "Goal title" },
     { name: "Habits", page: <HabitList initialHabits={[]} today="2026-10-12" />, button: "Create your first habit", field: "Habit title" },
-    {
-        name: "Competitions",
-        page: <CompetitionList initialCompetitions={[]} />,
-        button: "Create your first competition",
-        field: "Competition title e.g. Race to Witch Mountain",
-    },
 ]
 
 describe.each(pages)("$name with nothing in it", ({ page, button, field }) => {

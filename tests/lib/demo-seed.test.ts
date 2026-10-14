@@ -2,6 +2,7 @@
 import { seedDemo } from "@/lib/demo/seedDemo"
 import { parseDateOnly } from "@/lib/dates"
 import { occurrences, weekDates, type Exception, type SeriesBlock } from "@/lib/occurrences"
+import { season, weekOf } from "@/lib/competition"
 import type { PrismaClient } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { prismaMock } from "../mocks/prismaMock"
@@ -52,10 +53,35 @@ function seededChanges(): Exception[] {
 const calendar = (from: string, to: string) =>
     occurrences(seededBlocks(), seededChanges(), from, to).map(o => `${o.date.slice(5)} ${o.label} ${o.startTime}-${o.endTime}`)
 
+// Like the database: a created competition comes back with its participant and metric ids
+function returnCompetitionsWithIds() {
+    prismaMock.competition.create.mockImplementation((async (args: { data: { title: string; metrics: { create: object[] } } }) => ({
+        id: args.data.title,
+        participants: [{ id: `${args.data.title}-me` }],
+        metrics: args.data.metrics.create.map((_, i) => ({ id: `${args.data.title}-m${i}`, sortOrder: i })),
+    })) as never)
+}
+
+type SeedCompetition = { title: string; startDate: Date; weeks: number; metrics: { create: { name: string; unit: string | null; targets: { create: { week: number; target: number }[] } }[] } }
+
+/** Each seeded competition with its targets and logs, scored as the competition page would on that day */
+function seededCompetitions(today: string) {
+    const logs = prismaMock.progressLog.createMany.mock.calls.flatMap(([args]) => (args?.data ?? []) as unknown as { metricId: string; week: number; amount: number }[])
+    return prismaMock.competition.create.mock.calls.map(([args]) => {
+        const c = args.data as unknown as SeedCompetition
+        const metrics = c.metrics.create.map((m, i) => ({ id: `${c.title}-m${i}`, name: m.name, unit: m.unit }))
+        const targets = c.metrics.create.flatMap((m, i) => m.targets.create.map(t => ({ metricId: `${c.title}-m${i}`, ...t })))
+        const mine = logs.filter(l => metrics.some(m => m.id === l.metricId))
+        const position = weekOf(c, today)
+        return { title: c.title, position, season: season(metrics, targets, mine, c, position) }
+    })
+}
+
 describe("seedDemo", () => {
     beforeEach(() => {
         prismaMock.user.upsert.mockResolvedValue({ id: "demo-1" } as never)
         returnBlocksWithIds()
+        returnCompetitionsWithIds()
     })
 
     it("breaks at least two goals into steps", async () => {
@@ -180,5 +206,29 @@ describe("seedDemo", () => {
 
         const anytime = seededTasks().filter(t => sameDay(t.plannedFor, "2026-10-11") && !t.scheduleBlockId)
         expect(anytime.length).toBeGreaterThan(0)
+    })
+
+    it("seeds a competition in its fourth week, one just started, and one finished with a missed week", async () => {
+        // Tuesday, October 13: the run club's fourth week has started but isn't done
+        await run(new Date("2026-10-13T16:00:00Z"))
+        const [club, sprint, reading] = seededCompetitions("2026-10-13")
+
+        expect(club).toMatchObject({ title: "October Run Club", position: { state: "active", week: 4 } })
+        expect(club.season.weeks).toEqual(["complete", "complete", "complete", "current", "ahead", "ahead", "ahead", "ahead"])
+        expect(sprint).toMatchObject({ title: "LeetCode Sprint", position: { state: "active", week: 2 } })
+        expect(sprint.season.weeks.slice(0, 2)).toEqual(["complete", "current"])
+        expect(reading).toMatchObject({ title: "Summer Reading", position: { state: "finished" } })
+        expect(reading.season.completedWeeks).toBe(5)
+        expect(reading.season.weeks).toContain("missed")
+    })
+
+    it("only logs this week's days up to today", async () => {
+        // A Sunday: the run club's week 4 has no runs yet (they're on Monday, Wednesday and Friday)
+        await run()
+        const club = seededCompetitions("2026-10-11")[0]
+        const logs = prismaMock.progressLog.createMany.mock.calls[0][0]!.data as unknown as { week: number }[]
+
+        expect(club.position).toEqual({ state: "active", week: 4 })
+        expect(logs.filter(l => l.week === 4)).toHaveLength(0)
     })
 })
