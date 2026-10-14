@@ -21,6 +21,24 @@ model User {
   tasks           Task[]
   competitions    Competition[]
   participations  Participant[]
+  friendsAsked    Friendship[] @relation("FriendRequester")
+  friendsAnswered Friendship[] @relation("FriendAddressee")
+}
+
+/// Two users who are friends, or a request from one to the other. One row per pair
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  /// "pending" or "accepted"
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  requester   User     @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
 }
 
 /// A block on the calendar: one day, or a series that repeats. src/lib/occurrences.ts turns it into dated blocks

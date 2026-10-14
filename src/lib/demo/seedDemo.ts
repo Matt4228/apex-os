@@ -8,6 +8,16 @@ import { occurrences } from "../occurrences"
 
 export const DEMO_EMAIL = "demo@apex-os.app"
 export const DEMO_PASSWORD = "superP@ssword"
+
+/**
+ * The demo's rivals: real accounts with the demo password, so every side of a competition can be tried by signing in
+ * as them. Jordan only exists to have sent the demo a friend request
+ */
+export const RIVALS = [
+    { key: "alex", email: "alex@apex-os.app", name: "Alex Rivera" },
+    { key: "sam", email: "sam@apex-os.app", name: "Sam Chen" },
+    { key: "jordan", email: "jordan@apex-os.app", name: "Jordan Park" },
+] as const
 /** The demo's "today" follows US Eastern time, so its plan is current for US visitors all day */
 export const DEMO_TIMEZONE = "America/New_York"
 
@@ -241,6 +251,29 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         create: { email: DEMO_EMAIL, name: "Demo User", password },
     })
     const userId = user.id
+
+    // The rivals, reset along with the demo: same password, friendships rebuilt from scratch
+    const rivals = Object.fromEntries(
+        await Promise.all(
+            RIVALS.map(async r => {
+                const rival = await prisma.user.upsert({
+                    where: { email: r.email },
+                    update: { name: r.name, password },
+                    create: { email: r.email, name: r.name, password },
+                })
+                return [r.key, rival.id] as const
+            }),
+        ),
+    ) as Record<(typeof RIVALS)[number]["key"], string>
+    const everyone = [userId, ...Object.values(rivals)]
+    await prisma.friendship.deleteMany({ where: { OR: [{ requesterId: { in: everyone } }, { addresseeId: { in: everyone } }] } })
+    await prisma.friendship.createMany({
+        data: [
+            { requesterId: userId, addresseeId: rivals.alex, status: "accepted" },
+            { requesterId: rivals.sam, addresseeId: userId, status: "accepted" },
+            { requesterId: rivals.jordan, addresseeId: userId, status: "pending" },
+        ],
+    })
 
     // Goal, habit and competition children cascade from their parents
     await prisma.$transaction([

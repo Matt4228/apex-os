@@ -11,25 +11,31 @@ import ThemeToggle from "@/components/layout/ThemeToggle"
 import { Wordmark } from "@/components/layout/Wordmark"
 import type { Theme } from "@/lib/theme"
 
-const links: { href: string; label: string; icon: LucideIcon }[] = [
+const links: { href: string; label: string; icon: LucideIcon; also?: string[] }[] = [
     { href: "/dashboard", label: "Home", icon: House },
     { href: "/dashboard/tasks", label: "Tasks", icon: ListChecks },
     { href: "/dashboard/goals", label: "Goals", icon: Target },
     { href: "/dashboard/habits", label: "Habits", icon: Repeat },
     { href: "/dashboard/schedule", label: "Schedule", icon: CalendarDays },
-    { href: "/dashboard/competitions", label: "Competitions", icon: Trophy },
+    // Friends lives under Competitions: they're the people you compete with
+    { href: "/dashboard/competitions", label: "Competitions", icon: Trophy, also: ["/dashboard/friends"] },
 ]
 
 // Home only matches itself, since every route starts with /dashboard.
 // Other sections stay marked on the pages nested under them
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string, href: string, also: string[] = []) {
     if (href === "/dashboard") return pathname === href
-    return pathname === href || pathname.startsWith(`${href}/`)
+    return [href, ...also].some(path => pathname === path || pathname.startsWith(`${path}/`))
 }
 
-type SidebarProps = { userName?: string | null; theme: Theme }
+type SidebarProps = {
+    userName?: string | null
+    theme: Theme
+    /** Friend requests and competition invites waiting for an answer, shown as a count on Competitions */
+    waiting?: number
+}
 
-export default function Sidebar({ userName, theme }: SidebarProps) {
+export default function Sidebar({ userName, theme, waiting = 0 }: SidebarProps) {
     const [menuOpen, setMenuOpen] = useState(false)
     const menuButtonRef = useRef<HTMLButtonElement>(null)
     const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -59,7 +65,7 @@ export default function Sidebar({ userName, theme }: SidebarProps) {
             {/* Desktop: always visible, stays put while the page scrolls */}
             <aside className="hidden md:flex md:sticky md:top-0 md:h-screen w-56 flex-shrink-0 flex-col border-r
 border-line bg-surface">
-                <SidebarContent userName={userName} theme={theme} />
+                <SidebarContent userName={userName} theme={theme} waiting={waiting} />
             </aside>
 
             {/* Mobile: a slim top bar; the same content opens as a drawer */}
@@ -97,14 +103,14 @@ hover:bg-sunken transition-colors"
                     >
                         <X size={20} aria-hidden="true" />
                     </button>
-                    <SidebarContent userName={userName} theme={theme} onNavigate={() => setMenuOpen(false)} />
+                    <SidebarContent userName={userName} theme={theme} waiting={waiting} onNavigate={() => setMenuOpen(false)} />
                 </div>
             </div>
         </>
     )
 }
 
-function SidebarContent({ userName, theme, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
+function SidebarContent({ userName, theme, waiting = 0, onNavigate }: SidebarProps & { onNavigate?: () => void }) {
     const pathname = usePathname()
 
     return (
@@ -114,14 +120,16 @@ function SidebarContent({ userName, theme, onNavigate }: SidebarProps & { onNavi
             </Link>
 
             <nav aria-label="Main" className="flex-1 flex flex-col gap-0.5 px-3">
-                {links.map(({ href, label, icon: Icon }) => {
-                    const active = isActive(pathname, href)
+                {links.map(({ href, label, icon: Icon, also }) => {
+                    const active = isActive(pathname, href, also)
+                    const count = href === "/dashboard/competitions" ? waiting : 0
                     return (
                         <Link
                             key={href}
                             href={href}
                             onClick={onNavigate}
                             aria-current={active ? "page" : undefined}
+                            aria-label={count > 0 ? `${label}, ${count} waiting` : undefined}
                             className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-sm
 transition-colors ${
                                 active
@@ -131,6 +139,12 @@ transition-colors ${
                         >
                             <Icon size={18} aria-hidden="true" />
                             {label}
+                            {count > 0 && (
+                                // The link's own label says it in words; the number is for the eye
+                                <span aria-hidden="true" className="ml-auto rounded-full bg-primary-ink px-1.5 text-[11px] font-semibold leading-5 text-surface tabular-nums">
+                                    {count}
+                                </span>
+                            )}
                         </Link>
                     )
                 })}
