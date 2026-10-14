@@ -56,16 +56,29 @@ export default function CompetitionList({ competitions }: { competitions: Compet
                         </h3>
                         <ul className="grid gap-3 sm:grid-cols-2">
                             {group.items.map(c => (
-                                <li key={c.id} {...catProps(c.category)} className="relative rounded-xl border border-line bg-surface p-4">
-                                    <Link href={`/dashboard/competitions/${c.id}`} className="block space-y-2 pr-6">
-                                        <span className="block font-semibold text-ink">{c.title}</span>
-                                        <span className="block text-xs text-ink-muted">
-                                            {when(c)} &middot; {c.metrics.map(m => m.name).join(", ")}
+                                <li
+                                    key={c.id}
+                                    {...catProps(c.category)}
+                                    className="relative rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-cat-solid"
+                                >
+                                    <Link href={`/dashboard/competitions/${c.id}`} className="block space-y-3 pr-6">
+                                        <span className="flex items-start justify-between gap-3">
+                                            <span className="min-w-0">
+                                                <span className="block font-semibold text-ink">{c.title}</span>
+                                                <span className="block text-xs text-ink-muted">
+                                                    {when(c)} &middot; {c.metrics.map(m => m.name).join(", ")}
+                                                </span>
+                                            </span>
+                                            <span className="text-right">
+                                                <span className="block text-2xl font-extrabold leading-none tracking-tight tabular-nums text-ink">
+                                                    {c.season.completedWeeks}
+                                                    <span className="text-sm font-semibold text-ink-muted">/{c.weeks}</span>
+                                                </span>
+                                                <span className="text-[11px] text-ink-muted">complete</span>
+                                            </span>
                                         </span>
                                         <SeasonPips weeks={c.season.weeks} label={`${c.title} weeks`} />
-                                        <span className="block text-xs text-ink-soft">
-                                            {c.season.completedWeeks} of {c.weeks} weeks complete
-                                        </span>
+                                        <span className="sr-only">{c.season.completedWeeks} of {c.weeks} weeks complete</span>
                                     </Link>
                                     {c.isOwner && (
                                         <button

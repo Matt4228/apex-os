@@ -12,7 +12,8 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
     if (!session?.user?.id) redirect("/login")
 
     // Someone else's competition looks the same as one that doesn't exist
-    const competition = await loadCompetition((await params).id, session.user.id, await getUserToday())
+    const today = await getUserToday()
+    const competition = await loadCompetition((await params).id, session.user.id, today)
     if (!competition) notFound()
 
     return (
@@ -20,7 +21,7 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
             <Link href="/dashboard/competitions" className="mb-6 inline-block text-sm text-ink-muted hover:text-ink">
                 &larr; Competitions
             </Link>
-            <CompetitionDetail competition={competition} />
+            <CompetitionDetail competition={competition} today={today} />
         </main>
     )
 }
