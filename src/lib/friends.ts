@@ -56,8 +56,11 @@ export async function loadFriends(userId: string): Promise<FriendsView> {
     return view
 }
 
-/** What's waiting for the user's answer, for the sidebar count. Competition invites join this with part B's PR 2 */
+/** What's waiting for the user's answer, for the sidebar count: friend requests and competition invites */
 export async function pendingCounts(userId: string): Promise<{ friendRequests: number; invites: number }> {
-    const friendRequests = await prisma.friendship.count({ where: { addresseeId: userId, status: "pending" } })
-    return { friendRequests, invites: 0 }
+    const [friendRequests, invites] = await Promise.all([
+        prisma.friendship.count({ where: { addresseeId: userId, status: "pending" } }),
+        prisma.competitionInvite.count({ where: { inviteeId: userId, status: "pending" } }),
+    ])
+    return { friendRequests, invites }
 }

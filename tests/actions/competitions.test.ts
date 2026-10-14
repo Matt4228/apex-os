@@ -63,6 +63,7 @@ describe("createCompetition", () => {
                 category: "Fitness",
                 startDate: parseDateOnly("2026-10-11"),
                 weeks: 2,
+                joinCode: expect.stringMatching(/^[2-9A-HJKMNP-Z]{10}$/),
                 participants: { create: { userId: "user-1", role: "owner" } },
                 metrics: {
                     create: [{ name: "km run", unit: "km", sortOrder: 0, targets: { create: [{ week: 1, target: 15 }, { week: 2, target: 18 }] } }],

@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { parseDateOnly, toDateInputValue, todayIn } from "../dates"
 import { rampTargets } from "../competition"
+import { newJoinCode } from "../joinCode"
 import { occurrences } from "../occurrences"
 
 export const DEMO_EMAIL = "demo@apex-os.app"
@@ -266,6 +267,8 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         ),
     ) as Record<(typeof RIVALS)[number]["key"], string>
     const everyone = [userId, ...Object.values(rivals)]
+    // The rivals' own competitions go too; the demo's are cleared below with the rest of its data
+    await prisma.competition.deleteMany({ where: { ownerId: { in: Object.values(rivals) } } })
     await prisma.friendship.deleteMany({ where: { OR: [{ requesterId: { in: everyone } }, { addresseeId: { in: everyone } }] } })
     await prisma.friendship.createMany({
         data: [
@@ -448,6 +451,28 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
         })
     }
 
+    // Sam's push-up challenge started this Sunday, and Sam has invited the demo: an invite waiting for an answer
+    await prisma.competition.create({
+        data: {
+            ownerId: rivals.sam,
+            title: "Push-up Challenge",
+            category: "Fitness",
+            startDate: day(-today.getUTCDay()),
+            weeks: 6,
+            joinCode: newJoinCode(),
+            participants: { create: { userId: rivals.sam, role: "owner" } },
+            metrics: {
+                create: [{
+                    name: "Push-ups",
+                    unit: null,
+                    sortOrder: 0,
+                    targets: { create: [100, 120, 140, 160, 180, 200].map((target, i) => ({ week: i + 1, target })) },
+                }],
+            },
+            invites: { create: { inviterId: rivals.sam, inviteeId: userId } },
+        },
+    })
+
     // Tasks outside any goal: today's plan, an unfinished task from yesterday, urgent ones, and history
     await prisma.task.createMany({
         data: [
@@ -474,6 +499,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
                 category: competition.category,
                 startDate: competition.startDate,
                 weeks: competition.weeks,
+                joinCode: newJoinCode(),
                 participants: { create: { userId, role: "owner" } },
                 metrics: {
                     create: competition.metrics.map((metric, i) => ({

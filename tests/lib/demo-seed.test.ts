@@ -65,9 +65,11 @@ function returnCompetitionsWithIds() {
 type SeedCompetition = { title: string; startDate: Date; weeks: number; metrics: { create: { name: string; unit: string | null; targets: { create: { week: number; target: number }[] } }[] } }
 
 /** Each seeded competition with its targets and logs, scored as the competition page would on that day */
+/** The demo's own competitions, in the order they were made (Sam's push-up challenge is left out) */
 function seededCompetitions(today: string) {
     const logs = prismaMock.progressLog.createMany.mock.calls.flatMap(([args]) => (args?.data ?? []) as unknown as { metricId: string; week: number; amount: number }[])
-    return prismaMock.competition.create.mock.calls.map(([args]) => {
+    const demos = prismaMock.competition.create.mock.calls.filter(([args]) => (args.data as { ownerId: string }).ownerId === "demo")
+    return demos.map(([args]) => {
         const c = args.data as unknown as SeedCompetition
         const metrics = c.metrics.create.map((m, i) => ({ id: `${c.title}-m${i}`, name: m.name, unit: m.unit }))
         const targets = c.metrics.create.flatMap((m, i) => m.targets.create.map(t => ({ metricId: `${c.title}-m${i}`, ...t })))
@@ -254,5 +256,16 @@ describe("seedDemo", () => {
                 { requesterId: "jordan", addresseeId: "demo", status: "pending" },
             ],
         })
+    })
+
+    it("gives Sam a push-up challenge from this Sunday, with the demo invited, and every competition a join code", async () => {
+        await run(new Date("2026-10-14T16:00:00Z"))
+        const made = prismaMock.competition.create.mock.calls.map(([args]) => args.data as { ownerId: string; title: string; startDate: Date; joinCode: string; invites?: unknown })
+
+        const pushUps = made.find(c => c.title === "Push-up Challenge")!
+        expect(pushUps).toMatchObject({ ownerId: "sam", invites: { create: { inviterId: "sam", inviteeId: "demo" } } })
+        expect(pushUps.startDate.toISOString().slice(0, 10)).toBe("2026-10-11")
+        expect(new Set(made.map(c => c.joinCode)).size).toBe(made.length)
+        expect(prismaMock.competition.deleteMany).toHaveBeenCalledWith({ where: { ownerId: { in: ["alex", "sam", "jordan"] } } })
     })
 })

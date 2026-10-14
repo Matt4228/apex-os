@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 /** Email and password sign-in. The fields center in the space above the button */
-export default function SignInForm() {
+export default function SignInForm({ next = "/dashboard" }: { next?: string }) {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const router = useRouter()
@@ -30,7 +30,7 @@ export default function SignInForm() {
             return
         }
 
-        router.push("/dashboard")
+        router.push(next)
     }
 
     return (

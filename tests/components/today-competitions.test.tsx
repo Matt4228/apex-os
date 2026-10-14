@@ -18,7 +18,7 @@ function view(o: Partial<CompetitionView> & { position?: Position } = {}): Compe
         { id: "a", metricId: "km", week: 2, amount: 9, note: null, createdAt: new Date() },
         { id: "b", metricId: "wo", week: 2, amount: 1, note: null, createdAt: new Date() },
     ]
-    const base = { id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs, ...o }
+    const base = { id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs, people: [], invited: [], joinCode: null, ...o }
     return { ...base, season: season(base.metrics, base.targets, base.logs, base, position) }
 }
 

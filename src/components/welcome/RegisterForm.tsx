@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 /** Creates the account, then signs in with what was typed */
-export default function RegisterForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
+export default function RegisterForm({ onSwitchToSignIn, next = "/dashboard" }: { onSwitchToSignIn: () => void; next?: string }) {
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [signInFailed, setSignInFailed] = useState(false)
@@ -38,7 +38,7 @@ export default function RegisterForm({ onSwitchToSignIn }: { onSwitchToSignIn: (
             return
         }
 
-        router.push("/dashboard")
+        router.push(next)
     }
 
     return (

@@ -21,21 +21,25 @@ const TRIGGER =
 export default function AccountCard({
     initialMode,
     homePath,
+    next = "/dashboard",
 }: {
     initialMode: AccountMode
     /** Where Sign in lives in the address bar: "/" for a visitor who arrived there, else "/login" */
     homePath: "/" | "/login"
+    /** Where to go once signed in: an invite link the visitor came from, or the dashboard */
+    next?: string
 }) {
     const [mode, setMode] = useState<AccountMode>(initialMode)
     // Bumping a form's key remounts it, so an old error is gone when you come back to it
     const [resets, setResets] = useState({ login: 0, register: 0 })
 
-    function switchTo(next: AccountMode) {
-        if (next === mode) return
+    function switchTo(tab: AccountMode) {
+        if (tab === mode) return
         setResets(r => ({ ...r, [mode]: r[mode] + 1 }))
-        setMode(next)
+        setMode(tab)
         // Updates the address without a reload or a history entry, so a refresh keeps the tab
-        window.history.replaceState(null, "", next === "register" ? "/register" : homePath)
+        const query = next === "/dashboard" ? "" : `?next=${encodeURIComponent(next)}`
+        window.history.replaceState(null, "", `${tab === "register" ? "/register" : homePath}${query}`)
     }
 
     return (
@@ -54,10 +58,10 @@ export default function AccountCard({
 
                 <div className="grid">
                     <Tabs.Content value="login" forceMount inert={mode !== "login"} className={PANEL}>
-                        <SignInForm key={`login-${resets.login}`} />
+                        <SignInForm key={`login-${resets.login}`} next={next} />
                     </Tabs.Content>
                     <Tabs.Content value="register" forceMount inert={mode !== "register"} className={PANEL}>
-                        <RegisterForm key={`register-${resets.register}`} onSwitchToSignIn={() => switchTo("login")} />
+                        <RegisterForm key={`register-${resets.register}`} next={next} onSwitchToSignIn={() => switchTo("login")} />
                     </Tabs.Content>
                 </div>
 

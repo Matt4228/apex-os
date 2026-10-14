@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { parseDateOnly } from "@/lib/dates"
 import { sundayOf, weekOf } from "@/lib/competition"
 import { getUserToday } from "@/lib/user-today"
+import { looksLikeJoinCode, newJoinCode } from "@/lib/joinCode"
 
 /** Three years of weeks: few competitions run that long, so it's the worst case the screens plan for */
 const MAX_WEEKS = 156
@@ -65,6 +66,7 @@ export async function createCompetition(formData: FormData) {
             category: c.category || null,
             startDate: parseDateOnly(sundayOf(c.startDate)),
             weeks: c.weeks,
+            joinCode: newJoinCode(),
             participants: { create: { userId, role: "owner" } },
             metrics: {
                 create: c.metrics.map((m, i) => ({
@@ -194,4 +196,138 @@ export async function deleteCompetition(competitionId: string) {
 
     // Throws when there's no such competition of the caller's; the deleted-items route turns that into a 404
     await prisma.competition.delete({ where: { id: competitionId, ownerId: session.user.id } })
+}
+
+/** Is the competition over by the user's own calendar day? Nobody joins a finished competition */
+async function finished(competition: { startDate: Date; weeks: number }) {
+    return weekOf(competition, await getUserToday()).state === "finished"
+}
+
+/**
+ * Invites friends to a competition, owner only. Each must be an accepted friend of the owner and not already in it;
+ * a declined invite is opened again
+ */
+export async function inviteFriends(competitionId: string, userIds: string[]) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+    const me = session.user.id
+    if (!Array.isArray(userIds) || userIds.length === 0 || userIds.some(id => typeof id !== "string")) return { error: "Pick someone to invite" }
+
+    const competition = await prisma.competition.findFirst({ where: { id: competitionId, ownerId: me } })
+    if (!competition) return { error: "Not found" }
+    if (await finished(competition)) return { error: "This competition has finished" }
+
+    const [friendships, members] = await Promise.all([
+        prisma.friendship.findMany({
+            where: {
+                status: "accepted",
+                OR: [{ requesterId: me, addresseeId: { in: userIds } }, { addresseeId: me, requesterId: { in: userIds } }],
+            },
+        }),
+        prisma.participant.findMany({ where: { competitionId, userId: { in: userIds } }, select: { userId: true } }),
+    ])
+    const friends = new Set(friendships.map(f => (f.requesterId === me ? f.addresseeId : f.requesterId)))
+    const inAlready = new Set(members.map(m => m.userId))
+    if (userIds.some(id => !friends.has(id))) return { error: "You can only invite friends" }
+    if (userIds.some(id => inAlready.has(id))) return { error: "They're already in this competition" }
+
+    await prisma.$transaction(
+        userIds.map(inviteeId =>
+            prisma.competitionInvite.upsert({
+                where: { competitionId_inviteeId: { competitionId, inviteeId } },
+                create: { competitionId, inviterId: me, inviteeId },
+                update: { status: "pending", inviterId: me },
+            }),
+        ),
+    )
+    revalidatePath(`/dashboard/competitions/${competitionId}`)
+}
+
+/** Accepts or declines an invite sent to you. Accepting makes you a member from today: earlier weeks count as missed */
+export async function respondToInvite(inviteId: string, accept: boolean) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+    const me = session.user.id
+
+    const invite = await prisma.competitionInvite.findFirst({
+        where: { id: inviteId, inviteeId: me, status: "pending" },
+        include: { competition: true },
+    })
+    if (!invite) return { error: "Not found" }
+
+    if (!accept) {
+        await prisma.competitionInvite.update({ where: { id: inviteId }, data: { status: "declined" } })
+        revalidatePath("/dashboard", "layout")
+        return { competitionId: null }
+    }
+    if (await finished(invite.competition)) return { error: "This competition has finished" }
+
+    await prisma.$transaction([
+        prisma.participant.create({ data: { competitionId: invite.competitionId, userId: me, role: "member" } }),
+        prisma.competitionInvite.delete({ where: { id: inviteId } }),
+    ])
+    revalidatePath("/dashboard", "layout")
+    return { competitionId: invite.competitionId }
+}
+
+/** Joins with an invite link's code. Joining twice changes nothing; a finished competition can't be joined */
+export async function joinByCode(code: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+    const me = session.user.id
+    if (typeof code !== "string" || !looksLikeJoinCode(code)) return { error: "Not found" }
+
+    const competition = await prisma.competition.findUnique({ where: { joinCode: code } })
+    if (!competition) return { error: "Not found" }
+    if (await finished(competition)) return { error: "This competition has finished" }
+
+    const existing = await prisma.participant.findFirst({ where: { competitionId: competition.id, userId: me } })
+    if (!existing) {
+        await prisma.$transaction([
+            prisma.participant.create({ data: { competitionId: competition.id, userId: me, role: "member" } }),
+            // An invite to the same competition is answered by joining
+            prisma.competitionInvite.deleteMany({ where: { competitionId: competition.id, inviteeId: me } }),
+        ])
+    }
+    revalidatePath("/dashboard", "layout")
+    return { competitionId: competition.id }
+}
+
+/** A new invite link, owner only: the old link stops working */
+export async function resetJoinCode(competitionId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+
+    const competition = await prisma.competition.findFirst({ where: { id: competitionId, ownerId: session.user.id } })
+    if (!competition) return { error: "Not found" }
+
+    const updated = await prisma.competition.update({ where: { id: competitionId }, data: { joinCode: newJoinCode() } })
+    return { joinCode: updated.joinCode }
+}
+
+/** Leaves a competition, members only (the owner deletes it instead). Your logs in it go with you */
+export async function leaveCompetition(competitionId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+
+    const participant = await prisma.participant.findFirst({ where: { competitionId, userId: session.user.id } })
+    if (!participant) return { error: "Not found" }
+    if (participant.role === "owner") return { error: "The owner can't leave. Delete the competition instead" }
+
+    await prisma.participant.delete({ where: { id: participant.id } })
+    revalidatePath("/dashboard/competitions")
+}
+
+/** Removes a member, owner only. Their logs in it go with them */
+export async function removeParticipant(competitionId: string, participantId: string) {
+    const session = await auth()
+    if (!session?.user?.id) return { error: "Unauthorized" }
+
+    const competition = await prisma.competition.findFirst({ where: { id: competitionId, ownerId: session.user.id } })
+    if (!competition) return { error: "Not found" }
+    const participant = await prisma.participant.findFirst({ where: { id: participantId, competitionId, role: "member" } })
+    if (!participant) return { error: "Not found" }
+
+    await prisma.participant.delete({ where: { id: participantId } })
+    revalidatePath(`/dashboard/competitions/${competitionId}`)
 }

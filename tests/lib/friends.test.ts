@@ -54,10 +54,12 @@ describe("loadFriends", () => {
 })
 
 describe("pendingCounts", () => {
-    it("counts requests waiting for the user's answer", async () => {
+    it("counts friend requests and competition invites waiting for the user's answer", async () => {
         prismaMock.friendship.count.mockResolvedValue(2)
+        prismaMock.competitionInvite.count.mockResolvedValue(1)
 
-        expect(await pendingCounts("me")).toEqual({ friendRequests: 2, invites: 0 })
+        expect(await pendingCounts("me")).toEqual({ friendRequests: 2, invites: 1 })
         expect(prismaMock.friendship.count).toHaveBeenCalledWith({ where: { addresseeId: "me", status: "pending" } })
+        expect(prismaMock.competitionInvite.count).toHaveBeenCalledWith({ where: { inviteeId: "me", status: "pending" } })
     })
 })

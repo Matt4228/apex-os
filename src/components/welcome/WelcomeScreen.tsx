@@ -7,7 +7,16 @@ import todayScreenshot from "./today.png"
 const FEATURES = ["Goals", "Habits", "Weekly schedule", "Today's plan", "Competitions"]
 
 /** The page a logged-out visitor sees at /, /login and /register: what Apex OS is, and the way in */
-export default function WelcomeScreen({ initialMode, homePath }: { initialMode: AccountMode; homePath: "/" | "/login" }) {
+export default function WelcomeScreen({
+    initialMode,
+    homePath,
+    next,
+}: {
+    initialMode: AccountMode
+    homePath: "/" | "/login"
+    /** Where to go once signed in, already checked with afterSignIn */
+    next?: string
+}) {
     return (
         <main className="flex-1 bg-canvas">
             <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6 md:gap-14 md:py-16">
@@ -39,7 +48,7 @@ export default function WelcomeScreen({ initialMode, homePath }: { initialMode: 
 
                     {/* On a phone the card comes first: a returning visitor came to sign in */}
                     <div className="order-first flex justify-center md:order-none md:justify-end">
-                        <AccountCard initialMode={initialMode} homePath={homePath} />
+                        <AccountCard initialMode={initialMode} homePath={homePath} next={next} />
                     </div>
                 </div>
 
