@@ -15,9 +15,9 @@ export const DEMO_PASSWORD = "superP@ssword"
  * as them. Jordan only exists to have sent the demo a friend request
  */
 export const RIVALS = [
-    { key: "alex", email: "alex@apex-os.app", name: "Alex Rivera" },
-    { key: "sam", email: "sam@apex-os.app", name: "Sam Chen" },
-    { key: "jordan", email: "jordan@apex-os.app", name: "Jordan Park" },
+    { key: "alex", email: "alex@apex-os.app", name: "Alex R." },
+    { key: "sam", email: "sam@apex-os.app", name: "Sam C." },
+    { key: "jordan", email: "jordan@apex-os.app", name: "Jordan P." },
 ] as const
 /** The demo's "today" follows US Eastern time, so its plan is current for US visitors all day */
 export const DEMO_TIMEZONE = "America/New_York"
