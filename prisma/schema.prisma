@@ -137,14 +137,18 @@ model Habit {
   logs          HabitLog[]
 }
 
+/// One check-in. A habit has at most one per day
 model HabitLog {
   id          String   @id @default(cuid())
   habitId     String
-  completedOn DateTime @default(now())
+  /// The day it was done, stored as UTC midnight like other calendar dates
+  completedOn DateTime
   note        String?
   createdAt   DateTime @default(now())
 
   habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, completedOn])
 }
 
 model Task {

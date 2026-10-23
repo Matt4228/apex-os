@@ -2,8 +2,9 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
-import { dayRangeOf } from "@/lib/dates"
+import { parseDateOnly, toDateInputValue } from "@/lib/dates"
 
 const habitSchema = z.object({
   title: z.string().min(1),
@@ -11,6 +12,10 @@ const habitSchema = z.object({
   frequency: z.enum(["daily", "weekly"]),
   targetPerWeek: z.string(),
 })
+
+// A real calendar day as "YYYY-MM-DD". The round trip rejects days like "2026-02-30", which Date would roll forward.
+// One refine, not .regex() then .refine(): zod still runs a refine after a failed regex, and a bad string would throw
+const dateSchema = z.string().refine(day => /^\d{4}-\d{2}-\d{2}$/.test(day) && toDateInputValue(parseDateOnly(day)) === day)
 
 export async function createHabit(formData: FormData) {
   const session = await auth()
@@ -86,27 +91,26 @@ export async function toggleHabitLog(habitId: string, date: string) {
   })
   if (!habit) return { error: "Not found" }
 
-  const { start, end } = dayRangeOf(date)
+  if (!dateSchema.safeParse(date).success) return { error: "Invalid date" }
+  const completedOn = parseDateOnly(date)
 
-  const existing = await prisma.habitLog.findFirst({
-    where: {
-      habitId,
-      completedOn: { gte: start, lt: end},
-    },
-  })
+  // A unique index allows one log per habit per day. Checking for a log and then adding one let two quick clicks
+  // both see nothing and both add. Now the remove comes first, and a second add is stopped by the index
+  const removed = await prisma.habitLog.deleteMany({ where: { habitId, completedOn } })
+  if (removed.count > 0) return { action: "removed", date }
 
-  if (existing) {
-    await prisma.habitLog.delete({ where: { id: existing.id } })
-    return { action: "removed", date }
-  } else {
-    const log = await prisma.habitLog.create({
-      data: {
-        habitId,
-        completedOn: start,
-      },
-    })
+  try {
+    const log = await prisma.habitLog.create({ data: { habitId, completedOn } })
     return { action: "added", date, log }
+  } catch (error) {
+    // Another request added this day's log between the remove and the add: either way the day is logged
+    if (isUniqueViolation(error)) return { action: "added", date }
+    throw error
   }
+}
+
+function isUniqueViolation(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
 }
 
 /** Pause (false) or resume (true) a habit. A paused habit leaves Today and keeps its history */
