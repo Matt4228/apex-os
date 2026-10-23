@@ -27,13 +27,22 @@ model User {
   invitesReceived CompetitionInvite[] @relation("InvitesReceived")
 }
 
+/// One failed sign-in, counted against a hashed key for 15 minutes. src/lib/loginLimit.ts explains the keys
+model LoginFailure {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
 /// Two users who are friends, or a request from one to the other. One row per pair
 model Friendship {
   id          String   @id @default(cuid())
   requesterId String
   addresseeId String
-  /// "pending" or "accepted"
-  status      String   @default("pending")
+  status      FriendshipStatus @default(pending)
   createdAt   DateTime @default(now())
 
   requester   User     @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
@@ -54,8 +63,7 @@ model ScheduleBlock {
   endTime     String
   /// The first day it happens (a one-off's only day), stored as UTC midnight like other calendar dates
   startDate   DateTime
-  /// "none", "daily", "weekday", "weekly" or "monthly"
-  repeat      String    @default("none")
+  repeat      Repeat    @default(none)
   /// Weekdays for "weekly": 0 is Sunday
   repeatDays  Int[]     @default([])
   /// Last possible day, inclusive. At most one of endsOn and endsAfter is set
@@ -97,12 +105,11 @@ model Goal {
   title       String
   description String?
   category    String?
-  status      String    @default("active")
+  status      GoalStatus @default(active)
   targetDate  DateTime?
   targetValue Float?
   unit        String?
-  /// How logged numbers add up: "latest" (like a weight), "total" (like km run) or "best" (like a longest run)
-  tracking    String    @default("latest")
+  tracking    GoalTracking @default(latest)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -127,7 +134,7 @@ model Habit {
   userId        String
   title         String
   category      String?
-  frequency     String   @default("daily")
+  frequency     HabitFrequency @default(daily)
   targetPerWeek Int      @default(7)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
@@ -156,8 +163,8 @@ model Task {
   userId      String
   goalId      String?
   title       String
-  status      String    @default("todo")
-  priority    String    @default("medium")
+  status      TaskStatus @default(todo)
+  priority    Priority  @default(medium)
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -203,8 +210,7 @@ model CompetitionInvite {
   competitionId String
   inviterId     String
   inviteeId     String
-  /// "pending" or "declined"
-  status        String   @default("pending")
+  status        InviteStatus @default(pending)
   createdAt     DateTime @default(now())
 
   competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
@@ -247,8 +253,7 @@ model Participant {
   id            String   @id @default(cuid())
   competitionId String
   userId        String
-  /// "owner" or "member"
-  role          String   @default("member")
+  role          ParticipantRole @default(member)
   joinedAt      DateTime @default(now())
 
   competition   Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
@@ -274,4 +279,59 @@ model ProgressLog {
 
   @@index([participantId, week])
   @@index([metricId])
+}
+
+// Fixed sets of values. Postgres rejects anything else, and the generated types make a misspelled value a compile error
+
+enum FriendshipStatus {
+  pending
+  accepted
+}
+
+/// How a schedule block repeats. "weekday" is Monday to Friday; "weekly" uses repeatDays
+enum Repeat {
+  none
+  daily
+  weekday
+  weekly
+  monthly
+}
+
+enum GoalStatus {
+  active
+  complete
+}
+
+/// How logged numbers add up: "latest" (like a weight), "total" (like km run) or "best" (like a longest run)
+enum GoalTracking {
+  latest
+  total
+  best
+}
+
+enum HabitFrequency {
+  daily
+  weekly
+}
+
+enum TaskStatus {
+  todo
+  done
+}
+
+enum Priority {
+  low
+  medium
+  high
+}
+
+/// An invite is deleted when accepted, so it is only ever pending or declined
+enum InviteStatus {
+  pending
+  declined
+}
+
+enum ParticipantRole {
+  owner
+  member
 }

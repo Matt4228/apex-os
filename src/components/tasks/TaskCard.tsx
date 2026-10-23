@@ -23,7 +23,6 @@ export default function TaskCard({
     onToggle,
     onDelete,
     onUpdate,
-    isPending,
     highlighted = false,
 }: {
     task: Task
@@ -32,7 +31,6 @@ export default function TaskCard({
     onToggle: (id: string, status: string) => void
     onDelete: (id: string) => void
     onUpdate: (id: string, updated: Partial<Task>) => void
-    isPending: boolean
     /** Just added or edited: outline the card and scroll it into view */
     highlighted?: boolean
 }) {
@@ -130,7 +128,6 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                     onToggle(task.id, isDone ? "todo" : "done")
                 }}
                 onAnimationEnd={pop.end}
-                disabled={isPending}
                 className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${pop.className()} ${
                     isDone
                         ? "bg-accent border-accent"
@@ -174,7 +171,6 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                 )}
                 <button
                     onClick={() => onDelete(task.id)}
-                    disabled={isPending}
                     className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none"
                     aria-label={`Delete ${task.title}`}
                 >

@@ -28,6 +28,10 @@ A personal growth CRM built for daily use. Track goals, habits, tasks, and compe
 
 **Prisma with two connection URLs.** Vercel's serverless environment requires a connection pooler (`DATABASE_URL`) for runtime queries. Prisma migrations require a direct connection (`DIRECT_URL`). Both are configured in `prisma.config.ts`.
 
+**Rules the database enforces, not just the code.** Fixed choices like a task's status or a participant's role are Postgres enums, and a habit can have one log per day through a unique index. Zod still checks input at the edge, but a bug or a race between two requests can't store a value outside the set or a second log for the same day.
+
+**Sign-in limits kept in Postgres.** Serverless functions share no memory, so failed sign-ins are counted in a table: 5 per account per IP address and 20 per address, over 15 minutes. Keying an account by address too means nobody can lock someone else out, including the shared demo account. Keys are stored as hashes.
+
 **`force-dynamic` on data pages.** Pages that read from the database are marked `force-dynamic` to prevent Next.js from caching stale data between requests.
 
 ---

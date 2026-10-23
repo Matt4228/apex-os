@@ -4,6 +4,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { TOO_MANY_ATTEMPTS } from "@/lib/signInCodes"
 
 /** One click into the shared demo account */
 export default function DemoButton() {
@@ -21,7 +22,12 @@ export default function DemoButton() {
         })
 
         if (result?.error) {
-            setError("Demo account unavailable. Please try again later.")
+            // The demo's password is always right, so being limited means this address failed too often elsewhere
+            setError(
+                result.code === TOO_MANY_ATTEMPTS
+                    ? "Too many sign-in attempts from this network. Wait 15 minutes, then try again."
+                    : "Demo account unavailable. Please try again later.",
+            )
             setLoading(false)
             return
         }

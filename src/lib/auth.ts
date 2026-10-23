@@ -1,6 +1,13 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { verifyCredentials } from "./credentials"
+import { LoginLimited } from "./loginLimit"
+import { TOO_MANY_ATTEMPTS } from "./signInCodes"
+
+/** A CredentialsSignin's code reaches the browser, so the form can say "wait" rather than "wrong password" */
+class TooManyAttempts extends CredentialsSignin {
+    code = TOO_MANY_ATTEMPTS
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     session: { strategy: "jwt" },
@@ -9,7 +16,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     providers: [
         Credentials({
-            authorize: verifyCredentials,
+            async authorize(credentials, request) {
+                try {
+                    return await verifyCredentials(credentials, request)
+                } catch (error) {
+                    if (error instanceof LoginLimited) throw new TooManyAttempts()
+                    throw error
+                }
+            },
         }),
     ],
     callbacks: {
