@@ -8,12 +8,13 @@ A personal growth CRM built for daily use. Track goals, habits, tasks, and compe
 
 ## Stack
 
-- **Framework:** Next.js 14 (App Router, TypeScript)
-- **Database:** PostgreSQL via Supabase
+- **Framework:** Next.js 16 (App Router, TypeScript)
+- **Database:** PostgreSQL (hosted on Supabase)
 - **ORM:** Prisma 7
 - **Auth:** NextAuth.js v5 (JWT, credentials provider)
 - **Styling:** Tailwind CSS
 - **Drag and drop:** dnd-kit
+- **Testing:** Vitest and Testing Library, run in GitHub Actions
 - **Deployment:** Vercel
 
 ---
@@ -38,12 +39,29 @@ A personal growth CRM built for daily use. Track goals, habits, tasks, and compe
 
 ## Features
 
-- **Dashboard** — daily overview with today's schedule, task count, habit completion rate, goal progress, and active competitions
-- **Tasks** — create, complete, and delete tasks with priority levels and due dates
-- **Goals** — track goals with target values, log progress entries, and visualize completion with progress bars
-- **Habits** — weekly completion grid with progress tracking and streak visibility
-- **Schedule** — fully customizable weekly time blocks with drag-to-reorder and color coding
-- **Competitions** — structured weekly competitions with logging and completion tracking
+- **Today:** the home page. Today's plan grouped by schedule block, urgent and due-soon tasks, habit check-ins, and this week's competitions.
+- **Tasks:** priorities, due dates, links to goals, and undo after a delete.
+- **Goals:** target values, progress entries, and steps (tasks linked to the goal).
+- **Habits:** weekly targets, a 12-week heatmap, streaks, and pausing.
+- **Schedule:** a calendar of repeating time blocks with drag and drop, and edits to one occurrence or the whole series.
+- **Competitions:** weekly targets across several metrics, seasons up to three years long, and logging.
+- **Friends:** friend requests by email, and invites to competitions by email or link.
+
+---
+
+## Testing and CI
+
+```bash
+npm test            # Vitest: about 580 tests
+npm run typecheck   # tsc --noEmit
+npm run lint
+```
+
+Server actions and library code are tested against a mocked Prisma client (`vitest-mock-extended`), and components render in jsdom with Testing Library. GitHub Actions runs lint, typecheck and the tests on every pull request and every push to `main`, and `main` only accepts changes through a pull request that passes them.
+
+## Monitoring
+
+A Vercel cron (`/api/cron/reseed-demo`, 05:00 UTC) resets the demo account every night. It reports success or failure to [Pulse](https://github.com/Matt4228/pulse), which alerts in Slack if the reseed fails or hasn't checked in by 06:30 UTC. Pulse also checks that the site is up. Set `PULSE_URL` and `PULSE_KEY` to turn reporting on; without them nothing is sent.
 
 ---
 
@@ -68,21 +86,22 @@ npm run dev
 | | Development | Production |
 |---|---|---|
 | Database | Separate Supabase project | Production Supabase project |
-| Connection strings | `.env.local` | Vercel environment variables, plus a local `.env.prod` used only by the scripts
-below |
-| Schema changes | ``npx prisma migrate dev --name <change>`, then `npx prisma generate` (Prisma 7 no longer generates on migrate)` | `npm run db:migrate:prod` (runs `prisma migrate deploy`)
-|
+| Connection strings | `.env.local` | Vercel environment variables, plus a local `.env.prod` used only by the scripts below |
+| Schema changes | `npx prisma migrate dev --name <change>`, then `npx prisma generate` (Prisma 7 no longer generates on migrate) | `npm run db:status:prod`, then `npm run db:migrate:prod` (runs `prisma migrate deploy`) |
+
+After pulling changes that touch `prisma/schema.prisma`, run `npx prisma generate`, or TypeScript will report missing models and enums.
+
 ---
 
 ## Database schema
 
-Nine tables: `User`, `Task`, `Goal`, `GoalEntry`, `Habit`, `HabitLog`, `ScheduleBlock`, `Competition`, `CompetitionEntry`. All tables include `userId` for multi-user readiness.
+16 tables and 9 enums, defined in `prisma/schema.prisma`. The core records are `User`, `Task`, `Goal`, `Habit` and `ScheduleBlock`. Competitions are spread across `Competition`, `CompetitionMetric`, `WeekTarget`, `Participant`, `ProgressLog` and `CompetitionInvite`, and `Friendship` connects users. Every user-owned record carries its owner's id, and server actions scope their queries to the signed-in user.
 
 ---
 
 ## Roadmap
 
-- Multi-user support with shared competitions
+- A multiplayer competition page: leaderboard, podium and a lane per person
 - Mobile app
 - Data export
 - Analytics and trend charts
