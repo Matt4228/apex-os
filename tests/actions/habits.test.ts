@@ -1,5 +1,6 @@
 // tests/actions/habits.test.ts
 import { toggleHabitActive, toggleHabitLog, updateHabit } from "@/app/actions/habits"
+import { Prisma } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { mockedAuth } from "../mocks/auth"
 import { prismaMock } from "../mocks/prismaMock"
@@ -44,60 +45,68 @@ describe("toggleHabitLog", () => {
         expect(prismaMock.habitLog.delete).not.toHaveBeenCalled()
     })
 
-    it("adds a log when none exists yet for that day", async () => {
-        mockedAuth.mockResolvedValue({ user: { id: "user-1" } }  as never)
-        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
-        prismaMock.habitLog.findFirst.mockResolvedValue(null)
-        prismaMock.habitLog.create.mockResolvedValue({
-            id: "log-1",
-            habitId: "habit-1",
-            completedOn: new Date(2026, 8, 2),
-            note: null,
-            createdAt: new Date(),
-        })
-
-        const result = await toggleHabitLog("habit-1", "2026-09-02")
-
-        expect(result).toMatchObject({ action: "added", date: "2026-09-02" })
-        expect(prismaMock.habitLog.create).toHaveBeenCalled()
-    })
-
-    it("removes the existing log when one is already present for that day", async () => {
+    it("adds a log when that day has none", async () => {
         mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
         prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
-        prismaMock.habitLog.findFirst.mockResolvedValue({
-            id: "log-1",
-            habitId: "habit-1",
-            completedOn: new Date(2026, 8, 2),
-            note: null,
-            createdAt: new Date(),
-        })
+        prismaMock.habitLog.deleteMany.mockResolvedValue({ count: 0 })
+        const log = { id: "log-1", habitId: "habit-1", completedOn: new Date("2026-09-02T00:00:00Z"), note: null, createdAt: new Date() }
+        prismaMock.habitLog.create.mockResolvedValue(log)
 
         const result = await toggleHabitLog("habit-1", "2026-09-02")
 
-        expect(result).toEqual({ action: "removed", date: "2026-09-02"})
-        expect(prismaMock.habitLog.delete).toHaveBeenCalledWith({ where: { id: "log-1" } })
+        expect(result).toEqual({ action: "added", date: "2026-09-02", log })
+    })
+
+    it("removes the day's log when there is one, without adding another", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
+        prismaMock.habitLog.deleteMany.mockResolvedValue({ count: 1 })
+
+        const result = await toggleHabitLog("habit-1", "2026-09-02")
+
+        expect(result).toEqual({ action: "removed", date: "2026-09-02" })
+        expect(prismaMock.habitLog.create).not.toHaveBeenCalled()
     })
 
     it("stores the check-in as the calendar day, whatever the server's timezone", async () => {
         mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
         prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
-        prismaMock.habitLog.findFirst.mockResolvedValue(null)
+        prismaMock.habitLog.deleteMany.mockResolvedValue({ count: 0 })
 
         await toggleHabitLog("habit-1", "2026-09-02")
 
-        expect(prismaMock.habitLog.findFirst).toHaveBeenCalledWith({
-            where: {
-                habitId: "habit-1",
-                completedOn: {
-                    gte: new Date("2026-09-02T00:00:00Z"),
-                    lt: new Date("2026-09-03T00:00:00Z"),
-                },
-            },
-        })
-        expect(prismaMock.habitLog.create).toHaveBeenCalledWith({
-            data: { habitId: "habit-1", completedOn: new Date("2026-09-02T00:00:00Z") },
-        })
+        const day = new Date("2026-09-02T00:00:00Z")
+        expect(prismaMock.habitLog.deleteMany).toHaveBeenCalledWith({ where: { habitId: "habit-1", completedOn: day } })
+        expect(prismaMock.habitLog.create).toHaveBeenCalledWith({ data: { habitId: "habit-1", completedOn: day } })
+    })
+
+    it("reports the day as logged when a second click's add loses the race to the first", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
+        prismaMock.habitLog.deleteMany.mockResolvedValue({ count: 0 })
+        prismaMock.habitLog.create.mockRejectedValue(
+            new Prisma.PrismaClientKnownRequestError("Unique constraint failed", { code: "P2002", clientVersion: "7.7.0" }),
+        )
+
+        expect(await toggleHabitLog("habit-1", "2026-09-02")).toEqual({ action: "added", date: "2026-09-02" })
+    })
+
+    it("lets other database errors through", async () => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
+        prismaMock.habitLog.deleteMany.mockResolvedValue({ count: 0 })
+        prismaMock.habitLog.create.mockRejectedValue(new Error("connection lost"))
+
+        await expect(toggleHabitLog("habit-1", "2026-09-02")).rejects.toThrow("connection lost")
+    })
+
+    it.each(["", "yesterday", "2026-9-2", "2026-02-30", "2026-09-02T00:00:00Z"])("rejects %j as a date", async date => {
+        mockedAuth.mockResolvedValue({ user: { id: "user-1" } } as never)
+        prismaMock.habit.findFirst.mockResolvedValue(ownedHabit)
+
+        expect(await toggleHabitLog("habit-1", date)).toEqual({ error: "Invalid date" })
+        expect(prismaMock.habitLog.deleteMany).not.toHaveBeenCalled()
+        expect(prismaMock.habitLog.create).not.toHaveBeenCalled()
     })
 })
 
