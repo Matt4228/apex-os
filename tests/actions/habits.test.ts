@@ -10,7 +10,7 @@ const ownedHabit = {
     userId: "user-1",
     title: "Read",
     category: null,
-    frequency: "daily",
+    frequency: "daily" as const,
     targetPerWeek: 7,
     isActive: true,
     createdAt: new Date(),

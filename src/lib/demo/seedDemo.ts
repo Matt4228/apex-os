@@ -1,6 +1,6 @@
 // src/lib/demo/seedDemo.ts
 // Relative imports keep this file runnable outside Next.js: `npm run seed` runs it with tsx
-import type { PrismaClient } from "@prisma/client"
+import type { HabitFrequency, Prisma, PrismaClient, Repeat } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { parseDateOnly, toDateInputValue, todayIn } from "../dates"
 import { rampTargets } from "../competition"
@@ -31,9 +31,18 @@ type SeedBlock = {
     startTime: string
     endTime: string
     startDate: Date
-    repeat: string
+    repeat: Repeat
     repeatDays: number[]
     endsAfter?: number
+}
+
+type SeedHabit = {
+    title: string
+    category: string
+    frequency: HabitFrequency
+    targetPerWeek: number
+    doneToday: boolean
+    didIt: (dow: number, n: number) => boolean
 }
 
 type SeedChange = { label: string; date: Date; cancelled?: boolean; startTime?: string; endTime?: string }
@@ -163,10 +172,10 @@ function demoSchedule(day: (offset: number) => Date, weekday: number) {
     // Days from today to the Sunday that starts a week: 0 is this week, -1 last week, 1 next week
     const sunday = (week: number) => -weekday + week * 7
     const began = day(sunday(-8))
-    const repeating = (label: string, category: string, startTime: string, endTime: string, repeat: string, repeatDays: number[] = []) =>
+    const repeating = (label: string, category: string, startTime: string, endTime: string, repeat: Repeat, repeatDays: number[] = []) =>
         ({ label, category, startTime, endTime, startDate: began, repeat, repeatDays })
     const once = (label: string, category: string, startTime: string, endTime: string, offset: number) =>
-        ({ label, category, startTime, endTime, startDate: day(offset), repeat: "none", repeatDays: [] })
+        ({ label, category, startTime, endTime, startDate: day(offset), repeat: "none" as const, repeatDays: [] })
     const today = day(0)
 
     const blocks: SeedBlock[] = [
@@ -210,7 +219,7 @@ function demoSchedule(day: (offset: number) => Date, weekday: number) {
 }
 
 // Each habit's history follows a fixed pattern (dow: 0 is Sunday; n: days ago), so every reseed tells the same story
-const HABITS = [
+const HABITS: SeedHabit[] = [
     { title: "Run or workout", category: "Fitness", frequency: "daily", targetPerWeek: 5, doneToday: true,
     didIt: (dow: number, n: number) => dow !== 0 && n % 6 !== 0 },
     { title: "LeetCode problems", category: "Career", frequency: "daily", targetPerWeek: 6, doneToday: false,
@@ -475,7 +484,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
 
     // Tasks outside any goal: today's plan, an unfinished task from yesterday, urgent ones, and history
     await prisma.task.createMany({
-        data: [
+        data: ([
             { title: "Email the recruiter back about the phone screen", status: "todo", priority: "high", dueDate: day(1), plannedFor: day(0), scheduleBlockId: blockFor("Job search: applications and outreach", "Weekly review and planning"), createdAt: day(-1) },
               { title: "Prep questions for Thursday's coffee chat", status: "todo", priority: "medium", plannedFor: day(0), scheduleBlockId: blockFor("Breakfast and planning", "Weekly review and planning"), createdAt: day(-3) },
               { title: "Solve 3 LeetCode graph problems", status: "done", priority: "medium", plannedFor: day(0), scheduleBlockId: blockFor("Technical study block", "LeetCode practice"), createdAt: day(-1), completedAt: now },
@@ -487,7 +496,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
             { title: "Clean up GitHub profile README", status: "done", priority: "low", createdAt: day(-6), completedAt: day(-3) },
             { title: "Submit expense report", status: "done", priority: "medium", createdAt: day(-5), completedAt: day(-2) },
             { title: "Refactor auth module to use the repository pattern", status: "done", priority: "high", createdAt: day(-12), completedAt: day(-6) },
-        ].map(task => ({ ...task, userId })),
+        ] satisfies Omit<Prisma.TaskCreateManyInput, "userId">[]).map(task => ({ ...task, userId })),
     })
 
     // Competitions: one in its fourth week, one just started, one finished with a missed week

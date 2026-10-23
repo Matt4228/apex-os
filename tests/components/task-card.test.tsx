@@ -30,7 +30,6 @@ function renderCard(overrides: Partial<Task> = {}, goals?: { id: string; title: 
             onToggle={vi.fn()}
             onDelete={vi.fn()}
             onUpdate={vi.fn()}
-            isPending={false}
         />
     )
 }

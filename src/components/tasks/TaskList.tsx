@@ -38,7 +38,6 @@ export default function TaskList({
   header?: (tasks: Task[]) => React.ReactNode
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
-  const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { pending, undo, requestDelete, isHidden } = useUndoableDelete("task", deleteTask, setError)
   // A new or edited task can land anywhere in the sorted list, so it is highlighted and announced
@@ -104,7 +103,6 @@ export default function TaskList({
             onToggle={handleToggle}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
-            isPending={isPending}
             highlighted={highlight?.id === task.id}
           />
         ))}
@@ -131,7 +129,6 @@ export default function TaskList({
                 onToggle={handleToggle}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
-                isPending={isPending}
                 highlighted={highlight?.id === task.id}
               />
             ))}

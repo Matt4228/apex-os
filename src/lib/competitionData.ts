@@ -8,7 +8,7 @@ const person = { select: { id: true, name: true, email: true } }
 const shape = {
     metrics: { orderBy: { sortOrder: "asc" as const }, include: { targets: true } },
     participants: { orderBy: { joinedAt: "asc" as const }, include: { user: person } },
-    invites: { where: { status: "pending" }, include: { invitee: person } },
+    invites: { where: { status: "pending" as const }, include: { invitee: person } },
 }
 
 /** Someone in (or invited to) a competition, as the people panel shows them */

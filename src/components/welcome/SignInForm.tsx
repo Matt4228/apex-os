@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { TOO_MANY_ATTEMPTS } from "@/lib/signInCodes"
 
 /** Email and password sign-in. The fields center in the space above the button */
 export default function SignInForm({ next = "/dashboard" }: { next?: string }) {
@@ -25,7 +26,11 @@ export default function SignInForm({ next = "/dashboard" }: { next?: string }) {
         })
 
         if (result?.error) {
-            setError("Invalid email or password.")
+            setError(
+                result.code === TOO_MANY_ATTEMPTS
+                    ? "Too many attempts. Wait 15 minutes, then try again."
+                    : "Invalid email or password.",
+            )
             setLoading(false)
             return
         }
