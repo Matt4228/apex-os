@@ -43,7 +43,7 @@ describe("TaskList when the server says no", () => {
     it("puts a deleted task back and explains why", async () => {
         const user = setup()
         vi.mocked(deleteTask).mockRejectedValue(new Error("network down"))
-        render(<TaskList initialTasks={[task]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[task]} />)
 
         await user.click(screen.getByRole("button", { name: "Delete Write report" }))
         await act(() => vi.advanceTimersByTime(UNDO_WINDOW_MS))
@@ -55,7 +55,7 @@ describe("TaskList when the server says no", () => {
     it("unchecks a task when marking it done fails", async () => {
         const user = setup()
         vi.mocked(updateTaskStatus).mockResolvedValue({ error: "Invalid status" })
-        render(<TaskList initialTasks={[task]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[task]} />)
 
         await user.click(screen.getByRole("checkbox", { name: "Write report" }))
 
@@ -65,7 +65,7 @@ describe("TaskList when the server says no", () => {
 
     it("hides a deleted task right away, and Undo brings it back without touching the server", async () => {
         const user = setup()
-        render(<TaskList initialTasks={[task]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[task]} />)
 
         await user.click(screen.getByRole("button", { name: "Delete Write report" }))
         expect(screen.queryByText("Write report")).not.toBeInTheDocument()
@@ -79,7 +79,7 @@ describe("TaskList when the server says no", () => {
 
     it("deletes on the server once the undo window closes", async () => {
         const user = setup()
-        render(<TaskList initialTasks={[task]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[task]} />)
 
         await user.click(screen.getByRole("button", { name: "Delete Write report" }))
         expect(deleteTask).not.toHaveBeenCalled()
@@ -122,7 +122,7 @@ describe("TaskList adding and editing", () => {
 
     it("puts a new task where the sort puts it, not at the top", async () => {
         vi.mocked(createTask).mockResolvedValue({ task: { ...make("t3", "Book dentist", "medium"), createdAt: new Date() } } as never)
-        render(<TaskList initialTasks={[make("t1", "Ship release", "high"), make("t2", "Tidy desk", "low")]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[make("t1", "Ship release", "high"), make("t2", "Tidy desk", "low")]} />)
 
         await addTask("Book dentist")
 
@@ -131,7 +131,7 @@ describe("TaskList adding and editing", () => {
 
     it("highlights the new task, announces it, and lets the highlight fade", async () => {
         vi.mocked(createTask).mockResolvedValue({ task: { ...make("t3", "Book dentist", "medium"), createdAt: new Date() } } as never)
-        render(<TaskList initialTasks={[make("t1", "Ship release", "high")]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[make("t1", "Ship release", "high")]} />)
 
         await addTask("Book dentist")
 
@@ -146,7 +146,7 @@ describe("TaskList adding and editing", () => {
     it("moves an edited task to its new place and highlights it there", async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
         vi.mocked(updateTask).mockResolvedValue(undefined as never)
-        render(<TaskList initialTasks={[make("t1", "Ship release", "medium"), make("t2", "Tidy desk", "low")]} />)
+        render(<TaskList today="2026-10-14" initialTasks={[make("t1", "Ship release", "medium"), make("t2", "Tidy desk", "low")]} />)
 
         await user.click(within(card("Tidy desk")).getByRole("button", { name: "Edit" }))
         await user.selectOptions(screen.getByDisplayValue("Low priority"), "high")
@@ -177,7 +177,7 @@ describe("TaskList on a goal's page", () => {
     it("creates new tasks as steps of the goal and keeps deadline order", async () => {
         const user = userEvent.setup()
         vi.mocked(createTask).mockResolvedValue({ task: step("s2", "Update resume", "2026-10-10") } as never)
-        render(<TaskList initialTasks={[step("s1", "Apply to 10 companies", "2026-10-20")]} goalId="goal-1" />)
+        render(<TaskList today="2026-10-14" initialTasks={[step("s1", "Apply to 10 companies", "2026-10-20")]} goalId="goal-1" />)
 
         await user.click(screen.getByRole("button", { name: "+ Add a step" }))
         await user.type(screen.getByPlaceholderText("Step title"), "Update resume")
@@ -193,7 +193,7 @@ describe("TaskList on a goal's page", () => {
         const user = userEvent.setup()
         vi.mocked(updateTaskStatus).mockResolvedValue(undefined)
         render(
-            <TaskList
+            <TaskList today="2026-10-14"
                 initialTasks={[step("s1", "Apply to 10 companies", null)]}
                 goalId="goal-1"
                 header={tasks => <p>{tasks.filter(t => t.status === "done").length} done</p>}

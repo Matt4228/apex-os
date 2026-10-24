@@ -18,6 +18,7 @@ export default function CreateGoalFormat({
     empty?: EmptyCopy
 }) {
     const [open, setOpen] = useState(false)
+    const [showDetails, setShowDetails] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const { remember } = useCategories()
@@ -43,6 +44,7 @@ export default function CreateGoalFormat({
 
         setLoading(false)
         setOpen(false)
+        setShowDetails(false)
     }
 
     if (!open) {
@@ -60,18 +62,32 @@ export default function CreateGoalFormat({
     return (
         <form onSubmit={handleSubmit} className="bg-surface border border-line rounded-lg p-4 space-y-3">
             <Input name="title" placeholder="Goal title" required autoFocus />
-            <Input name="description" placeholder="Description (optional)" />
 
             <CategorySelect name="category" />
 
-            <div className="flex gap-2">
-                <Input name="targetValue" type="number" step="any" placeholder="Target value (optional)" className="flex-1" />
-                <Input name="unit" placeholder="Unit e.g. km, lbs" className="flex-1" />
+            {!showDetails && (
+                <button
+                    type="button"
+                    onClick={() => setShowDetails(true)}
+                    className="text-sm text-accent-ink hover:underline"
+                >
+                    + Add a target, date or description
+                </button>
+            )}
+
+            {/* Hidden, not removed: hidden fields still post, so the tracking default goes with every goal */}
+            <div hidden={!showDetails} className="space-y-3">
+                <Input name="description" placeholder="Description (optional)" />
+
+                <div className="flex gap-2">
+                    <Input name="targetValue" type="number" step="any" placeholder="Target value (optional)" className="flex-1" />
+                    <Input name="unit" placeholder="Unit e.g. km, lbs" className="flex-1" />
+                </div>
+
+                <Input name="targetDate" type="date" aria-label="Target date" />
+
+                <TrackingSelect />
             </div>
-
-            <Input name="targetDate" type="date" aria-label="Target date" />
-
-            <TrackingSelect />
 
             {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
 

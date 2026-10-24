@@ -12,7 +12,7 @@ import GoalEditForm from "./GoalEditForm"
 import GoalProgressPanel from "./GoalProgressPanel"
 import type { Entry, Goal } from "./types"
 
-export default function GoalDetail({ initialGoal }: { initialGoal: Goal }) {
+export default function GoalDetail({ initialGoal, today }: { initialGoal: Goal; today: string }) {
     const [goal, setGoal] = useState(initialGoal)
     const [editing, setEditing] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -85,6 +85,7 @@ export default function GoalDetail({ initialGoal }: { initialGoal: Goal }) {
             <TaskList
                 initialTasks={goal.tasks}
                 goalId={goal.id}
+                today={today}
                 header={steps => (
                     <>
                         <GoalProgressPanel

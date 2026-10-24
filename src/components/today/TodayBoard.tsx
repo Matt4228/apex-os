@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, type ReactNode } from "react"
+import { Fragment, useState, type ReactNode } from "react"
 import { CalendarMinus, ChevronRight, Plus, Target } from "lucide-react"
 import { assignBlock, planTask, updateTaskStatus } from "@/app/actions/tasks"
 import { catProps } from "@/lib/categoryColor"
@@ -11,7 +11,7 @@ import TodaySchedule from "@/components/today/TodaySchedule"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
-import { buildToday, dueLabel, groupPlan, type PlanBlock } from "@/lib/today"
+import { buildToday, dueLabel, groupPlan, isOverdue, type PlanBlock } from "@/lib/today"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 import { usePop } from "@/lib/usePop"
 import { useStoredToggles } from "@/lib/useStoredToggles"
@@ -31,8 +31,22 @@ const ANYTIME = "anytime"
 // The short lists start open; the rest of the backlog starts closed so it doesn't bury them
 const OPEN_BY_DEFAULT = { unfinished: true, urgent: true, "due-soon": true, "goal-steps": true, "everything-else": false }
 
-/** "2 days overdue · Ship an open source contribution": the parts that exist, joined */
-const joinDetails = (...parts: (string | null | undefined)[]) => parts.filter(Boolean).join(" · ")
+/** "2 days overdue · Ship an open source contribution": the parts that exist, joined. Null when there are none */
+function joinDetails(...parts: ReactNode[]) {
+    const shown = parts.filter(Boolean)
+    if (shown.length === 0) return null
+    return shown.map((part, i) => (
+        <Fragment key={i}>
+            {i > 0 && " · "}
+            {part}
+        </Fragment>
+    ))
+}
+
+/** A due date as the today page words it, in red once it has passed */
+function DueLabel({ dueDate, today }: { dueDate: Date; today: string }) {
+    return <span className={isOverdue(dueDate, today) ? "text-danger-ink font-medium" : undefined}>{dueLabel(dueDate, today)}</span>
+}
 
 export default function TodayBoard({
     initialTasks,
@@ -61,7 +75,7 @@ export default function TodayBoard({
     const doneCount = plan.filter(t => t.status === "done").length
     const nothingWaiting =
         unfinished.length + urgent.length + dueSoon.length + goalSteps.length + everythingElse.length === 0
-    const withDue = (t: BoardTask) => ({ task: t, detail: joinDetails(t.dueDate && dueLabel(t.dueDate, today), t.goal?.title) })
+    const withDue = (t: BoardTask) => ({ task: t, detail: joinDetails(t.dueDate && <DueLabel dueDate={t.dueDate} today={today} />, t.goal?.title) })
 
     /** Change one task on screen now; put it back and explain if the server says no */
     async function change(id: string, update: Partial<BoardTask>, save: () => Promise<unknown>, what: string) {
@@ -183,7 +197,7 @@ export default function TodayBoard({
                 <SuggestionGroup
                     id="goal-steps"
                     title="Next steps for your goals"
-                    items={goalSteps.map(({ goal, step }) => ({ task: step, detail: joinDetails(goal.title, step.dueDate && dueLabel(step.dueDate, today)) }))}
+                    items={goalSteps.map(({ goal, step }) => ({ task: step, detail: joinDetails(goal.title, step.dueDate && <DueLabel dueDate={step.dueDate} today={today} />) }))}
                     sections={sections}
                     onAdd={addToToday}
                 />
@@ -270,7 +284,7 @@ function PlanRow({
                     <span className={`font-medium px-1.5 py-0.5 rounded-full ${priorityStyles[task.priority] ?? ""}`}>
                         {task.priority}
                     </span>
-                    {task.dueDate && !isDone && <span>{dueLabel(task.dueDate, today)}</span>}
+                    {task.dueDate && !isDone && <DueLabel dueDate={task.dueDate} today={today} />}
                     {task.goal && (
                         <Link
                             href={`/dashboard/goals/${task.goal.id}`}
@@ -333,7 +347,7 @@ function SuggestionGroup({
 }: {
     id: string
     title: string
-    items: { task: BoardTask; detail: string }[]
+    items: { task: BoardTask; detail: ReactNode }[]
     sections: { isOpen: (id: string) => boolean; toggle: (id: string) => void }
     onAdd: (id: string) => void
 }) {

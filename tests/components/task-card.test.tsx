@@ -30,11 +30,25 @@ function renderCard(overrides: Partial<Task> = {}, goals?: { id: string; title: 
             onToggle={vi.fn()}
             onDelete={vi.fn()}
             onUpdate={vi.fn()}
+            today="2026-10-14"
         />
     )
 }
 
 describe("TaskCard due date", () => {
+    it("shows an open task past its due date in red", () => {
+        renderCard({ dueDate: parseDateOnly("2026-10-13") })
+        expect(screen.getByText("Due Oct 13")).toHaveClass("text-danger-ink")
+    })
+
+    it("keeps the date grey when the task is done or not yet due", () => {
+        renderCard({ dueDate: parseDateOnly("2026-10-13"), status: "done" })
+        expect(screen.getByText("Due Oct 13")).not.toHaveClass("text-danger-ink")
+
+        renderCard({ dueDate: parseDateOnly("2026-10-14") })
+        expect(screen.getByText("Due Oct 14")).not.toHaveClass("text-danger-ink")
+    })
+
     it("shows the saved calendar day", () => {
         renderCard()
         expect(screen.getByText("Due Oct 15")).toBeInTheDocument()

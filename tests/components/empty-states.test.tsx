@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 
 const pages = [
-    { name: "Tasks", page: <TaskList initialTasks={[]} />, button: "Create your first task", field: "Task title" },
+    { name: "Tasks", page: <TaskList today="2026-10-14" initialTasks={[]} />, button: "Create your first task", field: "Task title" },
     { name: "Goals", page: <GoalList initialGoals={[]} />, button: "Create your first goal", field: "Goal title" },
     { name: "Habits", page: <HabitList initialHabits={[]} today="2026-10-12" />, button: "Create your first habit", field: "Habit title" },
 ]
@@ -41,7 +41,7 @@ describe.each(pages)("$name with nothing in it", ({ page, button, field }) => {
 describe("empty states only show on an empty page", () => {
     it("keeps the small add button once there is something in the list", () => {
         render(
-            <TaskList
+            <TaskList today="2026-10-14"
                 initialTasks={[{ id: "t1", title: "Write tests", status: "done", priority: "low", dueDate: null, completedAt: null, createdAt: new Date() }]}
             />
         )
@@ -51,7 +51,7 @@ describe("empty states only show on an empty page", () => {
     })
 
     it("leaves a goal's empty step list alone", () => {
-        render(<TaskList initialTasks={[]} goalId="goal-1" />)
+        render(<TaskList today="2026-10-14" initialTasks={[]} goalId="goal-1" />)
 
         expect(screen.getByRole("button", { name: "+ Add a step" })).toBeInTheDocument()
     })
