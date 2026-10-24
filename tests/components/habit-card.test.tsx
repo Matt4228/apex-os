@@ -52,6 +52,27 @@ describe("HabitCard week", () => {
     })
 })
 
+describe("HabitCard weekly target", () => {
+    const logs = (...days: string[]) => days.map((day, i) => ({ id: `log-${i}`, completedOn: parseDateOnly(day) }))
+    const weekly = (...days: string[]) => ({ ...habit, frequency: "weekly", targetPerWeek: 3, logs: logs(...days) })
+
+    it("says how many check-ins are left this week", () => {
+        render(<HabitCard habit={weekly("2026-10-12")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect(screen.getByText("1 / 3 this week")).toBeInTheDocument()
+        expect(screen.getByText("2 to go")).toBeInTheDocument()
+    })
+
+    it("celebrates the target once it's hit", () => {
+        render(
+            <HabitCard habit={weekly("2026-10-12", "2026-10-13", "2026-10-14")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />
+        )
+
+        expect(screen.getByText("Target hit")).toHaveClass("font-semibold")
+        expect(screen.queryByText(/to go/)).not.toBeInTheDocument()
+    })
+})
+
 describe("HabitCard history", () => {
     const logs = (...days: string[]) => days.map((day, i) => ({ id: `log-${i}`, completedOn: parseDateOnly(day) }))
     const card = (frequency: string) => ({

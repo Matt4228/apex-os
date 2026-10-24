@@ -59,6 +59,7 @@ export default function HabitCard({
   const isLoggedOnDay = (day: string) => habit.logs.some(log => toDateInputValue(log.completedOn) === day)
 
   const completedThisWeek = weekDays.filter(isLoggedOnDay).length
+  const toGo = habit.targetPerWeek - completedThisWeek
   const paused = !habit.isActive
   const logDays = habit.logs.map(log => toDateInputValue(log.completedOn))
   const streak = habit.frequency === "daily" ? dayStreak(logDays, today) : null
@@ -107,7 +108,14 @@ export default function HabitCard({
             )}
           </div>
           <p className="text-xs text-ink-muted mt-0.5">
-            {paused ? "Paused" : `${completedThisWeek} / ${habit.targetPerWeek} this week`}
+            {paused ? "Paused" : (
+              <>
+                <span>{`${completedThisWeek} / ${habit.targetPerWeek} this week`}</span>
+                {" · "}
+                {/* What's left pulls toward the target; hitting it gets a bold finish */}
+                {toGo > 0 ? <span>{`${toGo} to go`}</span> : <span className="font-semibold text-cat-ink">Target hit</span>}
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
