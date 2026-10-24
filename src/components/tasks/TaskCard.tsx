@@ -7,6 +7,7 @@ import { updateTask } from "@/app/actions/tasks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
+import { isOverdue } from "@/lib/today"
 import { usePop } from "@/lib/usePop"
 import GoalSelect from "./GoalSelect"
 import type { GoalOption, Task } from "./types"
@@ -24,6 +25,7 @@ export default function TaskCard({
     onDelete,
     onUpdate,
     highlighted = false,
+    today,
 }: {
     task: Task
     /** Goals to offer in the edit form; leave out to hide the goal picker */
@@ -33,6 +35,8 @@ export default function TaskCard({
     onUpdate: (id: string, updated: Partial<Task>) => void
     /** Just added or edited: outline the card and scroll it into view */
     highlighted?: boolean
+    /** The user's calendar day, "YYYY-MM-DD", from the server, so an open task past its due date shows in red */
+    today: string
 }) {
     const [editing, setEditing] = useState(false)
     const cardRef = useRef<HTMLDivElement>(null)
@@ -144,7 +148,7 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                         {task.priority}
                     </span>
                     {task.dueDate && (
-                        <span className="text-xs text-ink-muted">
+                        <span className={`text-xs ${!isDone && isOverdue(task.dueDate, today) ? "text-danger-ink font-medium" : "text-ink-muted"}`}>
                             Due {formatDateOnly(task.dueDate, "MMM d")}
                         </span>
                     )}

@@ -1,5 +1,5 @@
 // tests/lib/today.test.ts
-import { buildToday, dueLabel, groupPlan } from "@/lib/today"
+import { buildToday, dueLabel, groupPlan, isOverdue } from "@/lib/today"
 import { parseDateOnly } from "@/lib/dates"
 import { describe, expect, it } from "vitest"
 
@@ -179,6 +179,14 @@ describe("dueLabel", () => {
 
     it("works across a month boundary", () => {
         expect(dueLabel(parseDateOnly("2026-09-30"), "2026-10-01")).toBe("1 day overdue")
+    })
+})
+
+describe("isOverdue", () => {
+    it("is true only once the due day has passed", () => {
+        expect(isOverdue(parseDateOnly("2026-10-10"), TODAY)).toBe(true)
+        expect(isOverdue(parseDateOnly("2026-10-11"), TODAY)).toBe(false)
+        expect(isOverdue(parseDateOnly("2026-10-12"), TODAY)).toBe(false)
     })
 })
 

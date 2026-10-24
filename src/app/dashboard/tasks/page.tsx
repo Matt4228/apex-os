@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import TaskList from "@/components/tasks/TaskList"
 import { countTaskStatuses, sortTasksByPriority } from "@/lib/dashboardStats"
+import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
 
@@ -11,7 +12,7 @@ export default async function TasksPage() {
     if (!session?.user?.id) redirect("/login")
 
     const userId = session.user.id
-    const [allTasks, goals] = await Promise.all([
+    const [allTasks, goals, today] = await Promise.all([
         prisma.task.findMany({
             where: { userId },
             include: { goal: { select: { id: true, title: true } } },
@@ -22,6 +23,7 @@ export default async function TasksPage() {
             select: { id: true, title: true },
             orderBy: { createdAt: "desc" },
         }),
+        getUserToday(),
     ])
 
     const tasks = sortTasksByPriority(allTasks)
@@ -35,7 +37,7 @@ export default async function TasksPage() {
                     {todoCount} remaining · {doneCount} completed
                 </p>
             </div>
-            <TaskList initialTasks={tasks} goals={goals} />
+            <TaskList initialTasks={tasks} goals={goals} today={today} />
         </main>
     )
 }

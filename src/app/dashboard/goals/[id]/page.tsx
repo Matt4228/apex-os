@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { notFound, redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import GoalDetail from "@/components/goals/GoalDetail"
+import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
 
@@ -20,5 +21,5 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
     })
     if (!goal) notFound()
 
-    return <GoalDetail initialGoal={goal} />
+    return <GoalDetail initialGoal={goal} today={await getUserToday()} />
 }

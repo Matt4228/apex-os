@@ -56,6 +56,28 @@ describe("TodayBoard", () => {
         vi.mocked(assignBlock).mockReset()
     })
 
+    it("shows how overdue a task is in red, in the plan and in suggestions", () => {
+        render(
+            <TodayBoard
+                initialTasks={[
+                    task("t1", "Send invoice", { dueDate: "2026-10-09", plannedFor: TODAY }),
+                    task("t2", "Renew passport", { dueDate: "2026-10-10" }),
+                ]}
+                goals={[]}
+                today={TODAY}
+            />
+        )
+
+        expect(within(plan()).getByText("2 days overdue")).toHaveClass("text-danger-ink")
+        expect(within(suggestions()).getByText("1 day overdue")).toHaveClass("text-danger-ink")
+    })
+
+    it("leaves a date that isn't overdue grey", () => {
+        render(<TodayBoard initialTasks={[task("t1", "Send invoice", { dueDate: TODAY })]} goals={[]} today={TODAY} />)
+
+        expect(within(suggestions()).getByText("due today")).not.toHaveClass("text-danger-ink")
+    })
+
     it("moves a suggestion into the plan with + Today", async () => {
         const user = userEvent.setup()
         vi.mocked(planTask).mockResolvedValue(undefined)

@@ -28,6 +28,7 @@ export default function TaskList({
   goalId,
   goals,
   header,
+  today,
 }: {
   initialTasks: Task[]
   /** On a goal's page: new tasks become steps of this goal, and the list is in step order */
@@ -36,6 +37,8 @@ export default function TaskList({
   goals?: GoalOption[]
   /** Rendered above the list with the tasks currently shown, so a summary stays in sync */
   header?: (tasks: Task[]) => React.ReactNode
+  /** The user's calendar day, "YYYY-MM-DD", passed to each card to spot overdue tasks */
+  today: string
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [error, setError] = useState<string | null>(null)
@@ -103,6 +106,7 @@ export default function TaskList({
             onToggle={handleToggle}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
+            today={today}
             highlighted={highlight?.id === task.id}
           />
         ))}
@@ -129,6 +133,7 @@ export default function TaskList({
                 onToggle={handleToggle}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
+                today={today}
                 highlighted={highlight?.id === task.id}
               />
             ))}

@@ -72,9 +72,16 @@ export function buildToday<T extends TodayTask>({
     return { plan, unfinished, urgent, dueSoon, goalSteps, everythingElse }
 }
 
+/** Whole days from the user's today to the due date: 0 today, 1 tomorrow, -2 two days ago */
+const daysUntil = (dueDate: Date, today: string) =>
+    Math.round((parseDateOnly(toDateInputValue(dueDate)).getTime() - parseDateOnly(today).getTime()) / DAY_MS)
+
+/** True once the due day has passed; due today is not overdue yet */
+export const isOverdue = (dueDate: Date, today: string) => daysUntil(dueDate, today) < 0
+
 /** How a due date reads on the today page: "due today", "due tomorrow", "2 days overdue", "due Oct 20" */
 export function dueLabel(dueDate: Date, today: string): string {
-    const days = Math.round((parseDateOnly(toDateInputValue(dueDate)).getTime() - parseDateOnly(today).getTime()) / DAY_MS)
+    const days = daysUntil(dueDate, today)
     if (days === 0) return "due today"
     if (days === 1) return "due tomorrow"
     if (days === -1) return "1 day overdue"
