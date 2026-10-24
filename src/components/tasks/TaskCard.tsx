@@ -12,6 +12,9 @@ import { usePop } from "@/lib/usePop"
 import GoalSelect from "./GoalSelect"
 import type { GoalOption, Task } from "./types"
 
+// About 44px to tap, the size touch guidelines ask for. Negative margins keep the card's layout as it was
+const cardAction = "-my-3 h-11 min-w-11 px-2 flex items-center justify-center rounded-md text-ink-muted transition-colors"
+
 const priorityStyles = {
     high: "bg-danger-tint text-danger-ink",
     medium: "bg-warning-tint text-warning-ink",
@@ -123,6 +126,7 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                 highlighted ? "border-accent ring-2 ring-accent/30" : "border-line"
             } ${isDone ? "opacity-60" : ""}`}
         >
+            {/* The circle stays 20px; the button around it is 44px, so a near miss still counts */}
             <button
                 role="checkbox"
                 aria-checked={isDone}
@@ -132,12 +136,17 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                     onToggle(task.id, isDone ? "todo" : "done")
                 }}
                 onAnimationEnd={pop.end}
-                className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${pop.className()} ${
-                    isDone
-                        ? "bg-accent border-accent"
-                        : "border-line-strong hover:border-accent"
+                className="group -ml-3 -mr-3 -mb-3 -mt-2.5 p-3 flex-shrink-0 rounded-full"
+            >
+                <span
+                    aria-hidden="true"
+                    className={`block w-5 h-5 rounded-full border-2 transition-colors ${pop.className()} ${
+                        isDone
+                            ? "bg-accent border-accent"
+                            : "border-line-strong group-hover:border-accent"
                     }`}
-            />
+                />
+            </button>
 
             <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium text-ink transition-all ${isDone ? "line-through" : ""}`}>
@@ -164,18 +173,19 @@ focus:outline-none focus:ring-2 focus:ring-accent"
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
+            {/* A gap between Edit and Delete, so reaching for one doesn't hit the other */}
+            <div className="-mr-2 flex items-center gap-1 flex-shrink-0">
                 {!isDone && (
                     <button
                         onClick={() => setEditing(true)}
-                        className="text-xs text-ink-muted hover:text-accent-ink transition-colors leading-none"
+                        className={`${cardAction} text-xs hover:text-accent-ink hover:bg-sunken`}
                     >
                         Edit
                     </button>
                 )}
                 <button
                     onClick={() => onDelete(task.id)}
-                    className="text-ink-muted hover:text-danger-ink transition-colors text-lg leading-none"
+                    className={`${cardAction} text-lg leading-none hover:text-danger-ink hover:bg-sunken`}
                     aria-label={`Delete ${task.title}`}
                 >
                     ×
