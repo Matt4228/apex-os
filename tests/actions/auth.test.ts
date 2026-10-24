@@ -12,16 +12,33 @@ function formDataFrom(entries: Record<string, string>): FormData {
     return formData
 }
 
-const signup = (email = "matt@example.com", password = "password123") =>
-    registerUser(formDataFrom({ name: "Matt", email, password }))
+const signup = (email = "matt@example.com", password = "password123", name = "Matt") =>
+    registerUser(formDataFrom({ name, email, password }))
 
 describe("registerUser", () => {
     it("rejects a short password without touching the database", async () => {
         expect(await signup("matt@example.com", "short")).toEqual({
-            error: "Invalid input. Password must be at least 8 characters.",
+            error: "Password must be at least 8 characters.",
         })
         expect(prismaMock.user.findFirst).not.toHaveBeenCalled()
         expect(prismaMock.user.create).not.toHaveBeenCalled()
+    })
+
+    // Each rule names its own problem, so a bad email never gets blamed on the password
+    it("says when the email isn't an email", async () => {
+        expect(await signup("matt.example.com")).toEqual({ error: "Enter a valid email address." })
+        expect(prismaMock.user.create).not.toHaveBeenCalled()
+    })
+
+    it("says when the name is only spaces", async () => {
+        expect(await signup("matt@example.com", "password123", "   ")).toEqual({ error: "Enter your name." })
+        expect(prismaMock.user.create).not.toHaveBeenCalled()
+    })
+
+    it("says which field is missing when the form leaves one out", async () => {
+        expect(await registerUser(formDataFrom({ name: "Matt", password: "password123" }))).toEqual({
+            error: "Enter a valid email address.",
+        })
     })
 
     it("saves the email trimmed and lowercased, with a hashed password", async () => {
