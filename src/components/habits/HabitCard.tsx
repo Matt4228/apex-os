@@ -6,6 +6,7 @@ import { toggleHabitLog } from "@/app/actions/habits"
 import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
 import { dayStreak, heatmapDays, heatmapLabel } from "@/lib/habitHistory"
+import { failureMessage } from "@/lib/optimistic"
 import { usePop } from "@/lib/usePop"
 import HabitForm, { type HabitFields } from "./HabitForm"
 
@@ -48,6 +49,7 @@ export default function HabitCard({
 }) {
   const [loading, setLoading] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const pop = usePop()
 
   // Sunday to Saturday as "YYYY-MM-DD" days, which compare correctly as text
@@ -61,11 +63,17 @@ export default function HabitCard({
   const logDays = habit.logs.map(log => toDateInputValue(log.completedOn))
   const streak = habit.frequency === "daily" ? dayStreak(logDays, today) : null
 
+  /** Fill or empty the day on screen now; put it back and explain if the server says no */
   async function handleDayClick(dateStr: string) {
+    const action = isLoggedOnDay(dateStr) ? "removed" : "added"
+    setError(null)
     setLoading(dateStr)
-    const result = await toggleHabitLog(habit.id, dateStr)
-    if (result?.action) {
-      onLogToggle(habit.id, dateStr, result.action as "added" | "removed")
+    onLogToggle(habit.id, dateStr, action)
+
+    const problem = await failureMessage(toggleHabitLog(habit.id, dateStr), "update that habit")
+    if (problem) {
+      onLogToggle(habit.id, dateStr, action === "added" ? "removed" : "added")
+      setError(problem)
     }
     setLoading(null)
   }
@@ -167,6 +175,8 @@ export default function HabitCard({
               )
             })}
           </div>
+
+          {error && <p role="alert" className="text-sm text-danger-ink mt-2">{error}</p>}
 
           <div className="mt-3">
             <div className="h-1 bg-cat-tint rounded-full overflow-hidden">

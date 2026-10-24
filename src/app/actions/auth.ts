@@ -5,10 +5,11 @@ import { emailSchema } from "@/lib/email"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
+// One message per rule. `error` also covers a field missing from the form, which arrives as null
 const registerSchema = z.object({
-    name: z.string().trim().min(1),
+    name: z.string({ error: "Enter your name." }).trim().min(1, "Enter your name."),
     email: emailSchema,
-    password: z.string().min(8)
+    password: z.string({ error: "Password must be at least 8 characters." }).min(8, "Password must be at least 8 characters."),
 })
 
 // Returns success instead of redirecting: the register page signs in with the password it already has,
@@ -20,8 +21,9 @@ export async function registerUser(formData: FormData) {
         password: formData.get("password"),
     })
 
+    // Fields are checked in form order, so the first problem is the one nearest the top
     if (!parsed.success) {
-        return { error: "Invalid input. Password must be at least 8 characters." }
+        return { error: parsed.error.issues[0].message }
     }
 
     // Ignores case, so an older account saved as "Matt@Example.com" still counts as taken
