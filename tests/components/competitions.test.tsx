@@ -222,11 +222,20 @@ describe("CompetitionDetail", () => {
         expect(screen.queryByRole("list", { name: "Podium" })).not.toBeInTheDocument()
     })
 
-    it("draws this week as a lane toward the finish", () => {
+    it("shows this week's race with just you on your own", () => {
         render(<CompetitionDetail competition={view()} today="2026-10-14" />)
 
-        expect(screen.getByText("9 of 12 km")).toBeInTheDocument()
-        expect(screen.getByRole("progressbar", { name: "km run this week" })).toHaveAttribute("aria-valuenow", "75")
+        const race = within(screen.getByRole("table", { name: "This week's race" }))
+        expect(race.getAllByRole("row").slice(1).map(r => r.getAttribute("aria-label"))).toEqual(["1 You"])
+        expect(race.getByText("9 km")).toBeInTheDocument()
+        expect(race.getByText("75%")).toBeInTheDocument()
+    })
+
+    it("ranks the rivals in this week's race", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const race = within(screen.getByRole("table", { name: "This week's race" }))
+        expect(race.getAllByRole("row").slice(1).map(r => r.getAttribute("aria-label"))).toEqual(["1 Sam", "2 You", "3 Alex"])
     })
 
     it("logs into this week and says when the week is complete", async () => {
@@ -238,7 +247,7 @@ describe("CompetitionDetail", () => {
         await user.click(screen.getByRole("button", { name: "Log it" }))
 
         expect(await screen.findByRole("status")).toHaveTextContent("Week 2 complete.")
-        expect(screen.getByText("12 of 12 km")).toBeInTheDocument()
+        expect(within(screen.getByRole("table", { name: "This week's race" })).getByText("12 km")).toBeInTheDocument()
         // The week's square turns gold, with a pop
         expect(screen.getByText("Week 2: complete").parentElement!.className).toContain("animate-check-pop")
         expect((vi.mocked(logProgress).mock.calls[0][1] as FormData).get("amount")).toBe("3")

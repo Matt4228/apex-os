@@ -14,17 +14,17 @@ import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus"
 import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
 import PeoplePanel from "./PeoplePanel"
+import RaceGrid from "./RaceGrid"
 import type { Person } from "@/lib/friends"
 import SeasonGrid from "./SeasonGrid"
 import TargetsByMonth from "./TargetsByMonth"
-import WeekRace from "./WeekRace"
 import { amountText } from "./format"
 
 const card = "rounded-2xl border border-line bg-surface p-5 space-y-4 min-w-0"
 const selectClass = "h-10 w-full rounded-md border border-line bg-surface px-2 text-sm text-ink"
 
 /**
- * One competition, the second centerpiece next to Today: the standing, this week's lanes, logging, everyone's
+ * One competition, the second centerpiece next to Today: the standing, this week's race, logging, everyone's
  * activity, the season and the weekly targets. Everything is scored in the browser with the same functions as the server
  */
 export default function CompetitionDetail({
@@ -153,12 +153,12 @@ export default function CompetitionDetail({
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-start">
                     <section aria-labelledby="this-week" className={card}>
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week</h3>
+                            <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week&apos;s race</h3>
                             <span className="text-xs text-ink-muted">
                                 {formatDateOnly(weekDates(competition, thisWeek).from, "MMM d")} to {formatDateOnly(weekDates(competition, thisWeek).to, "MMM d")}
                             </span>
                         </div>
-                        <WeekRace metrics={metrics} progress={progress} />
+                        <RaceGrid metrics={metrics} targets={targets} week={thisWeek} standings={ranked} />
                     </section>
 
                     <div className="space-y-4 min-w-0">
