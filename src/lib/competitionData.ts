@@ -2,6 +2,7 @@ import { season, weekOf, type Log, type Position, type Season } from "@/lib/comp
 import { prisma } from "@/lib/prisma"
 import { toDateInputValue } from "@/lib/dates"
 import { displayName, initialsOf } from "@/lib/people"
+import { standings } from "@/lib/standings"
 
 const person = { select: { id: true, name: true, email: true } }
 
@@ -33,6 +34,8 @@ export type CompetitionView = {
     invited: Invited[]
     /** Owner only: the code in the invite link */
     joinCode: string | null
+    /** Finished competitions on the list only: your final place, or "solo" when nobody else was in it */
+    place?: number | "solo"
 }
 
 type Row = Awaited<ReturnType<typeof loadRows>>[number]
@@ -128,10 +131,39 @@ export async function loadInvites(userId: string, today: string): Promise<Invite
     })
 }
 
-/** Every competition the user is in, newest start first */
+/** Every competition the user is in, newest start first. Finished ones carry your final place */
 export async function loadCompetitions(userId: string, today: string): Promise<CompetitionView[]> {
     const rows = await loadRows({ userId })
-    return rows.map(row => toView(row, userId, today))
+    const views = rows.map(row => toView(row, userId, today))
+
+    // Places need everyone's weekly totals, summed in one query, and only for finished competitions with rivals
+    const raced = rows.filter((row, i) => views[i].position.state === "finished" && row.competition.participants.length > 1)
+    const sums = raced.length
+        ? await prisma.progressLog.groupBy({
+              by: ["participantId", "metricId", "week"],
+              where: { participant: { competitionId: { in: raced.map(row => row.competitionId) } } },
+              _sum: { amount: true },
+          })
+        : []
+
+    return views.map((view, i) => {
+        if (view.position.state !== "finished") return view
+        const { participants } = rows[i].competition
+        if (participants.length < 2) return { ...view, place: "solo" as const }
+        const competitors = participants.map(p => ({
+            participantId: p.id,
+            userId: p.userId,
+            name: displayName(p.user.name, p.user.email),
+            initials: initialsOf(p.user.name, p.user.email),
+            isYou: p.userId === userId,
+            totals: sums
+                .filter(s => s.participantId === p.id)
+                .map(s => ({ metricId: s.metricId, week: s.week, amount: s._sum.amount ?? 0 })),
+        }))
+        // Scored by the same function as the competition page, so the two never disagree; only the place leaves here
+        const ranked = standings({ metrics: view.metrics, targets: view.targets, competitors, myLogs: view.logs, competition: view, position: view.position })
+        return { ...view, place: ranked.find(r => r.isYou)?.place }
+    })
 }
 
 /** Someone in the competition and their weekly totals per goal, summed on the server */
