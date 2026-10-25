@@ -199,7 +199,8 @@ export default function CompetitionDetail({
                 {notice && <p role="status" className="text-sm font-semibold text-win-ink">{notice}</p>}
 
                 {progress && thisWeek && (
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-start">
+                    // The race gets the full width; logging and the feed pair up under it at matching heights
+                    <div className="space-y-4">
                         <section aria-labelledby="this-week" className={card}>
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                                 <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week&apos;s race</h3>
@@ -211,7 +212,7 @@ export default function CompetitionDetail({
                             <RaceGrid metrics={metrics} targets={targets} week={thisWeek} standings={ranked} />
                         </section>
 
-                        <div className="space-y-4 min-w-0">
+                        <div className="grid gap-4 md:grid-cols-2">
                             <section aria-labelledby="log-heading" className={card}>
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                                     <h3 id="log-heading" className="text-[15px] font-semibold text-ink">Log progress</h3>
@@ -255,7 +256,6 @@ export default function CompetitionDetail({
                                     </label>
                                     <Button type="submit" className="w-full">Log it</Button>
                                 </form>
-
                             </section>
                             <ActivityFeed entries={activity} metrics={metrics} today={today} thisWeek={thisWeek} onDelete={handleDeleteLog} />
                         </div>
