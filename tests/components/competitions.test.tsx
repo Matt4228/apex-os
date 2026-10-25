@@ -34,6 +34,9 @@ const logs = [
     { id: "b", metricId: "km", week: 1, amount: 11, note: null, createdAt: new Date("2026-10-08") },
 ]
 const you = { participantId: "p1", userId: "me", name: "Me Too", initials: "MT", isYou: true }
+// Rivals for the multiplayer page: Sam has both weeks done (1st), Alex only started (3rd), you sit 2nd
+const sam = { participantId: "p2", userId: "sam", name: "Sam Chen", initials: "SC", isYou: false, totals: [{ metricId: "km", week: 1, amount: 12 }, { metricId: "km", week: 2, amount: 12 }] }
+const alex = { participantId: "p3", userId: "alex", name: "Alex Rivera", initials: "AR", isYou: false, totals: [{ metricId: "km", week: 1, amount: 5 }] }
 const activity = logs.map(log => ({ ...log, participantId: "p1", name: "Me Too", initials: "MT", isYou: true }))
 function view(o: Partial<CompetitionDetailView> = {}): CompetitionDetailView {
     const position: Position = o.position ?? { state: "active", week: 2 }
@@ -194,6 +197,29 @@ describe("CompetitionDetail", () => {
         expect(within(hero).getByText("weeks complete").previousSibling).toHaveTextContent("1 / 4")
         expect(within(hero).getByText("3 km")).toBeInTheDocument()
         expect(within(hero).getByRole("img", { name: "This week 75%" })).toBeInTheDocument()
+    })
+
+    it("puts a podium in the top card when there are rivals, in place of the ring", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const hero = within(screen.getByRole("region", { name: "Standing" }))
+        expect(hero.getByRole("list", { name: "Podium" })).toBeInTheDocument()
+        expect(hero.queryByRole("img", { name: /^This week/ })).not.toBeInTheDocument()
+        expect(hero.getByText(/You're 2nd, 1 week behind Sam\./)).toBeInTheDocument()
+        expect(hero.getByText("3 km")).toBeInTheDocument()
+    })
+
+    it("keeps the ring and has no podium on your own", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        expect(screen.queryByRole("list", { name: "Podium" })).not.toBeInTheDocument()
+        expect(screen.getByRole("img", { name: "This week 75%" })).toBeInTheDocument()
+    })
+
+    it("has no podium before the competition starts", () => {
+        render(<CompetitionDetail competition={view({ position: { state: "upcoming" }, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        expect(screen.queryByRole("list", { name: "Podium" })).not.toBeInTheDocument()
     })
 
     it("draws this week as a lane toward the finish", () => {

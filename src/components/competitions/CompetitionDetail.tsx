@@ -9,6 +9,7 @@ import { daysLeft, lastDay, quickAmounts, season, weekDates, weekProgress } from
 import type { CompetitionDetailView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
+import { standings } from "@/lib/standings"
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus"
 import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
@@ -64,6 +65,8 @@ export default function CompetitionDetail({
     const thisWeek = position.state === "active" ? position.week : null
     const progress = thisWeek ? weekProgress(metrics, targets, logs, thisWeek) : null
     const seasonNow = season(metrics, targets, logs, competition, position)
+    // Everyone scored the same way, with your own logs swapped in so a new log moves you at once
+    const ranked = standings({ metrics, targets, competitors: competition.competitors, myLogs: logs, competition, position })
     const firstEditable = position.state === "upcoming" ? 1 : thisWeek ? thisWeek + 1 : Infinity
     const metricOf = (id: string) => metrics.find(m => m.id === id)
     const selectedTarget = thisWeek ? targets.find(t => t.metricId === metricId && t.week === thisWeek)?.target ?? 0 : 0
@@ -140,6 +143,7 @@ export default function CompetitionDetail({
                 progress={progress}
                 metrics={metrics}
                 daysLeft={thisWeek ? daysLeft(competition, thisWeek, today) : null}
+                standings={ranked}
             />
 
             {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
