@@ -9,6 +9,7 @@ import { daysLeft, lastDay, quickAmounts, season, weekDates, weekProgress } from
 import type { CompetitionDetailView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
+import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus"
 import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
 import PeoplePanel from "./PeoplePanel"
@@ -48,6 +49,16 @@ export default function CompetitionDetail({
     const [logAmount, setLogAmount] = useState("")
     const [note, setNote] = useState("")
     const [drafts, setDrafts] = useState<Record<string, string>>({})
+
+    // Coming back to the tab reloads the data; adopt it during render, leaving what you were typing alone
+    useRefreshOnFocus()
+    const [seen, setSeen] = useState(competition.loadedAt)
+    if (competition.loadedAt !== seen) {
+        setSeen(competition.loadedAt)
+        setLogs(competition.logs)
+        setActivity(competition.activity)
+        setTargets(competition.targets)
+    }
 
     const { position, metrics } = competition
     const thisWeek = position.state === "active" ? position.week : null

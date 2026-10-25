@@ -11,7 +11,8 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const push = vi.fn()
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))
+const refresh = vi.fn()
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }))
 vi.mock("@/app/actions/competitions", () => ({
     createCompetition: vi.fn(),
     deleteCompetition: vi.fn(),
@@ -46,6 +47,7 @@ function view(o: Partial<CompetitionDetailView> = {}): CompetitionDetailView {
 
 beforeEach(() => {
     push.mockReset()
+    refresh.mockReset()
     vi.mocked(createCompetition).mockReset()
     vi.mocked(logProgress).mockReset()
     vi.mocked(deleteLog).mockReset()
@@ -263,6 +265,29 @@ describe("CompetitionDetail", () => {
         expect(feed.getByText("Sam")).toBeInTheDocument()
         expect(feed.getByText("Legs were dead")).toBeInTheDocument()
         expect(feed.queryByRole("button", { name: /6.2 km/ })).not.toBeInTheDocument()
+    })
+
+    it("refreshes when you come back to the tab", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true })
+        document.dispatchEvent(new Event("visibilitychange"))
+
+        expect(refresh).toHaveBeenCalledTimes(1)
+    })
+
+    it("picks up refreshed data without losing what you were typing", async () => {
+        const user = userEvent.setup()
+        const { rerender } = render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        await user.type(screen.getByPlaceholderText("Amount"), "3")
+        await user.type(screen.getByPlaceholderText("Note (optional)"), "Hills")
+
+        const sam = { id: "s1", metricId: "km", week: 2, amount: 6.2, note: "Legs were dead", createdAt: new Date("2026-10-14T18:00:00Z"), participantId: "p2", name: "Sam Chen", initials: "SC", isYou: false }
+        rerender(<CompetitionDetail competition={view({ activity: [sam, ...activity], loadedAt: "2026-10-14T01:00:00.000Z" })} today="2026-10-14" />)
+
+        expect(screen.getByText("Legs were dead")).toBeInTheDocument()
+        expect(screen.getByPlaceholderText("Amount")).toHaveValue(3)
+        expect(screen.getByPlaceholderText("Note (optional)")).toHaveValue("Hills")
     })
 
     it("tells you notes are visible to everyone", () => {
