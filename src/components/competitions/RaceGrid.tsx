@@ -89,7 +89,7 @@ export default function RaceGrid({ metrics, targets, week, standings }: { metric
                                 <th scope="row" className="px-1.5 py-2.5 text-left font-normal max-md:p-0">
                                     <span className="flex min-w-0 items-center gap-2">
                                         <Avatar name={row.name} initials={row.initials} size="sm" />
-                                        <span className={`truncate ${row.isYou ? "font-bold text-ink" : "text-ink-soft"}`}>{name}</span>
+                                        <span className={`max-w-28 truncate ${row.isYou ? "font-bold text-ink" : "text-ink-soft"}`}>{name}</span>
                                     </span>
                                 </th>
                                 {row.week?.metrics.map(goal => {

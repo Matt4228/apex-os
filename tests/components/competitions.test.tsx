@@ -6,7 +6,7 @@ import CompetitionForm from "@/components/competitions/CompetitionForm"
 import CompetitionList from "@/components/competitions/CompetitionList"
 import { season, type Position } from "@/lib/competition"
 import type { CompetitionDetailView } from "@/lib/competitionData"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -272,6 +272,30 @@ describe("CompetitionDetail", () => {
         const headings = screen.getAllByRole("heading", { level: 3 }).filter(h => !rail.contains(h)).map(h => h.textContent)
         expect(headings).toEqual(["This week's race", "Log progress", "Activity", "Season", "Weekly targets"])
         expect(within(rail).getByRole("heading", { name: /People/ })).toBeInTheDocument()
+    })
+
+    it("counts a new log once even when the refreshed page data lands first", async () => {
+        const user = userEvent.setup()
+        let answer!: (value: unknown) => void
+        vi.mocked(logProgress).mockReturnValue(new Promise(resolve => { answer = resolve }) as never)
+        const added = { id: "c", metricId: "km", week: 2, amount: 3, note: null, createdAt: new Date("2026-10-14T12:00:00Z") }
+        const { rerender } = render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        await user.type(screen.getByLabelText("Amount"), "3")
+        await user.click(screen.getByRole("button", { name: "Log it" }))
+
+        // The server's revalidation delivers the new log before the action's own answer arrives
+        const refreshed = view({ logs: [added, ...logs], activity: [{ ...added, participantId: "p1", name: "Me Too", initials: "MT", isYou: true }, ...activity], loadedAt: "2026-10-14T02:00:00.000Z" })
+        rerender(<CompetitionDetail competition={refreshed} today="2026-10-14" />)
+        await act(async () => answer({ log: added }))
+
+        expect(within(screen.getByRole("table", { name: "This week's race" })).getByText("12 km")).toBeInTheDocument()
+        expect(within(screen.getByRole("region", { name: "Activity" })).getAllByRole("button", { name: "Remove 3 km from week 2" })).toHaveLength(1)
+    })
+
+    it("says how many days are left in this week's race", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        expect(within(screen.getByRole("region", { name: "This week's race" })).getByText("Oct 11 to Oct 17 · 4 days left")).toBeInTheDocument()
     })
 
     it("logs into this week and says when the week is complete", async () => {

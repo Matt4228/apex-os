@@ -90,12 +90,16 @@ export default function CompetitionDetail({
             setError(result?.error ?? "Something went wrong")
             return
         }
-        if (!result.log) return
-        const next = [result.log, ...logs]
-        setLogs(next)
+        const added = result.log
+        if (!added) return
+        // Saving also revalidates the page, so refreshed data may already hold this log: add it only once,
+        // on top of whatever is current rather than what was on screen before the save
+        const withAdded = <T extends { id: string }>(current: T[], entry: T) => (current.some(l => l.id === entry.id) ? current : [entry, ...current])
+        const next = withAdded(logs, added)
+        setLogs(current => withAdded(current, added))
         // Your own entry in the feed, shown the moment it's saved
         const me = competition.competitors.find(c => c.isYou)
-        if (me) setActivity(current => [{ ...result.log, participantId: me.participantId, name: me.name, initials: me.initials, isYou: true }, ...current])
+        if (me) setActivity(current => withAdded(current, { ...added, participantId: me.participantId, name: me.name, initials: me.initials, isYou: true }))
         setLogAmount("")
         setNote("")
         if (thisWeek && !wasComplete && weekProgress(metrics, targets, next, thisWeek).complete) {
@@ -201,6 +205,7 @@ export default function CompetitionDetail({
                                 <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week&apos;s race</h3>
                                 <span className="text-xs text-ink-muted">
                                     {formatDateOnly(weekDates(competition, thisWeek).from, "MMM d")} to {formatDateOnly(weekDates(competition, thisWeek).to, "MMM d")}
+                                    {` · ${daysLeft(competition, thisWeek, today)} ${daysLeft(competition, thisWeek, today) === 1 ? "day" : "days"} left`}
                                 </span>
                             </div>
                             <RaceGrid metrics={metrics} targets={targets} week={thisWeek} standings={ranked} />

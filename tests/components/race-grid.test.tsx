@@ -41,6 +41,12 @@ describe("RaceGrid", () => {
         expect(within(screen.getByRole("row", { name: "2 You" })).getByText("14.3 km")).toBeInTheDocument()
     })
 
+    it("keeps a long name from widening the table", () => {
+        renderGrid([person("Bartholomewthelongestnameyet", 10, 1, 1, true), person("Maximilianowithanunbrokenname", 5, 1, 2)])
+
+        expect(screen.getByText("Maximilianowithanunbrokenname")).toHaveClass("truncate", "max-w-28")
+    })
+
     it("caps the week at 100", () => {
         renderGrid([person("Me Too", 66, 0, 1, true)])
 
