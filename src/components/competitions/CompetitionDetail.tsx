@@ -4,12 +4,12 @@ import { useState } from "react"
 import { deleteLog, logProgress, updateFutureTargets } from "@/app/actions/competitions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { LocalDate } from "@/components/ui/local-date"
 import { catProps } from "@/lib/categoryColor"
 import { daysLeft, lastDay, quickAmounts, season, weekDates, weekProgress } from "@/lib/competition"
-import type { CompetitionView } from "@/lib/competitionData"
+import type { CompetitionDetailView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
+import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
 import PeoplePanel from "./PeoplePanel"
 import type { Person } from "@/lib/friends"
@@ -22,8 +22,8 @@ const card = "rounded-2xl border border-line bg-surface p-5 space-y-4 min-w-0"
 const selectClass = "h-10 w-full rounded-md border border-line bg-surface px-2 text-sm text-ink"
 
 /**
- * One competition, the second centerpiece next to Today: the standing, this week's lanes, logging, the season,
- * the weekly targets and your recent logs. Everything is scored in the browser with the same functions as the server
+ * One competition, the second centerpiece next to Today: the standing, this week's lanes, logging, everyone's
+ * activity, the season and the weekly targets. Everything is scored in the browser with the same functions as the server
  */
 export default function CompetitionDetail({
     competition,
@@ -31,7 +31,7 @@ export default function CompetitionDetail({
     friends = [],
     origin = "",
 }: {
-    competition: CompetitionView
+    competition: CompetitionDetailView
     today: string
     /** The owner's friends, for inviting */
     friends?: Person[]
@@ -39,6 +39,7 @@ export default function CompetitionDetail({
     origin?: string
 }) {
     const [logs, setLogs] = useState(competition.logs)
+    const [activity, setActivity] = useState(competition.activity)
     const [targets, setTargets] = useState(competition.targets)
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
@@ -74,6 +75,9 @@ export default function CompetitionDetail({
         if (!result.log) return
         const next = [result.log, ...logs]
         setLogs(next)
+        // Your own entry in the feed, shown the moment it's saved
+        const me = competition.competitors.find(c => c.isYou)
+        if (me) setActivity(current => [{ ...result.log, participantId: me.participantId, name: me.name, initials: me.initials, isYou: true }, ...current])
         setLogAmount("")
         setNote("")
         if (thisWeek && !wasComplete && weekProgress(metrics, targets, next, thisWeek).complete) {
@@ -84,11 +88,13 @@ export default function CompetitionDetail({
 
     async function handleDeleteLog(id: string) {
         setError(null)
-        const before = logs
+        const before = { logs, activity }
         setLogs(current => current.filter(l => l.id !== id))
+        setActivity(current => current.filter(l => l.id !== id))
         const problem = await failureMessage(deleteLog(id), "remove that log")
         if (problem) {
-            setLogs(before)
+            setLogs(before.logs)
+            setActivity(before.activity)
             setError(problem)
         }
     }
@@ -140,78 +146,54 @@ export default function CompetitionDetail({
                         <WeekRace metrics={metrics} progress={progress} />
                     </section>
 
-                    <section aria-labelledby="log-heading" className={card}>
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 id="log-heading" className="text-[15px] font-semibold text-ink">Log progress</h3>
-                            <span className="text-xs text-ink-muted">This week only</span>
-                        </div>
-                        <form
-                            onSubmit={e => {
-                                e.preventDefault()
-                                log(logAmount)
-                            }}
-                            className="space-y-2.5"
-                        >
-                            <div className="flex gap-2">
-                                <label className="min-w-0 flex-1">
-                                    <span className="sr-only">Metric</span>
-                                    <select value={metricId} onChange={e => setMetricId(e.target.value)} className={selectClass}>
-                                        {metrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                    </select>
-                                </label>
-                                <label className="w-28">
-                                    <span className="sr-only">Amount</span>
-                                    <Input type="number" min={0} step="any" placeholder="Amount" value={logAmount} onChange={e => setLogAmount(e.target.value)} required />
-                                </label>
+                    <div className="space-y-4 min-w-0">
+                        <section aria-labelledby="log-heading" className={card}>
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <h3 id="log-heading" className="text-[15px] font-semibold text-ink">Log progress</h3>
+                                <span className="text-xs text-ink-muted">This week only</span>
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {quickAmounts(selectedTarget).map(amount => (
-                                    <button
-                                        key={amount}
-                                        type="button"
-                                        onClick={() => log(String(amount))}
-                                        className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent-ink"
-                                    >
-                                        +{amountText(amount, metricOf(metricId)?.unit ?? null)}
-                                    </button>
-                                ))}
-                            </div>
-                            <label className="block">
-                                <span className="sr-only">Note</span>
-                                <Input placeholder="Note (optional)" value={note} onChange={e => setNote(e.target.value)} maxLength={200} />
-                            </label>
-                            <Button type="submit" className="w-full">Log it</Button>
-                        </form>
+                            <form
+                                onSubmit={e => {
+                                    e.preventDefault()
+                                    log(logAmount)
+                                }}
+                                className="space-y-2.5"
+                            >
+                                <div className="flex gap-2">
+                                    <label className="min-w-0 flex-1">
+                                        <span className="sr-only">Metric</span>
+                                        <select value={metricId} onChange={e => setMetricId(e.target.value)} className={selectClass}>
+                                            {metrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <label className="w-28">
+                                        <span className="sr-only">Amount</span>
+                                        <Input type="number" min={0} step="any" placeholder="Amount" value={logAmount} onChange={e => setLogAmount(e.target.value)} required />
+                                    </label>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {quickAmounts(selectedTarget).map(amount => (
+                                        <button
+                                            key={amount}
+                                            type="button"
+                                            onClick={() => log(String(amount))}
+                                            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent-ink"
+                                        >
+                                            +{amountText(amount, metricOf(metricId)?.unit ?? null)}
+                                        </button>
+                                    ))}
+                                </div>
+                                <label className="block">
+                                    <span className="sr-only">Note</span>
+                                    <Input placeholder="Note (optional)" value={note} onChange={e => setNote(e.target.value)} maxLength={200} />
+                                    <span className="mt-1 block text-xs text-ink-muted">Visible to everyone in this competition</span>
+                                </label>
+                                <Button type="submit" className="w-full">Log it</Button>
+                            </form>
 
-                        {logs.length > 0 && (
-                            <ul aria-label="Recent" className="space-y-2 border-t border-line pt-3">
-                                {logs.slice(0, 6).map(entry => {
-                                    const metric = metricOf(entry.metricId)
-                                    return (
-                                        <li key={entry.id} className="flex items-center gap-2 text-sm text-ink-soft">
-                                            <span className="min-w-0 flex-1 truncate">
-                                                <span className="font-medium text-ink">{amountText(entry.amount, metric?.unit ?? null)}</span>
-                                                {!metric?.unit && ` ${metric?.name}`}
-                                                {entry.note && <span className="text-ink-muted"> · {entry.note}</span>}
-                                            </span>
-                                            <time className="font-mono text-[11px] text-ink-muted">
-                                                {entry.week === thisWeek ? <LocalDate date={entry.createdAt} pattern="EEE" /> : `Wk ${entry.week}`}
-                                            </time>
-                                            {entry.week === thisWeek && (
-                                                <button
-                                                    onClick={() => handleDeleteLog(entry.id)}
-                                                    className="text-xs text-ink-muted hover:text-danger-ink"
-                                                    aria-label={`Remove ${amountText(entry.amount, metric?.unit ?? null)} from week ${entry.week}`}
-                                                >
-                                                    Remove
-                                                </button>
-                                            )}
-                                        </li>
-                                    )
-                                })}
-                            </ul>
-                        )}
-                    </section>
+                        </section>
+                        <ActivityFeed entries={activity} metrics={metrics} today={today} thisWeek={thisWeek} onDelete={handleDeleteLog} />
+                    </div>
                 </div>
             )}
 

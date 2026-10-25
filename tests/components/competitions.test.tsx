@@ -5,7 +5,7 @@ import CompetitionDetail from "@/components/competitions/CompetitionDetail"
 import CompetitionForm from "@/components/competitions/CompetitionForm"
 import CompetitionList from "@/components/competitions/CompetitionList"
 import { season, type Position } from "@/lib/competition"
-import type { CompetitionView } from "@/lib/competitionData"
+import type { CompetitionDetailView } from "@/lib/competitionData"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -32,9 +32,14 @@ const logs = [
     { id: "a", metricId: "km", week: 2, amount: 9, note: "Tempo", createdAt: new Date("2026-10-13") },
     { id: "b", metricId: "km", week: 1, amount: 11, note: null, createdAt: new Date("2026-10-08") },
 ]
-function view(o: Partial<CompetitionView> = {}): CompetitionView {
+const you = { participantId: "p1", userId: "me", name: "Me Too", initials: "MT", isYou: true }
+const activity = logs.map(log => ({ ...log, participantId: "p1", name: "Me Too", initials: "MT", isYou: true }))
+function view(o: Partial<CompetitionDetailView> = {}): CompetitionDetailView {
     const position: Position = o.position ?? { state: "active", week: 2 }
-    const base = { id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs, people: [], invited: [], joinCode: null }
+    const base = {
+        id: "run", title: "Run Club", category: "Fitness", startDate: "2026-10-04", weeks: 4, isOwner: true, position, metrics, targets, logs, people: [], invited: [], joinCode: null,
+        competitors: [{ ...you, totals: [] }], activity, loadedAt: "2026-10-14T00:00:00.000Z",
+    }
     const merged = { ...base, ...o }
     return { ...merged, season: season(merged.metrics, merged.targets, merged.logs, merged, position) }
 }
@@ -245,8 +250,25 @@ describe("CompetitionDetail", () => {
     it("lets you remove this week's logs only", () => {
         render(<CompetitionDetail competition={view()} today="2026-10-14" />)
 
-        expect(screen.getByRole("button", { name: "Remove 9 km from week 2" })).toBeInTheDocument()
-        expect(screen.queryByRole("button", { name: /from week 1/ })).not.toBeInTheDocument()
+        const feed = within(screen.getByRole("region", { name: "Activity" }))
+        expect(feed.getByRole("button", { name: "Remove 9 km from week 2" })).toBeInTheDocument()
+        expect(feed.queryByRole("button", { name: /from week 1/ })).not.toBeInTheDocument()
+    })
+
+    it("shows the other people's logs and notes in the activity feed", () => {
+        const sam = { id: "s1", metricId: "km", week: 2, amount: 6.2, note: "Legs were dead", createdAt: new Date("2026-10-14T18:00:00Z"), participantId: "p2", name: "Sam Chen", initials: "SC", isYou: false }
+        render(<CompetitionDetail competition={view({ activity: [sam, ...activity] })} today="2026-10-14" />)
+
+        const feed = within(screen.getByRole("region", { name: "Activity" }))
+        expect(feed.getByText("Sam")).toBeInTheDocument()
+        expect(feed.getByText("Legs were dead")).toBeInTheDocument()
+        expect(feed.queryByRole("button", { name: /6.2 km/ })).not.toBeInTheDocument()
+    })
+
+    it("tells you notes are visible to everyone", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        expect(screen.getByText("Visible to everyone in this competition")).toBeInTheDocument()
     })
 
     it("lets the owner change weeks that haven't started, and saves them", async () => {
