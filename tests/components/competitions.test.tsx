@@ -238,6 +238,17 @@ describe("CompetitionDetail", () => {
         expect(race.getAllByRole("row").slice(1).map(r => r.getAttribute("aria-label"))).toEqual(["1 Sam", "2 You", "3 Alex"])
     })
 
+    it("ranks everyone in the season with rivals, and keeps your own season grid on your own", () => {
+        const { unmount } = render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+        const season = within(screen.getByRole("list", { name: "Season standings" }))
+        expect(season.getAllByRole("listitem").map(r => r.getAttribute("aria-label"))).toEqual(["1 Sam", "2 You", "3 Alex"])
+        unmount()
+
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        expect(screen.queryByRole("list", { name: "Season standings" })).not.toBeInTheDocument()
+        expect(screen.getByRole("list", { name: "Weeks 1 to 4" })).toBeInTheDocument()
+    })
+
     it("logs into this week and says when the week is complete", async () => {
         const user = userEvent.setup()
         vi.mocked(logProgress).mockResolvedValue({ log: { id: "c", metricId: "km", week: 2, amount: 3, note: null, createdAt: new Date() } } as never)

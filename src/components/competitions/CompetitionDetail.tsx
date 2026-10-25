@@ -15,6 +15,7 @@ import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
 import PeoplePanel from "./PeoplePanel"
 import RaceGrid from "./RaceGrid"
+import SeasonBoard from "./SeasonBoard"
 import type { Person } from "@/lib/friends"
 import SeasonGrid from "./SeasonGrid"
 import TargetsByMonth from "./TargetsByMonth"
@@ -219,7 +220,11 @@ export default function CompetitionDetail({
                         {formatDateOnly(competition.startDate, "MMM d, yyyy")} to {formatDateOnly(lastDay(competition), "MMM d, yyyy")}
                     </span>
                 </div>
-                <SeasonGrid competition={competition} season={seasonNow} popWeek={popWeek} />
+                {ranked.length >= 2 ? (
+                    <SeasonBoard weeks={competition.weeks} standings={ranked} popWeek={popWeek} />
+                ) : (
+                    <SeasonGrid competition={competition} season={seasonNow} popWeek={popWeek} />
+                )}
             </section>
 
             <section aria-labelledby="people" className={card}>

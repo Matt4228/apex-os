@@ -4,13 +4,13 @@ import { formatDateOnly } from "@/lib/dates"
 const ROW = 13 // a quarter of a year
 const YEAR = 52
 
-const CELL: Record<WeekState, string> = {
+export const CELL: Record<WeekState, string> = {
     complete: "bg-win text-on-win",
     missed: "bg-danger-tint text-danger-ink",
     current: "bg-cat-tint text-ink ring-2 ring-inset ring-cat-solid motion-safe:animate-[week-beat_2.4s_ease-in-out_infinite]",
     ahead: "bg-sunken text-transparent",
 }
-const SAY: Record<WeekState, string> = { complete: "complete", missed: "missed", current: "this week", ahead: "ahead" }
+export const SAY: Record<WeekState, string> = { complete: "complete", missed: "missed", current: "this week", ahead: "ahead" }
 
 /**
  * The season as rows of 13 weeks (a quarter each), labeled with their months; a season longer than a year gets a
