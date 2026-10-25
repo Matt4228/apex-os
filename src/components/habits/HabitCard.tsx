@@ -12,6 +12,9 @@ import HabitForm, { type HabitFields } from "./HabitForm"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+/** The heatmap's rows, top to bottom: its weeks start on Sunday */
+const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"]
+
 type HabitLog = {
   id: string
   completedOn: Date
@@ -97,7 +100,12 @@ export default function HabitCard({
   return (
     // Everything inside takes the habit's category color: chip, day buttons, bar and heatmap
     <div {...catProps(habit.category)} className={`bg-surface border border-line rounded-lg p-4 ${paused ? "opacity-60" : ""}`}>
-      <div className={`flex items-start justify-between gap-3 ${paused ? "" : "mb-4"}`}>
+      {/* Top row: text, heatmap, buttons. On a phone the heatmap drops to its own line under the other two */}
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-4 gap-y-3 ${
+          paused ? "" : "mb-4"
+        }`}
+      >
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-medium text-ink">{habit.title}</h3>
@@ -117,7 +125,41 @@ export default function HabitCard({
               </>
             )}
           </p>
+          {!paused && (
+            <p className="text-xs text-ink-muted mt-2">
+              {streak !== null && (
+                <span className="block font-semibold text-cat-ink">
+                  {streak} day streak
+                </span>
+              )}
+              Last 12 weeks
+            </p>
+          )}
         </div>
+
+        {/* Twelve weeks at a glance: a column per week, Sunday on top, this week last. A paused habit hides it */}
+        {!paused && (
+          <div aria-hidden="true" className="order-last col-span-2 flex gap-1.5 min-w-0 sm:order-none sm:col-span-1">
+            {/* Day letters beside the rows, so the grid reads as a calendar. Same row height and gap as the cells */}
+            <div data-testid="heatmap-days" className="grid grid-rows-7 gap-[3px] text-[9px] leading-[10px] text-ink-muted">
+              {DAY_LETTERS.map((letter, i) => (
+                <span key={i} className="h-2.5 w-2 text-center">{letter}</span>
+              ))}
+            </div>
+            <div data-testid="heatmap" className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">
+              {heatmapDays(logDays, today).map((logged, i) => (
+                <span
+                  key={i}
+                  title={logged === null ? undefined : heatmapLabel(today, i)}
+                  className={`h-2.5 w-2.5 rounded-[3px] ${
+                    logged === null ? "" : logged ? "bg-cat-solid" : "bg-cat-tint"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-0.5 flex-shrink-0">
           <button onClick={() => setEditing(true)} className={iconButton} aria-label={`Edit ${habit.title}`} title="Edit">
             <Pencil size={14} aria-hidden="true" />
@@ -195,33 +237,6 @@ export default function HabitCard({
                 }}
               />
             </div>
-          </div>
-
-          {/* Twelve weeks at a glance: a column per week, Sunday on top, this week last */}
-          <div className="mt-4 flex items-end justify-between gap-3">
-            <div
-              aria-hidden="true"
-              data-testid="heatmap"
-              className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto"
-            >
-              {heatmapDays(logDays, today).map((logged, i) => (
-                <span
-                  key={i}
-                  title={logged === null ? undefined : heatmapLabel(today, i)}
-                  className={`h-2.5 w-2.5 rounded-[3px] ${
-                    logged === null ? "" : logged ? "bg-cat-solid" : "bg-cat-tint"
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="text-xs text-ink-muted text-right">
-              {streak !== null && (
-                <span className="block font-semibold text-cat-ink">
-                  {streak} day streak
-                </span>
-              )}
-              Last 12 weeks
-            </p>
           </div>
         </>
       )}
