@@ -90,6 +90,34 @@ describe("HabitCard history", () => {
         expect(screen.getByRole("button", { name: "Wednesday, Oct 14" }).className).toContain("bg-cat-solid")
     })
 
+    it("labels each heatmap row with its day of the week, Sunday on top", () => {
+        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        const labels = [...screen.getByTestId("heatmap-days").children].map(label => label.textContent)
+        expect(labels).toEqual(["S", "M", "T", "W", "T", "F", "S"])
+    })
+
+    it("lays the card out as text, heatmap and buttons on top, then the week below", () => {
+        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        const inOrder = [
+            screen.getByText(habit.title),
+            screen.getByTestId("heatmap"),
+            screen.getByRole("button", { name: `Edit ${habit.title}` }),
+            screen.getByRole("button", { name: "Sunday, Oct 11" }),
+        ]
+        inOrder.slice(1).forEach((element, i) => {
+            expect(inOrder[i].compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        })
+    })
+
+    it("hides the heatmap while the habit is paused", () => {
+        render(<HabitCard habit={{ ...card("daily"), isActive: false }} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect(screen.queryByTestId("heatmap")).not.toBeInTheDocument()
+        expect(screen.getByText("Paused")).toBeInTheDocument()
+    })
+
     it("counts a daily habit's streak", () => {
         render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
 
