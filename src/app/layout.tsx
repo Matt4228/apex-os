@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { cookies } from "next/headers"
-import { THEME_COOKIE, parseTheme } from "@/lib/theme"
+import { cookies, headers } from "next/headers"
+import { PATH_HEADER, THEME_COOKIE, themeFor } from "@/lib/theme"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +24,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value)
+  const theme = themeFor((await headers()).get(PATH_HEADER), (await cookies()).get(THEME_COOKIE)?.value)
 
   return (
     <html

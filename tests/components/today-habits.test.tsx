@@ -39,6 +39,21 @@ describe("TodayHabits", () => {
         expect(screen.getByText("3/7 this week")).toBeInTheDocument()
     })
 
+    it("gives the title its own line, with the week's squares and count under it", () => {
+        const week = [true, true, true, false, false, false, false]
+        render(<TodayHabits habits={[{ ...habits[0], week }]} today="2026-10-14" />)
+
+        const weekLine = screen.getByText("3/7 this week").parentElement!
+        expect(screen.getByText("Read technical content").nextElementSibling).toBe(weekLine)
+        expect(weekLine).toContainElement(screen.getByTestId("week-squares"))
+    })
+
+    it("makes the check a 44px tap target around its small circle", () => {
+        render(<TodayHabits habits={habits} today="2026-10-14" />)
+
+        expect(screen.getByRole("checkbox", { name: "Read technical content" })).toHaveClass("h-11", "w-11")
+    })
+
     it("colors the check by the habit's category and fills today's square when checked", async () => {
         const user = userEvent.setup()
         vi.mocked(toggleHabitLog).mockResolvedValue({ action: "added", date: "2026-10-14" } as never)

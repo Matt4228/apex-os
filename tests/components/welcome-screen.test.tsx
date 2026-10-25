@@ -29,6 +29,24 @@ describe("WelcomeScreen", () => {
         render(<WelcomeScreen initialMode="login" homePath="/" />)
 
         expect(screen.getByRole("img", { name: /The Today page/ })).toBeInTheDocument()
+        expect(screen.getByRole("img", { name: /grouped under its schedule blocks/ })).toBeInTheDocument()
+    })
+
+    it("shows the screenshot in a browser window, with the live address", () => {
+        render(<WelcomeScreen initialMode="login" homePath="/" />)
+
+        const frame = screen.getByTestId("browser-frame")
+        expect(frame).toHaveTextContent("apex-os-sand.vercel.app")
+        expect(frame).toContainElement(screen.getByRole("img", { name: /The Today page/ }))
+    })
+
+    it("lets the band, not the screenshot, decide the page's height, so the page doesn't scroll", () => {
+        render(<WelcomeScreen initialMode="login" homePath="/" />)
+
+        // Taken out of the flow, the window adds no height: the band fills what's left of the screen and cuts it off
+        const window = screen.getByTestId("browser-frame").parentElement!
+        expect(window).toHaveClass("absolute")
+        expect(window.parentElement).toHaveClass("flex-1", "overflow-hidden")
     })
 
     it("opens the card on the tab the address asked for", () => {
