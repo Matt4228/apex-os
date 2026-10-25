@@ -5,7 +5,7 @@ import { Pause, Pencil, Play, X } from "lucide-react"
 import { toggleHabitLog } from "@/app/actions/habits"
 import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
-import { dayStreak, heatmapDays, heatmapLabel } from "@/lib/habitHistory"
+import { bestDayStreak, bestWeekStreak, dayStreak, heatmapDays, heatmapLabel, monthLabels, weekStreak } from "@/lib/habitHistory"
 import { failureMessage } from "@/lib/optimistic"
 import { usePop } from "@/lib/usePop"
 import HabitForm, { type HabitFields } from "./HabitForm"
@@ -65,7 +65,12 @@ export default function HabitCard({
   const toGo = habit.targetPerWeek - completedThisWeek
   const paused = !habit.isActive
   const logDays = habit.logs.map(log => toDateInputValue(log.completedOn))
-  const streak = habit.frequency === "daily" ? dayStreak(logDays, today) : null
+  // Daily habits count days in a row; weekly ones count weeks in a row that hit the target. Logs cover all time, so
+  // the best is the real record
+  const daily = habit.frequency === "daily"
+  const streak = daily ? dayStreak(logDays, today) : weekStreak(logDays, today, habit.targetPerWeek)
+  const best = daily ? bestDayStreak(logDays) : bestWeekStreak(logDays, habit.targetPerWeek)
+  const unit = daily ? "day" : "week"
 
   /** Fill or empty the day on screen now; put it back and explain if the server says no */
   async function handleDayClick(dateStr: string) {
@@ -125,37 +130,46 @@ export default function HabitCard({
               </>
             )}
           </p>
-          {!paused && (
-            <p className="text-xs text-ink-muted mt-2">
-              {streak !== null && (
-                <span className="block font-semibold text-cat-ink">
-                  {streak} day streak
-                </span>
-              )}
-              Last 12 weeks
-            </p>
-          )}
         </div>
 
-        {/* Twelve weeks at a glance: a column per week, Sunday on top, this week last. A paused habit hides it */}
+        {/* Twelve weeks at a glance, then the streak beside them. A paused habit hides both */}
         {!paused && (
-          <div aria-hidden="true" className="order-last col-span-2 flex gap-1.5 min-w-0 sm:order-none sm:col-span-1">
-            {/* Day letters beside the rows, so the grid reads as a calendar. Same row height and gap as the cells */}
-            <div data-testid="heatmap-days" className="grid grid-rows-7 gap-[3px] text-[9px] leading-[10px] text-ink-muted">
-              {DAY_LETTERS.map((letter, i) => (
-                <span key={i} className="h-2.5 w-2 text-center">{letter}</span>
-              ))}
+          <div className="order-last col-span-2 flex min-w-0 items-center gap-5 sm:order-none sm:col-span-1">
+            <div aria-hidden="true" className="min-w-0">
+              {/* Month names over the column where each month starts: a column is a 10px cell plus a 3px gap, and the
+                  14px indent clears the day letters */}
+              <div data-testid="heatmap-months" className="relative mb-1 ml-3.5 h-3.5 text-[10px] leading-3.5 text-ink-muted">
+                {monthLabels(today).map(month => (
+                  <span key={month.col} className="absolute top-0 whitespace-nowrap" style={{ left: month.col * 13 }}>
+                    {month.label}
+                  </span>
+                ))}
+              </div>
+              {/* A column per week, Sunday on top, this week last */}
+              <div className="flex gap-1.5">
+                {/* Day letters beside the rows, so the grid reads as a calendar. Same row height and gap as the cells */}
+                <div data-testid="heatmap-days" className="grid grid-rows-7 gap-[3px] text-[9px] leading-[10px] text-ink-muted">
+                  {DAY_LETTERS.map((letter, i) => (
+                    <span key={i} className="h-2.5 w-2 text-center">{letter}</span>
+                  ))}
+                </div>
+                <div data-testid="heatmap" className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">
+                  {heatmapDays(logDays, today).map((logged, i) => (
+                    <span
+                      key={i}
+                      title={logged === null ? undefined : heatmapLabel(today, i)}
+                      className={`h-2.5 w-2.5 rounded-[3px] ${
+                        logged === null ? "" : logged ? "bg-cat-solid" : "bg-cat-tint"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-            <div data-testid="heatmap" className="grid grid-flow-col grid-rows-7 gap-[3px] overflow-x-auto">
-              {heatmapDays(logDays, today).map((logged, i) => (
-                <span
-                  key={i}
-                  title={logged === null ? undefined : heatmapLabel(today, i)}
-                  className={`h-2.5 w-2.5 rounded-[3px] ${
-                    logged === null ? "" : logged ? "bg-cat-solid" : "bg-cat-tint"
-                  }`}
-                />
-              ))}
+            <div data-testid="streak" className="flex-shrink-0 border-l border-line pl-5">
+              <p className="text-[34px] font-extrabold leading-none tracking-tight tabular-nums text-cat-ink">{streak}</p>
+              <p className="mt-1 text-xs font-semibold text-cat-ink">{unit} streak</p>
+              <p className="mt-1.5 text-[11px] text-ink-muted">{`Best: ${best} ${best === 1 ? unit : `${unit}s`}`}</p>
             </div>
           </div>
         )}

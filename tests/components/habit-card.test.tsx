@@ -4,7 +4,7 @@ import { toggleHabitLog } from "@/app/actions/habits"
 import HabitCard from "@/components/habits/HabitCard"
 import HabitList from "@/components/habits/HabitList"
 import { parseDateOnly } from "@/lib/dates"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -118,16 +118,31 @@ describe("HabitCard history", () => {
         expect(screen.getByText("Paused")).toBeInTheDocument()
     })
 
-    it("counts a daily habit's streak", () => {
-        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+    it("shows a daily habit's streak beside the heatmap, with its best ever", () => {
+        // A five-day run back in May, older than the heatmap, is still the best
+        const may = logs("2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08")
+        render(<HabitCard habit={{ ...card("daily"), logs: [...may, ...card("daily").logs] }} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
 
-        expect(screen.getByText("3 day streak")).toBeInTheDocument()
+        const streak = within(screen.getByTestId("streak"))
+        expect(streak.getByText("3")).toBeInTheDocument()
+        expect(streak.getByText("day streak")).toBeInTheDocument()
+        expect(streak.getByText("Best: 5 days")).toBeInTheDocument()
     })
 
-    it("shows no day streak for a weekly habit", () => {
-        render(<HabitCard habit={card("weekly")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+    it("counts a weekly habit's streak in weeks that hit the target", () => {
+        render(<HabitCard habit={{ ...card("weekly"), targetPerWeek: 3 }} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
 
-        expect(screen.queryByText(/day streak/)).not.toBeInTheDocument()
+        const streak = within(screen.getByTestId("streak"))
+        expect(streak.getByText("1")).toBeInTheDocument()
+        expect(streak.getByText("week streak")).toBeInTheDocument()
+        expect(streak.getByText("Best: 1 week")).toBeInTheDocument()
+    })
+
+    it("names the months along the top of the heatmap", () => {
+        render(<HabitCard habit={card("daily")} onDelete={vi.fn()} onLogToggle={vi.fn()} today="2026-10-14" />)
+
+        expect([...screen.getByTestId("heatmap-months").children].map(m => m.textContent)).toEqual(["Aug", "Sep", "Oct"])
+        expect(screen.queryByText("Last 12 weeks")).not.toBeInTheDocument()
     })
 })
 

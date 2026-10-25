@@ -18,8 +18,8 @@ export default function WelcomeScreen({
     next?: string
 }) {
     return (
-        <main className="flex-1 bg-canvas">
-            <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6 md:gap-14 md:py-16">
+        <main className="flex flex-1 flex-col bg-canvas">
+            <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 md:py-14">
                 <div className="grid items-center gap-10 md:grid-cols-[1.15fr_1fr] md:gap-14">
                     <section className="flex flex-col gap-5">
                         <Wordmark />
@@ -51,16 +51,33 @@ export default function WelcomeScreen({
                         <AccountCard initialMode={initialMode} homePath={homePath} next={next} />
                     </div>
                 </div>
+            </div>
 
-                {/* Fades out at the bottom so the first screen stays short */}
-                <div className="max-h-80 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
-                    <Image
-                        src={todayScreenshot}
-                        alt="The Today page: tasks grouped under Deep work and Job search, with the day's schedule beside them"
-                        sizes="(min-width: 1152px) 1104px, 100vw"
-                        placeholder="blur"
-                        className="h-auto w-full rounded-xl border border-line shadow-lg"
-                    />
+            {/* The app in a browser window on a purple band that fills the rest of the screen, fading out as it goes */}
+            <div className="relative min-h-80 flex-1 overflow-hidden bg-[linear-gradient(160deg,oklch(0.36_0.1_295),var(--color-hero)_45%,oklch(0.18_0.05_280))]">
+                <span aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-90 w-90 rounded-full border-[48px] border-hero-ink/5" />
+                <span aria-hidden="true" className="pointer-events-none absolute -bottom-40 -left-30 h-80 w-80 rounded-full border-[40px] border-hero-ink/5" />
+                {/* Out of the flow, so the screenshot adds no height: the page stays one screen tall and the band cuts it off */}
+                <div className="absolute inset-x-4 top-10 sm:inset-x-6 md:top-14">
+                    <div
+                        data-testid="browser-frame"
+                        className="relative mx-auto max-w-[1104px] overflow-hidden rounded-t-xl bg-surface shadow-[0_24px_60px_rgb(10_6_30/0.5)] [mask-image:linear-gradient(to_bottom,black_45%,transparent_92%)]"
+                    >
+                        <div aria-hidden="true" className="flex h-9 items-center gap-2 border-b border-line bg-sunken px-3.5">
+                            <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+                            <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+                            <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
+                            {/* Pulled left by the dots' width so the address sits in the true middle */}
+                            <span className="mx-auto -translate-x-[27px] rounded-md bg-surface px-4 py-0.5 text-xs text-ink-muted">apex-os-sand.vercel.app</span>
+                        </div>
+                        <Image
+                            src={todayScreenshot}
+                            alt="The Today page: the day's plan grouped under its schedule blocks, with the schedule and habits beside it"
+                            sizes="(min-width: 1152px) 1104px, 100vw"
+                            placeholder="blur"
+                            className="block h-auto w-full"
+                        />
+                    </div>
                 </div>
             </div>
         </main>

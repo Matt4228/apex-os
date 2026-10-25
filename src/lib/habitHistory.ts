@@ -48,6 +48,68 @@ export function dayStreak(logDays: string[], today: string): number {
     return streak
 }
 
+/** The Sunday that starts a day's week, "YYYY-MM-DD" */
+const weekStart = (day: string) => toDateInputValue(weekRangeOf(day).start)
+
+/** How many logs fell in each week, keyed by that week's Sunday */
+function perWeek(logDays: string[]): Map<string, number> {
+    const counts = new Map<string, number>()
+    for (const day of new Set(logDays)) counts.set(weekStart(day), (counts.get(weekStart(day)) ?? 0) + 1)
+    return counts
+}
+
+/**
+ * Weeks in a row that hit the target, ending with this week. This week counts once it hits the target and doesn't
+ * break the run while it's still under way, the same rule as a competition's streak
+ */
+export function weekStreak(logDays: string[], today: string, target: number): number {
+    const counts = perWeek(logDays)
+    const hit = (sunday: string) => (counts.get(sunday) ?? 0) >= target
+    let sunday = weekStart(today)
+    let streak = 0
+    if (hit(sunday)) streak++
+    sunday = shift(sunday, -7)
+    while (hit(sunday)) {
+        streak++
+        sunday = shift(sunday, -7)
+    }
+    return streak
+}
+
+/** The longest run of "YYYY-MM-DD" keys, each `step` days after the one before */
+function longestRun(keys: string[], step: number): number {
+    const sorted = [...new Set(keys)].sort()
+    let best = 0
+    let run = 0
+    sorted.forEach((key, i) => {
+        run = i > 0 && shift(sorted[i - 1], step) === key ? run + 1 : 1
+        best = Math.max(best, run)
+    })
+    return best
+}
+
+/** The most days in a row the habit was ever logged */
+export const bestDayStreak = (logDays: string[]) => longestRun(logDays, 1)
+
+/** The most weeks in a row the habit ever hit its target */
+export function bestWeekStreak(logDays: string[], target: number): number {
+    const hitWeeks = [...perWeek(logDays)].filter(([, count]) => count >= target).map(([sunday]) => sunday)
+    return longestRun(hitWeeks, 7)
+}
+
+/**
+ * Month names along the top of the heatmap: each over the first column whose Sunday is in that month. A label is
+ * dropped when the next one starts fewer than three columns later, so short names never overlap
+ */
+export function monthLabels(today: string): { col: number; label: string }[] {
+    const first = toDateInputValue(heatmapStart(today))
+    const sundays = Array.from({ length: HEATMAP_WEEKS }, (_, col) => shift(first, col * 7))
+    const starts = sundays.flatMap((sunday, col) =>
+        col === 0 || sunday.slice(5, 7) !== sundays[col - 1].slice(5, 7) ? [{ col, label: formatDateOnly(sunday, "MMM") }] : []
+    )
+    return starts.filter((start, i) => !starts[i + 1] || starts[i + 1].col - start.col >= 3)
+}
+
 /** "Oct 14": a heatmap cell's day, for its tooltip */
 export const heatmapLabel = (today: string, index: number) =>
     formatDateOnly(shift(toDateInputValue(heatmapStart(today)), index), "MMM d")

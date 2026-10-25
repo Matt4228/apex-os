@@ -74,9 +74,11 @@ export default function TodayHabits({
                     </Link>
                 </p>
             ) : (
-                <ul className="space-y-0.5">
+                <ul>
                     {habits.map(habit => (
-                        <li key={habit.id} className="flex items-center gap-3 rounded-md px-2 py-1.5">
+                        // The rail is narrow, so the title gets a line to itself and the week sits under it
+                        <li key={habit.id} className="flex items-start">
+                            {/* A 44px tap target around the 16px circle, pulled left so the circle lines up with the heading */}
                             <button
                                 {...catProps(habit.category)}
                                 role="checkbox"
@@ -84,25 +86,33 @@ export default function TodayHabits({
                                 aria-label={habit.title}
                                 onClick={() => toggle(habit.id)}
                                 onAnimationEnd={pop.end}
-                                className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-colors ${pop.className(habit.id)} ${
-                                    habit.category?.trim()
-                                        ? habit.doneToday ? "bg-cat-solid border-cat-solid" : "border-cat-solid hover:bg-cat-tint"
-                                        : habit.doneToday ? "bg-accent border-accent" : "border-line-strong hover:border-accent"
-                                }`}
-                            />
-                            <span className={`flex-1 min-w-0 text-sm ${habit.doneToday ? "text-ink-muted" : "text-ink-soft"}`}>
-                                {habit.title}
-                            </span>
-                            {/* This week at a glance, Sunday first; the count beside it says the same in words */}
-                            {habit.week && (
-                                <span {...catProps(habit.category)} aria-hidden="true" data-testid="week-squares" className="flex gap-0.5 flex-shrink-0">
-                                    {habit.week.map((logged, i) => (
-                                        <span key={i} className={`h-2 w-2 rounded-[2px] ${logged ? "bg-cat-solid" : "bg-cat-tint"}`} />
-                                    ))}
+                                className="group -ml-3.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"
+                            >
+                                <span
+                                    className={`h-4 w-4 rounded-full border-2 transition-colors ${pop.className(habit.id)} ${
+                                        habit.category?.trim()
+                                            ? habit.doneToday ? "bg-cat-solid border-cat-solid" : "border-cat-solid group-hover:bg-cat-tint"
+                                            : habit.doneToday ? "bg-accent border-accent" : "border-line-strong group-hover:border-accent"
+                                    }`}
+                                />
+                            </button>
+                            <span className="min-w-0 flex-1 pt-3 pb-1.5">
+                                <span className={`block text-sm leading-5 ${habit.doneToday ? "text-ink-muted" : "text-ink-soft"}`}>
+                                    {habit.title}
                                 </span>
-                            )}
-                            <span className="text-xs text-ink-muted tabular-nums flex-shrink-0">
-                                {habit.weekCount}/{habit.targetPerWeek} this week
+                                <span className="mt-1 flex items-center gap-2">
+                                    {/* This week at a glance, Sunday first; the count beside it says the same in words */}
+                                    {habit.week && (
+                                        <span {...catProps(habit.category)} aria-hidden="true" data-testid="week-squares" className="flex gap-0.5">
+                                            {habit.week.map((logged, i) => (
+                                                <span key={i} className={`h-2 w-2 rounded-[2px] ${logged ? "bg-cat-solid" : "bg-cat-tint"}`} />
+                                            ))}
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-ink-muted tabular-nums">
+                                        {habit.weekCount}/{habit.targetPerWeek} this week
+                                    </span>
+                                </span>
                             </span>
                         </li>
                     ))}

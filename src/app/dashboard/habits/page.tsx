@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import HabitList from "@/components/habits/HabitList"
 import { weekRangeOf } from "@/lib/dates"
-import { heatmapStart } from "@/lib/habitHistory"
 import { getUserToday } from "@/lib/user-today"
 
 export const dynamic = "force-dynamic"
@@ -21,13 +20,10 @@ export default async function HabitsPage() {
         orderBy: { createdAt: "desc" },
         include: {
             logs: {
-                where: {
-                    // Twelve weeks for the heatmap; the card counts this week on its own
-                    completedOn: {
-                        gte: heatmapStart(today),
-                        lt: weekEnd,
-                    },
-                },
+                // Every log, for the best streak ever, but only the id and date of each; the heatmap shows the last
+                // twelve weeks of them and the card counts this week on its own
+                select: { id: true, completedOn: true },
+                where: { completedOn: { lt: weekEnd } },
             },
         },
     })
