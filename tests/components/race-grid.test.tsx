@@ -30,6 +30,16 @@ describe("RaceGrid", () => {
         expect(screen.getByRole("row", { name: "2 You" })).toHaveAttribute("data-you")
     })
 
+    it("gives people on the same percent the same number", () => {
+        const { unmount } = renderGrid([person("Me Too", 0, 0, 2, true), person("Sam Chen", 0, 0, 1), person("Alex Rivera", 0, 0, 3)])
+        expect(rowNames()).toEqual(["1 Sam", "1 You", "1 Alex"])
+        unmount()
+
+        renderGrid([person("Me Too", 11, 2, 2, true), person("Sam Chen", 11, 2, 1), person("Alex Rivera", 22, 4, 3)])
+        expect(rowNames()).toEqual(["1 Alex", "2 Sam", "2 You"])
+        expect(within(screen.getByRole("row", { name: "2 You" })).getByText("2")).toBeInTheDocument()
+    })
+
     it("shows each goal's amount and a check when it's done", () => {
         renderGrid(club())
 
@@ -39,6 +49,18 @@ describe("RaceGrid", () => {
         expect(alex.getByText("4 of 4")).toBeInTheDocument()
         expect(alex.getByRole("img", { name: "Done" })).toBeInTheDocument()
         expect(within(screen.getByRole("row", { name: "2 You" })).getByText("14.3 km")).toBeInTheDocument()
+    })
+
+    it("states its table roles, so the phone layout's display: block doesn't strip them", () => {
+        renderGrid(club())
+
+        const table = screen.getByRole("table", { name: "This week's race" })
+        expect(table).toHaveAttribute("role", "table")
+        table.querySelectorAll("thead, tbody").forEach(group => expect(group).toHaveAttribute("role", "rowgroup"))
+        table.querySelectorAll("tr").forEach(tr => expect(tr).toHaveAttribute("role", "row"))
+        table.querySelectorAll("thead th").forEach(th => expect(th).toHaveAttribute("role", "columnheader"))
+        table.querySelectorAll("tbody th").forEach(th => expect(th).toHaveAttribute("role", "rowheader"))
+        table.querySelectorAll("td").forEach(td => expect(td).toHaveAttribute("role", "cell"))
     })
 
     it("keeps a long name from widening the table", () => {
@@ -56,7 +78,7 @@ describe("RaceGrid", () => {
     it("nudges with what's left and the gaps", () => {
         renderGrid(club())
 
-        expect(screen.getByText("7.7 km and 2 workouts to finish the week. Alex is 37 points ahead; Sam is 27 behind.")).toBeInTheDocument()
+        expect(screen.getByText("7.7 km and 2 workouts to finish the week. Alex is 37 points ahead; Sam is 27 points behind.")).toBeInTheDocument()
     })
 
     it("says when you lead, and when your week is done", () => {
@@ -72,5 +94,20 @@ describe("RaceGrid", () => {
         renderGrid([person("Sam Chen", 11, 2, 1), person("Me Too", 11, 2, 2, true)])
 
         expect(screen.getByText("11 km and 2 workouts to finish the week. You're level with Sam.")).toBeInTheDocument()
+    })
+
+    it("still mentions the person behind when you're level with the person ahead", () => {
+        renderGrid([person("Sam Chen", 11, 2, 1), person("Me Too", 11, 2, 2, true), person("Alex Rivera", 5, 1, 3)])
+
+        expect(screen.getByText("11 km and 2 workouts to finish the week. You're level with Sam; Alex is 26 points behind.")).toBeInTheDocument()
+    })
+
+    it("says when you're level with the people on both sides, or just the one behind", () => {
+        const { unmount } = renderGrid([person("Sam Chen", 11, 2, 1), person("Me Too", 11, 2, 2, true), person("Alex Rivera", 11, 2, 3)])
+        expect(screen.getByText("11 km and 2 workouts to finish the week. You're level with Sam and Alex.")).toBeInTheDocument()
+        unmount()
+
+        renderGrid([person("Sam Chen", 22, 4, 1), person("Me Too", 11, 2, 2, true), person("Alex Rivera", 11, 2, 3)])
+        expect(screen.getByText("11 km and 2 workouts to finish the week. Sam is 50 points ahead; you're level with Alex.")).toBeInTheDocument()
     })
 })

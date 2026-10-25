@@ -6,22 +6,23 @@ import { ordinal } from "./format"
 // Step heights by place: 1st stands tallest
 const STEP: Record<number, string> = { 1: "h-16", 2: "h-11", 3: "h-8" }
 
+// Where each of the top three is drawn, left to right: 2nd, 1st, 3rd. The list itself stays in place order for screen readers
+const SPOT = ["order-2", "order-1", "order-3"]
+
 /**
  * The top three on steps, drawn for the dark hero panel: 1st in the middle, raised, with a crown; 2nd on the left,
  * 3rd on the right. People tied share a place, so a tie for 1st puts two people on the top step
  */
 export default function Podium({ standings }: { standings: Standing[] }) {
     const top = standings.slice(0, 3)
-    // Visual order: 2nd, 1st, 3rd (with two people, 2nd then 1st)
-    const shown = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]]
 
     return (
         <ol aria-label="Podium" className="grid w-full max-w-xs grid-flow-col auto-cols-fr items-end gap-2">
-            {shown.map(row => {
+            {top.map((row, i) => {
                 const first = row.place === 1
                 const name = row.isYou ? "You" : row.name.split(" ")[0]
                 return (
-                    <li key={row.participantId} aria-label={`${ordinal(row.place)} ${name}`} className="flex min-w-0 flex-col items-center gap-1 text-center">
+                    <li key={row.participantId} aria-label={`${ordinal(row.place)} ${name}`} className={`${SPOT[i]} flex min-w-0 flex-col items-center gap-1 text-center`}>
                         <span className="flex h-4 items-center text-hero-gold">
                             {first && <Crown size={14} role="img" aria-label="Leader" />}
                         </span>

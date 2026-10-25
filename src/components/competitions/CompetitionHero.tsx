@@ -111,7 +111,7 @@ export default function CompetitionHero({
             </div>
 
             <p className="relative mt-5 border-t border-hero-line pt-3 text-sm">
-                {withRivals && `${standingText(standings)} `}
+                {withRivals && `${standingText(standings, position.state === "finished")} `}
                 {week === null ? (
                     position.state === "upcoming" ? (
                         <>Starts <b className="text-hero-gold">{formatDateOnly(startDate, "EEEE, MMM d")}</b>. Targets can still change.</>
