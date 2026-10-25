@@ -1,5 +1,5 @@
 // tests/lib/competition-data.test.ts
-import { ACTIVITY_LIMIT, loadCompetition } from "@/lib/competitionData"
+import { ACTIVITY_LIMIT, loadCompetition, loadCompetitions } from "@/lib/competitionData"
 import { parseDateOnly } from "@/lib/dates"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { prismaMock } from "../mocks/prismaMock"
@@ -81,5 +81,73 @@ describe("loadCompetition competitors and activity", () => {
         const view = await loadCompetition("run", "me", "2026-10-14")
 
         expect(new Date(view!.loadedAt).toISOString()).toBe(view!.loadedAt)
+    })
+})
+
+describe("loadCompetitions places on finished competitions", () => {
+    // Run Club, finished: 10 km a week for 4 weeks. You completed week 1
+    const metric = { id: "km", competitionId: "run", name: "km run", unit: "km", sortOrder: 0, targets: [1, 2, 3, 4].map(week => ({ id: `t${week}`, metricId: "km", week, target: 10 })) }
+    const finished = { ...stored, metrics: [metric] }
+    const myLog = { id: "a", participantId: "p1", metricId: "km", week: 1, amount: 10, note: "Easy", createdAt: new Date("2026-10-05") }
+    const mine = (competition: object) => ({ ...row, logs: [myLog], competition })
+    const AFTER = "2026-11-10"
+
+    beforeEach(() => {
+        groupBy().mockResolvedValue([])
+    })
+
+    it("works out your final place from everyone's totals", async () => {
+        prismaMock.participant.findMany.mockResolvedValue([mine(finished)] as never)
+        groupBy().mockResolvedValue([
+            { participantId: "p2", metricId: "km", week: 1, _sum: { amount: 10 } },
+            { participantId: "p2", metricId: "km", week: 2, _sum: { amount: 10 } },
+            { participantId: "p3", metricId: "km", week: 1, _sum: { amount: 5 } },
+        ])
+
+        const [view] = await loadCompetitions("me", AFTER)
+
+        expect(view.place).toBe(2)
+        expect(groupBy()).toHaveBeenCalledWith(expect.objectContaining({
+            by: ["participantId", "metricId", "week"],
+            where: { participant: { competitionId: { in: ["run"] } } },
+        }))
+    })
+
+    it("shares a place on a tie", async () => {
+        prismaMock.participant.findMany.mockResolvedValue([mine(finished)] as never)
+        groupBy().mockResolvedValue([{ participantId: "p2", metricId: "km", week: 1, _sum: { amount: 10 } }])
+
+        const [view] = await loadCompetitions("me", AFTER)
+
+        expect(view.place).toBe(1)
+    })
+
+    it("marks a finished competition you did alone as solo, without summing anyone", async () => {
+        prismaMock.participant.findMany.mockResolvedValue([mine({ ...finished, participants: [participant("p1", "me", "Me Too", "owner")] })] as never)
+
+        const [view] = await loadCompetitions("me", AFTER)
+
+        expect(view.place).toBe("solo")
+        expect(prismaMock.progressLog.groupBy).not.toHaveBeenCalled()
+    })
+
+    it("gives running competitions no place and sums nothing", async () => {
+        prismaMock.participant.findMany.mockResolvedValue([mine(finished)] as never)
+
+        const [view] = await loadCompetitions("me", "2026-10-14")
+
+        expect(view.place).toBeUndefined()
+        expect(prismaMock.progressLog.groupBy).not.toHaveBeenCalled()
+    })
+
+    it("sends only the place, never anyone else's totals", async () => {
+        prismaMock.participant.findMany.mockResolvedValue([mine(finished)] as never)
+        groupBy().mockResolvedValue([{ participantId: "p2", metricId: "km", week: 1, _sum: { amount: 12 } }])
+
+        const [view] = await loadCompetitions("me", AFTER)
+
+        expect(view).not.toHaveProperty("competitors")
+        expect(view.logs).toEqual([{ id: "a", metricId: "km", week: 1, amount: 10, note: "Easy", createdAt: new Date("2026-10-05") }])
+        expect(JSON.stringify(view)).not.toContain("12")
     })
 })

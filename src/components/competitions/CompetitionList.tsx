@@ -12,6 +12,7 @@ import { lastDay } from "@/lib/competition"
 import type { CompetitionView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import PlaceMedal from "./PlaceMedal"
 import SeasonPips from "./SeasonPips"
 
 const NO_COMPETITIONS: EmptyCopy = {
@@ -63,10 +64,14 @@ export default function CompetitionList({ competitions }: { competitions: Compet
                                 >
                                     <Link href={`/dashboard/competitions/${c.id}`} className="block space-y-3 pr-6">
                                         <span className="flex items-start justify-between gap-3">
-                                            <span className="min-w-0">
-                                                <span className="block font-semibold text-ink">{c.title}</span>
-                                                <span className="block text-xs text-ink-muted">
-                                                    {when(c)} &middot; {c.metrics.map(m => m.name).join(", ")}
+                                            {/* A finished competition leads with how you did */}
+                                            <span className="flex min-w-0 items-center gap-3">
+                                                {c.place !== undefined && <PlaceMedal place={c.place} />}
+                                                <span className="min-w-0">
+                                                    <span className="block font-semibold text-ink">{c.title}</span>
+                                                    <span className="block text-xs text-ink-muted">
+                                                        {when(c)} &middot; {c.metrics.map(m => m.name).join(", ")}
+                                                    </span>
                                                 </span>
                                             </span>
                                             <span className="text-right">

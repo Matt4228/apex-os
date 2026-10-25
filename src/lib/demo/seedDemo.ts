@@ -214,6 +214,85 @@ function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedC
                     ]),
                 },
             ],
+            // The demo finished 1st on 5 weeks; Alex had 4, Sam 3. One of the past results the list shows a medal for
+            rivals: [
+                {
+                    key: "alex",
+                    logs: [logs(-11, [
+                        [1, 1, 90], [1, 4, 70], [2, 2, 80], [2, 5, 75], [3, 1, 100], [3, 4, 60],
+                        [4, 3, 60, "Vacation, barely read"], [5, 2, 90], [5, 6, 70], [6, 3, 110],
+                    ])],
+                },
+                {
+                    key: "sam",
+                    logs: [logs(-11, [
+                        [1, 3, 150], [2, 1, 60], [2, 4, 50], [3, 2, 155], [4, 1, 80], [4, 5, 80],
+                        [5, 3, 90], [6, 2, 70], [6, 6, 40, "Too many deadlines"],
+                    ])],
+                },
+            ],
+        },
+        {
+            // Finished 2nd: 3 weeks to Sam's 4
+            title: "Couch to 10K",
+            category: "Fitness",
+            startDate: day(sunday(-16)),
+            weeks: 4,
+            metrics: [
+                {
+                    name: "km run",
+                    unit: "km",
+                    targets: [12, 15, 18, 21],
+                    logs: logs(-16, [
+                        [1, 1, 4], [1, 3, 4], [1, 6, 5], [2, 1, 5], [2, 3, 5], [2, 6, 5],
+                        [3, 1, 5], [3, 4, 4, "Shin splints, took it easy"], [3, 6, 5], [4, 1, 7], [4, 3, 7], [4, 6, 8, "First 10K!"],
+                    ]),
+                },
+            ],
+            rivals: [
+                { key: "alex", logs: [logs(-16, [[1, 2, 6], [1, 5, 6], [2, 3, 7], [3, 1, 9], [3, 4, 9], [4, 2, 8], [4, 5, 6]])] },
+                {
+                    key: "sam",
+                    logs: [logs(-16, [[1, 2, 6], [1, 5, 7], [2, 2, 8], [2, 5, 8], [3, 2, 9], [3, 5, 10], [4, 2, 10], [4, 6, 11.5, "Sub-60 10K"]])],
+                },
+            ],
+        },
+        {
+            // Finished 3rd: 1 week, behind Alex's 3 and Sam's 2
+            title: "Deep Work Hours",
+            category: "Career",
+            startDate: day(sunday(-9)),
+            weeks: 3,
+            metrics: [
+                {
+                    name: "Focused hours",
+                    unit: "hours",
+                    targets: [10, 10, 10],
+                    logs: logs(-9, [[1, 1, 4], [1, 3, 4], [1, 5, 3], [2, 2, 3], [2, 4, 3, "Interview prep ate the week"], [3, 1, 4], [3, 3, 4]]),
+                },
+            ],
+            rivals: [
+                { key: "alex", logs: [logs(-9, [[1, 1, 5], [1, 4, 6], [2, 2, 5], [2, 5, 5], [3, 1, 6], [3, 3, 5, "Shipped the refactor"]])] },
+                { key: "sam", logs: [logs(-9, [[1, 2, 6], [1, 5, 5], [2, 1, 4], [2, 3, 3], [3, 2, 5], [3, 4, 6]])] },
+            ],
+        },
+        {
+            // Done alone, so its card gets the solo mark instead of a place
+            title: "Spanish Lessons",
+            category: "Learning",
+            startDate: day(sunday(-6)),
+            weeks: 4,
+            metrics: [
+                {
+                    name: "Lessons",
+                    unit: null,
+                    targets: [5, 5, 5, 5],
+                    logs: logs(-6, [
+                        [1, 1, 2], [1, 3, 2], [1, 5, 1], [2, 1, 2], [2, 2, 2], [2, 4, 2],
+                        [3, 1, 2], [3, 3, 2], [3, 6, 1, "Finally ordered coffee in Spanish"], [4, 2, 2], [4, 4, 1],
+                    ]),
+                },
+            ],
         },
     ]
 }

@@ -309,6 +309,23 @@ describe("seedDemo", () => {
         expect(race("alex")).toBeGreaterThan(race("sam"))
     })
 
+    it("finishes past competitions in 1st, 2nd and 3rd, and one done alone, so the list shows every medal", async () => {
+        await run(new Date("2026-10-13T16:00:00Z"))
+        const made = prismaMock.competition.create.mock.calls.map(([args]) => args.data as unknown as SeedCompetition)
+        // Everyone in a competition, scored on its finished season, ranked as the list page ranks them
+        const finish = (title: string) => {
+            const people = participantsOf(made.find(c => c.title === title)!).map(p => p.userId)
+            const scored = people.map(who => ({ who, ...seededCompetitions("2026-10-13", who).find(c => c.title === title)! }))
+            expect(scored.every(c => c.position.state === "finished")).toBe(true)
+            return { people, demoPlace: rank(scored.map(c => ({ who: c.who, ...c.season }))).find(r => r.who === "demo")!.place }
+        }
+
+        expect(finish("Summer Reading")).toEqual({ people: ["demo", "alex", "sam"], demoPlace: 1 })
+        expect(finish("Couch to 10K")).toEqual({ people: ["demo", "alex", "sam"], demoPlace: 2 })
+        expect(finish("Deep Work Hours")).toEqual({ people: ["demo", "alex", "sam"], demoPlace: 3 })
+        expect(finish("Spanish Lessons").people).toEqual(["demo"])
+    })
+
     it("gives some rival logs notes", async () => {
         await run(new Date("2026-10-14T16:00:00Z"))
 

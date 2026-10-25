@@ -50,6 +50,17 @@
   --color-on-win: oklch(0.3 0.05 70);
   --color-win-ink: oklch(0.47 0.12 70);
 
+  /* Competitions list: medals for a finished competition's top three. Dark text on light metal, so one set reads in both themes */
+  --color-medal-gold: oklch(0.86 0.13 85);
+  --color-medal-gold-rim: oklch(0.68 0.14 70);
+  --color-medal-gold-ink: oklch(0.34 0.07 65);
+  --color-medal-silver: oklch(0.89 0.012 270);
+  --color-medal-silver-rim: oklch(0.66 0.02 270);
+  --color-medal-silver-ink: oklch(0.32 0.02 270);
+  --color-medal-bronze: oklch(0.78 0.1 55);
+  --color-medal-bronze-rim: oklch(0.56 0.11 48);
+  --color-medal-bronze-ink: oklch(0.3 0.06 45);
+
   /* Priority chips: the palette's tint step at the same hues */
   --color-danger-tint: oklch(0.962 0.03 25);
   --color-warning-tint: oklch(0.962 0.03 55);

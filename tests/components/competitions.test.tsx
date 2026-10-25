@@ -79,6 +79,30 @@ describe("CompetitionList", () => {
         expect(within(screen.getByRole("region", { name: "Coming up" })).getByText("0 of 4 weeks complete")).toBeInTheDocument()
     })
 
+    it("puts a medal for your final place on finished competitions only", () => {
+        const done = { state: "finished" } as const
+        render(
+            <CompetitionList
+                competitions={[
+                    view(),
+                    view({ id: "gold", title: "Summer", position: done, place: 1 }),
+                    view({ id: "silver", title: "Reading", position: done, place: 2 }),
+                    view({ id: "bronze", title: "Push-ups", position: done, place: 3 }),
+                    view({ id: "fourth", title: "Steps", position: done, place: 4 }),
+                    view({ id: "solo", title: "Pages", position: done, place: "solo" }),
+                ]}
+            />
+        )
+
+        const finished = within(screen.getByRole("region", { name: "Finished" }))
+        expect(finished.getByRole("img", { name: "1st place" })).toHaveClass("bg-medal-gold")
+        expect(finished.getByRole("img", { name: "2nd place" })).toHaveClass("bg-medal-silver")
+        expect(finished.getByRole("img", { name: "3rd place" })).toHaveClass("bg-medal-bronze")
+        expect(finished.getByRole("img", { name: "4th place" })).toHaveClass("border-dashed")
+        expect(finished.getByRole("img", { name: "Solo" })).toHaveTextContent("Solo")
+        expect(within(screen.getByRole("region", { name: "Running" })).queryByRole("img", { name: /place|Solo/ })).not.toBeInTheDocument()
+    })
+
     it("says what competitions are for when there are none, and starts a new one", async () => {
         const user = userEvent.setup()
         render(<CompetitionList competitions={[]} />)
