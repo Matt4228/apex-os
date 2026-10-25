@@ -1,6 +1,8 @@
 import type { Metric, Position, Season, WeekProgress } from "@/lib/competition"
 import { formatDateOnly } from "@/lib/dates"
-import { leftText } from "./format"
+import type { Standing } from "@/lib/standings"
+import { leftText, standingText } from "./format"
+import Podium from "./Podium"
 
 /** The big ring for this week, drawn for the dark hero panel */
 function HeroRing({ percent }: { percent: number }) {
@@ -32,7 +34,8 @@ function HeroRing({ percent }: { percent: number }) {
 
 /**
  * The top of a competition: its name, where it stands in its weeks, weeks complete, total progress and this
- * week's ring, then what's left to finish this week. Before the start and after the end it says so instead
+ * week's ring, then what's left to finish this week. Before the start and after the end it says so instead.
+ * With rivals, once it has started, the podium takes the ring's place and the last line starts with your standing
  */
 export default function CompetitionHero({
     title,
@@ -45,6 +48,7 @@ export default function CompetitionHero({
     progress,
     metrics,
     daysLeft,
+    standings = [],
 }: {
     title: string
     category: string | null
@@ -56,7 +60,10 @@ export default function CompetitionHero({
     progress: WeekProgress | null
     metrics: Metric[]
     daysLeft: number | null
+    /** Everyone in season order; with two or more the podium shows */
+    standings?: Standing[]
 }) {
+    const withRivals = standings.length >= 2 && position.state !== "upcoming"
     const week = position.state === "active" ? position.week : null
     const chip =
         week !== null
@@ -96,10 +103,15 @@ export default function CompetitionHero({
                     <p className="text-3xl font-extrabold leading-none tracking-tight tabular-nums">{Math.round(season.totalProgress)}%</p>
                     <p className="mt-1 text-sm text-hero-soft">total progress, the tie-breaker</p>
                 </div>
-                {progress && <div className="ml-auto"><HeroRing percent={progress.percent} /></div>}
+                {withRivals ? (
+                    <div className="ml-auto flex w-full justify-center sm:w-auto"><Podium standings={standings} /></div>
+                ) : (
+                    progress && <div className="ml-auto"><HeroRing percent={progress.percent} /></div>
+                )}
             </div>
 
             <p className="relative mt-5 border-t border-hero-line pt-3 text-sm">
+                {withRivals && `${standingText(standings)} `}
                 {week === null ? (
                     position.state === "upcoming" ? (
                         <>Starts <b className="text-hero-gold">{formatDateOnly(startDate, "EEEE, MMM d")}</b>. Targets can still change.</>

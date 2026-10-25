@@ -71,7 +71,7 @@ export default function ActivityFeed({
                                             <Avatar name={entry.name} initials={entry.initials} size="sm" />
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-ink-soft">
-                                                    <span className="font-semibold text-ink">{entry.isYou ? "You" : entry.name.split(" ")[0]}</span>{" "}
+                                                    <span className="break-all font-semibold text-ink">{entry.isYou ? "You" : entry.name.split(" ")[0]}</span>{" "}
                                                     <span>{amount}</span>
                                                 </p>
                                                 {entry.note && <p className="break-words text-ink-muted">{entry.note}</p>}

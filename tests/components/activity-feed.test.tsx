@@ -58,6 +58,13 @@ describe("ActivityFeed", () => {
         expect(screen.getByText("Legs were dead")).toBeInTheDocument()
     })
 
+    it("breaks a long unbroken name instead of spilling over the time", () => {
+        const long = { ...entries[0], id: "x", name: "Maximilianowithanunbrokenname" }
+        render(<ActivityFeed entries={[long]} metrics={metrics} today="2026-10-14" thisWeek={2} onDelete={vi.fn()} />)
+
+        expect(screen.getByText("Maximilianowithanunbrokenname")).toHaveClass("break-all")
+    })
+
     it("offers Remove on your own logs from this week only", async () => {
         const user = userEvent.setup()
         const onDelete = vi.fn()

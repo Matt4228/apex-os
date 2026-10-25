@@ -23,7 +23,7 @@ export default async function CompetitionDetailPage({ params }: { params: Promis
     const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost:3000"}`
 
     return (
-        <main className="max-w-5xl mx-auto px-6 py-10">
+        <main className="max-w-6xl mx-auto px-6 py-10">
             <Link href="/dashboard/competitions" className="mb-6 inline-block text-sm text-ink-muted hover:text-ink">
                 &larr; Competitions
             </Link>

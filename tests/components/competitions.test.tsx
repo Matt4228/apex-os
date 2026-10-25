@@ -6,7 +6,7 @@ import CompetitionForm from "@/components/competitions/CompetitionForm"
 import CompetitionList from "@/components/competitions/CompetitionList"
 import { season, type Position } from "@/lib/competition"
 import type { CompetitionDetailView } from "@/lib/competitionData"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -34,6 +34,9 @@ const logs = [
     { id: "b", metricId: "km", week: 1, amount: 11, note: null, createdAt: new Date("2026-10-08") },
 ]
 const you = { participantId: "p1", userId: "me", name: "Me Too", initials: "MT", isYou: true }
+// Rivals for the multiplayer page: Sam has both weeks done (1st), Alex only started (3rd), you sit 2nd
+const sam = { participantId: "p2", userId: "sam", name: "Sam Chen", initials: "SC", isYou: false, totals: [{ metricId: "km", week: 1, amount: 12 }, { metricId: "km", week: 2, amount: 12 }] }
+const alex = { participantId: "p3", userId: "alex", name: "Alex Rivera", initials: "AR", isYou: false, totals: [{ metricId: "km", week: 1, amount: 5 }] }
 const activity = logs.map(log => ({ ...log, participantId: "p1", name: "Me Too", initials: "MT", isYou: true }))
 function view(o: Partial<CompetitionDetailView> = {}): CompetitionDetailView {
     const position: Position = o.position ?? { state: "active", week: 2 }
@@ -196,11 +199,103 @@ describe("CompetitionDetail", () => {
         expect(within(hero).getByRole("img", { name: "This week 75%" })).toBeInTheDocument()
     })
 
-    it("draws this week as a lane toward the finish", () => {
+    it("puts a podium in the top card when there are rivals, in place of the ring", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const hero = within(screen.getByRole("region", { name: "Standing" }))
+        expect(hero.getByRole("list", { name: "Podium" })).toBeInTheDocument()
+        expect(hero.queryByRole("img", { name: /^This week/ })).not.toBeInTheDocument()
+        expect(hero.getByText(/You're 2nd, 1 week behind Sam\./)).toBeInTheDocument()
+        expect(hero.getByText("3 km")).toBeInTheDocument()
+    })
+
+    it("keeps the ring and has no podium on your own", () => {
         render(<CompetitionDetail competition={view()} today="2026-10-14" />)
 
-        expect(screen.getByText("9 of 12 km")).toBeInTheDocument()
-        expect(screen.getByRole("progressbar", { name: "km run this week" })).toHaveAttribute("aria-valuenow", "75")
+        expect(screen.queryByRole("list", { name: "Podium" })).not.toBeInTheDocument()
+        expect(screen.getByRole("img", { name: "This week 75%" })).toBeInTheDocument()
+    })
+
+    it("has no podium before the competition starts", () => {
+        render(<CompetitionDetail competition={view({ position: { state: "upcoming" }, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        expect(screen.queryByRole("list", { name: "Podium" })).not.toBeInTheDocument()
+    })
+
+    it("shows this week's race with just you on your own", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        const race = within(screen.getByRole("table", { name: "This week's race" }))
+        expect(race.getAllByRole("row").slice(1).map(r => r.getAttribute("aria-label"))).toEqual(["1 You"])
+        expect(race.getByText("9 km")).toBeInTheDocument()
+        expect(race.getByText("75%")).toBeInTheDocument()
+    })
+
+    it("ranks the rivals in this week's race", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const race = within(screen.getByRole("table", { name: "This week's race" }))
+        expect(race.getAllByRole("row").slice(1).map(r => r.getAttribute("aria-label"))).toEqual(["1 Sam", "2 You", "3 Alex"])
+    })
+
+    it("ranks everyone in the season with rivals, and keeps your own season grid on your own", () => {
+        const { unmount } = render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+        const season = within(screen.getByRole("list", { name: "Season standings" }))
+        expect(season.getAllByRole("listitem").map(r => r.getAttribute("aria-label"))).toEqual(["1 Sam", "2 You", "3 Alex"])
+        unmount()
+
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        expect(screen.queryByRole("list", { name: "Season standings" })).not.toBeInTheDocument()
+        expect(screen.getByRole("list", { name: "Weeks 1 to 4" })).toBeInTheDocument()
+    })
+
+    it("keeps people out of the way on a phone, one tap to open", async () => {
+        const user = userEvent.setup()
+        const people = [
+            { participantId: "p1", userId: "me", name: "Me Too", initials: "MT", role: "owner", isYou: true },
+            { participantId: "p2", userId: "sam", name: "Sam Chen", initials: "SC", role: "member", isYou: false },
+            { participantId: "p3", userId: "alex", name: "Alex Rivera", initials: "AR", role: "member", isYou: false },
+        ]
+        render(<CompetitionDetail competition={view({ people, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const toggle = screen.getByRole("button", { name: "People · 3" })
+        expect(toggle).toHaveAttribute("aria-expanded", "false")
+        await user.click(toggle)
+        expect(toggle).toHaveAttribute("aria-expanded", "true")
+        expect(within(screen.getByRole("complementary", { name: "People" })).getByText("Sam Chen")).toBeInTheDocument()
+    })
+
+    it("orders the page: race beside logging, then activity, season and targets, with people in a side rail", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const rail = screen.getByRole("complementary", { name: "People" })
+        const headings = screen.getAllByRole("heading", { level: 3 }).filter(h => !rail.contains(h)).map(h => h.textContent)
+        expect(headings).toEqual(["This week's race", "Log progress", "Activity", "Season", "Weekly targets"])
+        expect(within(rail).getByRole("heading", { name: /People/ })).toBeInTheDocument()
+    })
+
+    it("counts a new log once even when the refreshed page data lands first", async () => {
+        const user = userEvent.setup()
+        let answer!: (value: unknown) => void
+        vi.mocked(logProgress).mockReturnValue(new Promise(resolve => { answer = resolve }) as never)
+        const added = { id: "c", metricId: "km", week: 2, amount: 3, note: null, createdAt: new Date("2026-10-14T12:00:00Z") }
+        const { rerender } = render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        await user.type(screen.getByLabelText("Amount"), "3")
+        await user.click(screen.getByRole("button", { name: "Log it" }))
+
+        // The server's revalidation delivers the new log before the action's own answer arrives
+        const refreshed = view({ logs: [added, ...logs], activity: [{ ...added, participantId: "p1", name: "Me Too", initials: "MT", isYou: true }, ...activity], loadedAt: "2026-10-14T02:00:00.000Z" })
+        rerender(<CompetitionDetail competition={refreshed} today="2026-10-14" />)
+        await act(async () => answer({ log: added }))
+
+        expect(within(screen.getByRole("table", { name: "This week's race" })).getByText("12 km")).toBeInTheDocument()
+        expect(within(screen.getByRole("region", { name: "Activity" })).getAllByRole("button", { name: "Remove 3 km from week 2" })).toHaveLength(1)
+    })
+
+    it("says how many days are left in this week's race", () => {
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        expect(within(screen.getByRole("region", { name: "This week's race" })).getByText("Oct 11 to Oct 17 · 4 days left")).toBeInTheDocument()
     })
 
     it("logs into this week and says when the week is complete", async () => {
@@ -212,7 +307,7 @@ describe("CompetitionDetail", () => {
         await user.click(screen.getByRole("button", { name: "Log it" }))
 
         expect(await screen.findByRole("status")).toHaveTextContent("Week 2 complete.")
-        expect(screen.getByText("12 of 12 km")).toBeInTheDocument()
+        expect(within(screen.getByRole("table", { name: "This week's race" })).getByText("12 km")).toBeInTheDocument()
         // The week's square turns gold, with a pop
         expect(screen.getByText("Week 2: complete").parentElement!.className).toContain("animate-check-pop")
         expect((vi.mocked(logProgress).mock.calls[0][1] as FormData).get("amount")).toBe("3")
