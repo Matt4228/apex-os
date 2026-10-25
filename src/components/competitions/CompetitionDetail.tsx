@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { ChevronDown } from "lucide-react"
 import { deleteLog, logProgress, updateFutureTargets } from "@/app/actions/competitions"
+import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { catProps } from "@/lib/categoryColor"
@@ -51,6 +53,7 @@ export default function CompetitionDetail({
     const [logAmount, setLogAmount] = useState("")
     const [note, setNote] = useState("")
     const [drafts, setDrafts] = useState<Record<string, string>>({})
+    const [peopleOpen, setPeopleOpen] = useState(false)
 
     // Coming back to the tab reloads the data; adopt it during render, leaving what you were typing alone
     useRefreshOnFocus()
@@ -132,136 +135,160 @@ export default function CompetitionDetail({
     }
 
     return (
-        <div {...catProps(competition.category)} className="space-y-4">
-            <CompetitionHero
-                title={competition.title}
-                category={competition.category}
-                weeks={competition.weeks}
-                startDate={competition.startDate}
-                endDate={lastDay(competition)}
-                position={position}
-                season={seasonNow}
-                progress={progress}
-                metrics={metrics}
-                daysLeft={thisWeek ? daysLeft(competition, thisWeek, today) : null}
-                standings={ranked}
-            />
-
-            {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
-            {notice && <p role="status" className="text-sm font-semibold text-win-ink">{notice}</p>}
-
-            {progress && thisWeek && (
-                <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-start">
-                    <section aria-labelledby="this-week" className={card}>
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week&apos;s race</h3>
-                            <span className="text-xs text-ink-muted">
-                                {formatDateOnly(weekDates(competition, thisWeek).from, "MMM d")} to {formatDateOnly(weekDates(competition, thisWeek).to, "MMM d")}
-                            </span>
-                        </div>
-                        <RaceGrid metrics={metrics} targets={targets} week={thisWeek} standings={ranked} />
-                    </section>
-
-                    <div className="space-y-4 min-w-0">
-                        <section aria-labelledby="log-heading" className={card}>
-                            <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                <h3 id="log-heading" className="text-[15px] font-semibold text-ink">Log progress</h3>
-                                <span className="text-xs text-ink-muted">This week only</span>
-                            </div>
-                            <form
-                                onSubmit={e => {
-                                    e.preventDefault()
-                                    log(logAmount)
-                                }}
-                                className="space-y-2.5"
-                            >
-                                <div className="flex gap-2">
-                                    <label className="min-w-0 flex-1">
-                                        <span className="sr-only">Metric</span>
-                                        <select value={metricId} onChange={e => setMetricId(e.target.value)} className={selectClass}>
-                                            {metrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
-                                    </label>
-                                    <label className="w-28">
-                                        <span className="sr-only">Amount</span>
-                                        <Input type="number" min={0} step="any" placeholder="Amount" value={logAmount} onChange={e => setLogAmount(e.target.value)} required />
-                                    </label>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {quickAmounts(selectedTarget).map(amount => (
-                                        <button
-                                            key={amount}
-                                            type="button"
-                                            onClick={() => log(String(amount))}
-                                            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent-ink"
-                                        >
-                                            +{amountText(amount, metricOf(metricId)?.unit ?? null)}
-                                        </button>
-                                    ))}
-                                </div>
-                                <label className="block">
-                                    <span className="sr-only">Note</span>
-                                    <Input placeholder="Note (optional)" value={note} onChange={e => setNote(e.target.value)} maxLength={200} />
-                                    <span className="mt-1 block text-xs text-ink-muted">Visible to everyone in this competition</span>
-                                </label>
-                                <Button type="submit" className="w-full">Log it</Button>
-                            </form>
-
-                        </section>
-                        <ActivityFeed entries={activity} metrics={metrics} today={today} thisWeek={thisWeek} onDelete={handleDeleteLog} />
-                    </div>
-                </div>
-            )}
-
-            <section aria-labelledby="season" className={card}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 id="season" className="text-[15px] font-semibold text-ink">Season</h3>
-                    <span className="text-xs text-ink-muted">
-                        {formatDateOnly(competition.startDate, "MMM d, yyyy")} to {formatDateOnly(lastDay(competition), "MMM d, yyyy")}
-                    </span>
-                </div>
-                {ranked.length >= 2 ? (
-                    <SeasonBoard weeks={competition.weeks} standings={ranked} popWeek={popWeek} />
-                ) : (
-                    <SeasonGrid competition={competition} season={seasonNow} popWeek={popWeek} />
-                )}
-            </section>
-
-            <section aria-labelledby="people" className={card}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 id="people" className="text-[15px] font-semibold text-ink">People</h3>
-                    <span className="text-xs text-ink-muted">{competition.people.length} competing</span>
-                </div>
-                <PeoplePanel
-                    competitionId={competition.id}
+        // Desktop: the main column, with people in a rail on the right that runs to the bottom of the weekly targets.
+        // Phone: one column, people as a slim row under the top card
+        <div {...catProps(competition.category)} className="grid gap-4 md:grid-cols-[minmax(0,1fr)_16rem]">
+            <div className="min-w-0 md:col-start-1 md:row-start-1">
+                <CompetitionHero
                     title={competition.title}
-                    people={competition.people}
-                    invited={competition.invited}
-                    joinCode={competition.joinCode}
-                    isOwner={competition.isOwner}
-                    friends={friends}
-                    finished={position.state === "finished"}
-                    origin={origin}
-                />
-            </section>
-
-            <section aria-labelledby="targets" className={card}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 id="targets" className="text-[15px] font-semibold text-ink">Weekly targets</h3>
-                    <span className="text-xs text-ink-muted">Weeks that haven&apos;t started can change</span>
-                </div>
-                <TargetsByMonth
-                    competition={competition}
+                    category={competition.category}
+                    weeks={competition.weeks}
+                    startDate={competition.startDate}
+                    endDate={lastDay(competition)}
+                    position={position}
+                    season={seasonNow}
+                    progress={progress}
                     metrics={metrics}
-                    targets={targets}
-                    thisWeek={thisWeek}
-                    firstEditable={firstEditable}
-                    editable={competition.isOwner}
-                    drafts={drafts}
-                    onDraft={(key, value) => setDrafts(current => ({ ...current, [key]: value }))}
+                    daysLeft={thisWeek ? daysLeft(competition, thisWeek, today) : null}
+                    standings={ranked}
                 />
-                {Object.keys(drafts).length > 0 && <Button size="sm" onClick={saveTargets}>Save targets</Button>}
-            </section>
+            </div>
+
+            <aside aria-label="People" className="min-w-0 rounded-2xl border border-line bg-surface p-4 md:col-start-2 md:row-start-1 md:row-span-2">
+                <button
+                    type="button"
+                    aria-expanded={peopleOpen}
+                    onClick={() => setPeopleOpen(open => !open)}
+                    className="flex w-full items-center gap-3 text-left md:hidden"
+                >
+                    <span className="text-sm font-semibold text-ink">People · {competition.people.length}</span>
+                    <span aria-hidden="true" className="ml-auto flex -space-x-2">
+                        {competition.people.slice(0, 4).map(p => (
+                            <Avatar key={p.participantId} name={p.name} initials={p.initials} size="sm" className="ring-2 ring-surface" />
+                        ))}
+                    </span>
+                    <ChevronDown size={16} aria-hidden="true" className={`text-ink-muted transition-transform ${peopleOpen ? "rotate-180" : ""}`} />
+                </button>
+                {/* Closed on a phone until tapped; always open beside the page on desktop */}
+                <div className={`space-y-4 max-md:pt-4 ${peopleOpen ? "" : "max-md:hidden"}`}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 max-md:hidden">
+                        <h3 id="people" className="text-[15px] font-semibold text-ink">People</h3>
+                        <span className="text-xs text-ink-muted">{competition.people.length} competing</span>
+                    </div>
+                    <PeoplePanel
+                        competitionId={competition.id}
+                        title={competition.title}
+                        people={competition.people}
+                        invited={competition.invited}
+                        joinCode={competition.joinCode}
+                        isOwner={competition.isOwner}
+                        friends={friends}
+                        finished={position.state === "finished"}
+                        origin={origin}
+                    />
+                </div>
+            </aside>
+
+            <div className="min-w-0 space-y-4 md:col-start-1 md:row-start-2">
+
+                {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
+                {notice && <p role="status" className="text-sm font-semibold text-win-ink">{notice}</p>}
+
+                {progress && thisWeek && (
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-start">
+                        <section aria-labelledby="this-week" className={card}>
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <h3 id="this-week" className="text-[15px] font-semibold text-ink">This week&apos;s race</h3>
+                                <span className="text-xs text-ink-muted">
+                                    {formatDateOnly(weekDates(competition, thisWeek).from, "MMM d")} to {formatDateOnly(weekDates(competition, thisWeek).to, "MMM d")}
+                                </span>
+                            </div>
+                            <RaceGrid metrics={metrics} targets={targets} week={thisWeek} standings={ranked} />
+                        </section>
+
+                        <div className="space-y-4 min-w-0">
+                            <section aria-labelledby="log-heading" className={card}>
+                                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <h3 id="log-heading" className="text-[15px] font-semibold text-ink">Log progress</h3>
+                                    <span className="text-xs text-ink-muted">This week only</span>
+                                </div>
+                                <form
+                                    onSubmit={e => {
+                                        e.preventDefault()
+                                        log(logAmount)
+                                    }}
+                                    className="space-y-2.5"
+                                >
+                                    <div className="flex gap-2">
+                                        <label className="min-w-0 flex-1">
+                                            <span className="sr-only">Metric</span>
+                                            <select value={metricId} onChange={e => setMetricId(e.target.value)} className={selectClass}>
+                                                {metrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            </select>
+                                        </label>
+                                        <label className="w-28">
+                                            <span className="sr-only">Amount</span>
+                                            <Input type="number" min={0} step="any" placeholder="Amount" value={logAmount} onChange={e => setLogAmount(e.target.value)} required />
+                                        </label>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {quickAmounts(selectedTarget).map(amount => (
+                                            <button
+                                                key={amount}
+                                                type="button"
+                                                onClick={() => log(String(amount))}
+                                                className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent-ink"
+                                            >
+                                                +{amountText(amount, metricOf(metricId)?.unit ?? null)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <label className="block">
+                                        <span className="sr-only">Note</span>
+                                        <Input placeholder="Note (optional)" value={note} onChange={e => setNote(e.target.value)} maxLength={200} />
+                                        <span className="mt-1 block text-xs text-ink-muted">Visible to everyone in this competition</span>
+                                    </label>
+                                    <Button type="submit" className="w-full">Log it</Button>
+                                </form>
+
+                            </section>
+                            <ActivityFeed entries={activity} metrics={metrics} today={today} thisWeek={thisWeek} onDelete={handleDeleteLog} />
+                        </div>
+                    </div>
+                )}
+
+                <section aria-labelledby="season" className={card}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 id="season" className="text-[15px] font-semibold text-ink">Season</h3>
+                        <span className="text-xs text-ink-muted">
+                            {formatDateOnly(competition.startDate, "MMM d, yyyy")} to {formatDateOnly(lastDay(competition), "MMM d, yyyy")}
+                        </span>
+                    </div>
+                    {ranked.length >= 2 ? (
+                        <SeasonBoard weeks={competition.weeks} standings={ranked} popWeek={popWeek} />
+                    ) : (
+                        <SeasonGrid competition={competition} season={seasonNow} popWeek={popWeek} />
+                    )}
+                </section>
+
+                <section aria-labelledby="targets" className={card}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 id="targets" className="text-[15px] font-semibold text-ink">Weekly targets</h3>
+                        <span className="text-xs text-ink-muted">Weeks that haven&apos;t started can change</span>
+                    </div>
+                    <TargetsByMonth
+                        competition={competition}
+                        metrics={metrics}
+                        targets={targets}
+                        thisWeek={thisWeek}
+                        firstEditable={firstEditable}
+                        editable={competition.isOwner}
+                        drafts={drafts}
+                        onDraft={(key, value) => setDrafts(current => ({ ...current, [key]: value }))}
+                    />
+                    {Object.keys(drafts).length > 0 && <Button size="sm" onClick={saveTargets}>Save targets</Button>}
+                </section>
+            </div>
         </div>
     )
 }

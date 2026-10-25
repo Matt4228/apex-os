@@ -249,6 +249,31 @@ describe("CompetitionDetail", () => {
         expect(screen.getByRole("list", { name: "Weeks 1 to 4" })).toBeInTheDocument()
     })
 
+    it("keeps people out of the way on a phone, one tap to open", async () => {
+        const user = userEvent.setup()
+        const people = [
+            { participantId: "p1", userId: "me", name: "Me Too", initials: "MT", role: "owner", isYou: true },
+            { participantId: "p2", userId: "sam", name: "Sam Chen", initials: "SC", role: "member", isYou: false },
+            { participantId: "p3", userId: "alex", name: "Alex Rivera", initials: "AR", role: "member", isYou: false },
+        ]
+        render(<CompetitionDetail competition={view({ people, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const toggle = screen.getByRole("button", { name: "People · 3" })
+        expect(toggle).toHaveAttribute("aria-expanded", "false")
+        await user.click(toggle)
+        expect(toggle).toHaveAttribute("aria-expanded", "true")
+        expect(within(screen.getByRole("complementary", { name: "People" })).getByText("Sam Chen")).toBeInTheDocument()
+    })
+
+    it("orders the page: race beside logging, then activity, season and targets, with people in a side rail", () => {
+        render(<CompetitionDetail competition={view({ competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
+
+        const rail = screen.getByRole("complementary", { name: "People" })
+        const headings = screen.getAllByRole("heading", { level: 3 }).filter(h => !rail.contains(h)).map(h => h.textContent)
+        expect(headings).toEqual(["This week's race", "Log progress", "Activity", "Season", "Weekly targets"])
+        expect(within(rail).getByRole("heading", { name: /People/ })).toBeInTheDocument()
+    })
+
     it("logs into this week and says when the week is complete", async () => {
         const user = userEvent.setup()
         vi.mocked(logProgress).mockResolvedValue({ log: { id: "c", metricId: "km", week: 2, amount: 3, note: null, createdAt: new Date() } } as never)
