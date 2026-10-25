@@ -2,7 +2,7 @@
 import { seedDemo } from "@/lib/demo/seedDemo"
 import { parseDateOnly } from "@/lib/dates"
 import { occurrences, weekDates, type Exception, type SeriesBlock } from "@/lib/occurrences"
-import { season, weekOf } from "@/lib/competition"
+import { rank, season, weekOf, weekProgress } from "@/lib/competition"
 import type { PrismaClient } from "@prisma/client"
 import { beforeEach, describe, expect, it } from "vitest"
 import { prismaMock } from "../mocks/prismaMock"
@@ -53,27 +53,39 @@ function seededChanges(): Exception[] {
 const calendar = (from: string, to: string) =>
     occurrences(seededBlocks(), seededChanges(), from, to).map(o => `${o.date.slice(5)} ${o.label} ${o.startTime}-${o.endTime}`)
 
-// Like the database: a created competition comes back with its participant and metric ids
+type SeedParticipant = { userId: string; role: string; joinedAt?: Date }
+type SeedCompetition = {
+    title: string
+    startDate: Date
+    weeks: number
+    participants: { create: SeedParticipant | SeedParticipant[] }
+    metrics: { create: { name: string; unit: string | null; targets: { create: { week: number; target: number }[] } }[] }
+}
+type SeedLogRow = { participantId: string; metricId: string; week: number; amount: number; note: string | null }
+
+const participantsOf = (c: SeedCompetition) => [c.participants.create].flat()
+
+// Like the database: a created competition comes back with its participant and metric ids ("Run Club-alex")
 function returnCompetitionsWithIds() {
-    prismaMock.competition.create.mockImplementation((async (args: { data: { title: string; metrics: { create: object[] } } }) => ({
+    prismaMock.competition.create.mockImplementation((async (args: { data: SeedCompetition }) => ({
         id: args.data.title,
-        participants: [{ id: `${args.data.title}-me` }],
+        participants: participantsOf(args.data).map(p => ({ id: `${args.data.title}-${p.userId}`, userId: p.userId })),
         metrics: args.data.metrics.create.map((_, i) => ({ id: `${args.data.title}-m${i}`, sortOrder: i })),
     })) as never)
 }
 
-type SeedCompetition = { title: string; startDate: Date; weeks: number; metrics: { create: { name: string; unit: string | null; targets: { create: { week: number; target: number }[] } }[] } }
+const seededLogs = () => prismaMock.progressLog.createMany.mock.calls.flatMap(([args]) => (args?.data ?? []) as unknown as SeedLogRow[])
 
 /** Each seeded competition with its targets and logs, scored as the competition page would on that day */
 /** The demo's own competitions, in the order they were made (Sam's push-up challenge is left out) */
-function seededCompetitions(today: string) {
-    const logs = prismaMock.progressLog.createMany.mock.calls.flatMap(([args]) => (args?.data ?? []) as unknown as { metricId: string; week: number; amount: number }[])
+function seededCompetitions(today: string, who = "demo") {
+    const logs = seededLogs()
     const demos = prismaMock.competition.create.mock.calls.filter(([args]) => (args.data as { ownerId: string }).ownerId === "demo")
     return demos.map(([args]) => {
         const c = args.data as unknown as SeedCompetition
         const metrics = c.metrics.create.map((m, i) => ({ id: `${c.title}-m${i}`, name: m.name, unit: m.unit }))
         const targets = c.metrics.create.flatMap((m, i) => m.targets.create.map(t => ({ metricId: `${c.title}-m${i}`, ...t })))
-        const mine = logs.filter(l => metrics.some(m => m.id === l.metricId))
+        const mine = logs.filter(l => l.participantId === `${c.title}-${who}`)
         const position = weekOf(c, today)
         return { title: c.title, position, season: season(metrics, targets, mine, c, position) }
     })
@@ -256,6 +268,52 @@ describe("seedDemo", () => {
                 { requesterId: "jordan", addresseeId: "demo", status: "pending" },
             ],
         })
+    })
+
+    it("puts Alex and Sam in the shared competitions", async () => {
+        await run(new Date("2026-10-14T16:00:00Z"))
+        const made = prismaMock.competition.create.mock.calls.map(([args]) => args.data as unknown as SeedCompetition)
+        const people = (title: string) => participantsOf(made.find(c => c.title === title)!)
+
+        expect(people("October Run Club").map(p => `${p.userId} ${p.role}`)).toEqual(["demo owner", "alex member", "sam member"])
+        expect(people("LeetCode Sprint").map(p => p.userId)).toEqual(["demo", "alex"])
+        const year = made.find(c => c.title === "Year of Running")!
+        const sam = people("Year of Running").find(p => p.userId === "sam")!
+        expect(people("Year of Running").map(p => p.userId)).toEqual(["demo", "sam"])
+        // Sam joined in week 3: that week's Sunday, and nothing logged before it
+        expect(sam.joinedAt?.getTime()).toBe(year.startDate.getTime() + 14 * 24 * 60 * 60 * 1000)
+        expect(seededLogs().filter(l => l.participantId === "Year of Running-sam" && l.week < 3)).toEqual([])
+    })
+
+    it("gives Run Club its standings: Sam 1st, the demo 2nd, Alex 3rd and leading this week", async () => {
+        // Wednesday, October 14: week 4 of the run club
+        await run(new Date("2026-10-14T16:00:00Z"))
+        const [demo, alex, sam] = ["demo", "alex", "sam"].map(who => ({ who, ...seededCompetitions("2026-10-14", who)[0] }))
+        const places = rank([demo, alex, sam].map(c => ({ who: c.who, ...c.season })))
+
+        expect(places.map(p => `${p.place} ${p.who}`)).toEqual(["1 sam", "2 demo", "3 alex"])
+        expect(sam.season.completedWeeks).toBe(3)
+        expect(demo.season.completedWeeks).toBe(3)
+        expect(alex.season.weeks[1]).toBe("missed")
+
+        // This week's race, each goal counting at most 100%
+        const made = prismaMock.competition.create.mock.calls.map(([args]) => args.data as unknown as SeedCompetition)
+        const club = made.find(c => c.title === "October Run Club")!
+        const metrics = club.metrics.create.map((m, i) => ({ id: `${club.title}-m${i}`, name: m.name, unit: m.unit }))
+        const targets = club.metrics.create.flatMap((m, i) => m.targets.create.map(t => ({ metricId: `${club.title}-m${i}`, ...t })))
+        const race = (who: string) => {
+            const week = weekProgress(metrics, targets, seededLogs().filter(l => l.participantId === `${club.title}-${who}`), 4)
+            return week.metrics.reduce((sum, m) => sum + Math.min(m.percent, 100), 0) / week.metrics.length
+        }
+        expect(race("alex")).toBeGreaterThan(race("demo"))
+        expect(race("alex")).toBeGreaterThan(race("sam"))
+    })
+
+    it("gives some rival logs notes", async () => {
+        await run(new Date("2026-10-14T16:00:00Z"))
+
+        const rivalNotes = seededLogs().filter(l => /-(alex|sam)$/.test(l.participantId) && l.note)
+        expect(rivalNotes.length).toBeGreaterThanOrEqual(3)
     })
 
     it("gives Sam a push-up challenge from this Sunday, with the demo invited, and every competition a join code", async () => {

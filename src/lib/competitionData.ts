@@ -1,4 +1,4 @@
-import { season, weekOf, type Position, type Season } from "@/lib/competition"
+import { season, weekOf, type Log, type Position, type Season } from "@/lib/competition"
 import { prisma } from "@/lib/prisma"
 import { toDateInputValue } from "@/lib/dates"
 import { displayName, initialsOf } from "@/lib/people"
@@ -134,8 +134,67 @@ export async function loadCompetitions(userId: string, today: string): Promise<C
     return rows.map(row => toView(row, userId, today))
 }
 
+/** Someone in the competition and their weekly totals per goal, summed on the server */
+export type CompetitorTotals = { participantId: string; userId: string; name: string; initials: string; isYou: boolean; totals: Log[] }
+
+/** One log from anyone in the competition, for the activity feed. Everyone in a competition sees these, notes included */
+export type ActivityEntry = {
+    id: string
+    participantId: string
+    name: string
+    initials: string
+    isYou: boolean
+    metricId: string
+    week: number
+    amount: number
+    note: string | null
+    createdAt: Date
+}
+
+/** The competition page's data: the view plus everyone's totals, the latest logs, and when it was loaded */
+export type CompetitionDetailView = CompetitionView & { competitors: CompetitorTotals[]; activity: ActivityEntry[]; loadedAt: string }
+
+/** How many of the latest logs the feed gets, so a long season doesn't send every log it has */
+export const ACTIVITY_LIMIT = 100
+
 /** One competition, or null when the user isn't in it (so someone else's id shows nothing) */
-export async function loadCompetition(competitionId: string, userId: string, today: string): Promise<CompetitionView | null> {
+export async function loadCompetition(competitionId: string, userId: string, today: string): Promise<CompetitionDetailView | null> {
     const [row] = await loadRows({ competitionId, userId })
-    return row ? toView(row, userId, today) : null
+    if (!row) return null
+
+    const inCompetition = { participant: { competitionId } }
+    const [sums, latest] = await Promise.all([
+        prisma.progressLog.groupBy({ by: ["participantId", "metricId", "week"], where: inCompetition, _sum: { amount: true } }),
+        prisma.progressLog.findMany({
+            where: inCompetition,
+            orderBy: { createdAt: "desc" },
+            take: ACTIVITY_LIMIT,
+            include: { participant: { include: { user: person } } },
+        }),
+    ])
+
+    const competitors = row.competition.participants.map(p => ({
+        participantId: p.id,
+        userId: p.userId,
+        name: displayName(p.user.name, p.user.email),
+        initials: initialsOf(p.user.name, p.user.email),
+        isYou: p.userId === userId,
+        totals: sums
+            .filter(s => s.participantId === p.id)
+            .map(s => ({ metricId: s.metricId, week: s.week, amount: s._sum.amount ?? 0 })),
+    }))
+    const activity = latest.map(({ id, participantId, metricId, week, amount, note, createdAt, participant }) => ({
+        id,
+        participantId,
+        name: displayName(participant.user.name, participant.user.email),
+        initials: initialsOf(participant.user.name, participant.user.email),
+        isYou: participant.userId === userId,
+        metricId,
+        week,
+        amount,
+        note,
+        createdAt,
+    }))
+
+    return { ...toView(row, userId, today), competitors, activity, loadedAt: new Date().toISOString() }
 }

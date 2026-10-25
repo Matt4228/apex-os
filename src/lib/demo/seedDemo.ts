@@ -48,12 +48,16 @@ type SeedHabit = {
 type SeedChange = { label: string; date: Date; cancelled?: boolean; startTime?: string; endTime?: string }
 
 type SeedLog = { week: number; amount: number; at: Date; note?: string }
+type RivalKey = (typeof RIVALS)[number]["key"]
+/** A rival in one of the demo's competitions. `logs[i]` goes with `metrics[i]`; `joinedAt` is set for a late joiner */
+type SeedRival = { key: RivalKey; joinedAt?: Date; logs: SeedLog[][] }
 type SeedCompetition = {
     title: string
     category: string
     startDate: Date
     weeks: number
     metrics: { name: string; unit: string | null; targets: number[]; logs: SeedLog[] }[]
+    rivals?: SeedRival[]
 }
 
 /**
@@ -104,6 +108,43 @@ function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedC
                     ], 4),
                 },
             ],
+            // Sam has every week with room to spare, so leads on the tie-break; Alex missed week 2 but leads this week
+            rivals: [
+                {
+                    key: "alex",
+                    logs: [
+                        logs(-3, [
+                            [1, 1, 6], [1, 4, 5], [1, 6, 5],
+                            [2, 2, 5, "Sick most of the week"], [2, 6, 7],
+                            [3, 1, 8], [3, 3, 7], [3, 5, 7],
+                            [4, 1, 8], [4, 2, 7, "Legs were dead"], [4, 4, 6],
+                        ], 4),
+                        logs(-3, [
+                            [1, 2, 1], [1, 3, 1], [1, 5, 1],
+                            [2, 3, 1], [2, 5, 1],
+                            [3, 2, 1], [3, 3, 1], [3, 4, 1], [3, 6, 1],
+                            [4, 1, 1], [4, 2, 1], [4, 3, 1], [4, 4, 1],
+                        ], 4),
+                    ],
+                },
+                {
+                    key: "sam",
+                    logs: [
+                        logs(-3, [
+                            [1, 1, 6], [1, 3, 6], [1, 6, 6],
+                            [2, 1, 7], [2, 3, 7], [2, 6, 7],
+                            [3, 2, 8, "Hill repeats"], [3, 4, 8], [3, 6, 8],
+                            [4, 1, 6, "Rest day tomorrow"],
+                        ], 4),
+                        logs(-3, [
+                            [1, 2, 1], [1, 4, 1], [1, 5, 1],
+                            [2, 2, 1], [2, 3, 1], [2, 4, 1], [2, 5, 1],
+                            [3, 1, 1], [3, 3, 1], [3, 5, 1], [3, 6, 1],
+                            [4, 2, 1],
+                        ], 4),
+                    ],
+                },
+            ],
         },
         {
             title: "LeetCode Sprint",
@@ -118,6 +159,7 @@ function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedC
                     logs: logs(-1, [[1, 1, 3], [1, 3, 4, "Graphs"], [1, 5, 4], [2, 1, 2], [2, 2, 3]], 2),
                 },
             ],
+            rivals: [{ key: "alex", logs: [logs(-1, [[1, 2, 4], [1, 4, 3], [1, 6, 4], [2, 1, 4, "Two mediums and a hard one"]], 2)] }],
         },
         {
             // A year-long one, about 20 weeks in, with targets that ramp up: shows how long seasons look
@@ -139,6 +181,20 @@ function demoCompetitions(day: (offset: number) => Date, weekday: number): SeedC
                         if (week !== 20) runs.push([week, 6, Math.round((total - 2 * Math.round(total * 0.3 * 10) / 10) * 10) / 10])
                         return runs
                     }), 20),
+                },
+            ],
+            // Sam joined in week 3, so weeks 1 and 2 count as missed, and has run a little past every target since
+            rivals: [
+                {
+                    key: "sam",
+                    joinedAt: day(sunday(-19 + 2)),
+                    logs: [logs(-19, Array.from({ length: 18 }, (_, i) => i + 3).flatMap(week => {
+                        const total = Math.round(yearTargets[week - 1] * (week === 20 ? 0.5 : 1.1) * 10) / 10
+                        const half = Math.round((total / 2) * 10) / 10
+                        const runs: [number, number, number, string?][] = [[week, 2, half, week === 3 ? "First week in, catching up" : undefined]]
+                        runs.push([week, 5, Math.round((total - half) * 10) / 10])
+                        return runs
+                    }), 20)],
                 },
             ],
         },
@@ -501,6 +557,7 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
 
     // Competitions: one in its fourth week, one just started, one finished with a missed week
     for (const competition of demoCompetitions(day, today.getUTCDay())) {
+        const rivalsIn = competition.rivals ?? []
         const created = await prisma.competition.create({
             data: {
                 ownerId: userId,
@@ -509,7 +566,12 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
                 startDate: competition.startDate,
                 weeks: competition.weeks,
                 joinCode: newJoinCode(),
-                participants: { create: { userId, role: "owner" } },
+                participants: {
+                    create: [
+                        { userId, role: "owner" },
+                        ...rivalsIn.map(r => ({ userId: rivals[r.key], role: "member" as const, ...(r.joinedAt && { joinedAt: r.joinedAt }) })),
+                    ],
+                },
                 metrics: {
                     create: competition.metrics.map((metric, i) => ({
                         name: metric.name,
@@ -521,17 +583,15 @@ export async function seedDemo(prisma: PrismaClient, now: Date = new Date()) {
             },
             include: { participants: true, metrics: true },
         })
+        const participantOf = (id: string) => created.participants.find(p => p.userId === id)!.id
+        const metricAt = (i: number) => created.metrics.find(m => m.sortOrder === i)!.id
+        const rows = (participantId: string, logs: SeedLog[], i: number) =>
+            logs.map(log => ({ participantId, metricId: metricAt(i), week: log.week, amount: log.amount, note: log.note ?? null, createdAt: log.at }))
         await prisma.progressLog.createMany({
-            data: competition.metrics.flatMap((metric, i) =>
-                metric.logs.map(log => ({
-                    participantId: created.participants[0].id,
-                    metricId: created.metrics.find(m => m.sortOrder === i)!.id,
-                    week: log.week,
-                    amount: log.amount,
-                    note: log.note ?? null,
-                    createdAt: log.at,
-                })),
-            ),
+            data: [
+                ...competition.metrics.flatMap((metric, i) => rows(participantOf(userId), metric.logs, i)),
+                ...rivalsIn.flatMap(r => r.logs.flatMap((logs, i) => rows(participantOf(rivals[r.key]), logs, i))),
+            ],
         })
     }
 }

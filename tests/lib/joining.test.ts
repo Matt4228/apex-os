@@ -4,7 +4,7 @@ import { loadCompetition, loadInvites } from "@/lib/competitionData"
 import { parseDateOnly } from "@/lib/dates"
 import { JOIN_CODE_ALPHABET, looksLikeJoinCode, newJoinCode } from "@/lib/joinCode"
 import { afterSignIn, routeFor } from "@/lib/routes"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { prismaMock } from "../mocks/prismaMock"
 
 describe("join codes", () => {
@@ -63,6 +63,8 @@ describe("loadCompetition people", () => {
         // The user's row in the competition, with the competition (and everyone in it) attached
         const row = (ownerId: string) => [{ id: "p2", competitionId: "run", userId: "me", role: "member", joinedAt: new Date(), logs: [], competition: stored(ownerId) }]
         prismaMock.participant.findMany.mockResolvedValue(row("sam") as never)
+        vi.mocked(prismaMock.progressLog.groupBy as unknown as () => Promise<unknown>).mockResolvedValue([])
+        prismaMock.progressLog.findMany.mockResolvedValue([] as never)
 
         const member = await loadCompetition("run", "me", "2026-10-14")
         expect(member?.people.map(p => `${p.name} ${p.role} ${p.isYou}`)).toEqual(["Sam Chen owner false", "Me Too member true"])
