@@ -28,21 +28,29 @@ export function ordinal(n: number) {
 
 const weeksText = (n: number) => `${n} ${n === 1 ? "week" : "weeks"}`
 
+/** "12 points", "1 point", or under half a point (still enough to split two places) "less than a point" */
+function pointsText(gap: number) {
+    const n = Math.round(gap)
+    return n === 0 ? "less than a point" : `${n} ${n === 1 ? "point" : "points"}`
+}
+
 /**
  * Your place and the gap that matters: to the person just ahead, or when you lead, to the person in 2nd. In weeks when
  * completed weeks differ, otherwise in points of total progress (the tie-breaker). "You're 2nd, 23 points behind Sam."
+ * Once it's over, "You finished 2nd, 23 points behind Sam."
  */
-export function standingText(ranked: Standing[]): string {
+export function standingText(ranked: Standing[], finished = false): string {
     const you = ranked.find(r => r.isYou)
     if (!you) return ""
+    const lead = finished ? "You finished" : "You're"
     const tiedWith = ranked.find(r => !r.isYou && r.place === you.place)
-    if (tiedWith) return `You're tied for ${ordinal(you.place)} with ${tiedWith.name.split(" ")[0]}.`
+    if (tiedWith) return `${lead} tied for ${ordinal(you.place)} with ${tiedWith.name.split(" ")[0]}.`
 
     const i = ranked.indexOf(you)
     const other = you.place === 1 ? ranked[i + 1] : ranked[i - 1]
-    if (!other) return `You're ${ordinal(you.place)}.`
+    if (!other) return `${lead} ${ordinal(you.place)}.`
     const weeks = Math.abs(you.season.completedWeeks - other.season.completedWeeks)
-    const gap = weeks > 0 ? weeksText(weeks) : `${Math.round(Math.abs(you.season.totalProgress - other.season.totalProgress))} points`
+    const gap = weeks > 0 ? weeksText(weeks) : pointsText(Math.abs(you.season.totalProgress - other.season.totalProgress))
     const name = other.name.split(" ")[0]
-    return you.place === 1 ? `You're 1st, ${gap} ahead of ${name}.` : `You're ${ordinal(you.place)}, ${gap} behind ${name}.`
+    return you.place === 1 ? `${lead} 1st, ${gap} ahead of ${name}.` : `${lead} ${ordinal(you.place)}, ${gap} behind ${name}.`
 }

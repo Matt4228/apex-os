@@ -42,9 +42,11 @@ function nudge(order: Standing[], metrics: Metric[], week: number): string {
 
     const { ahead, behind } = raceGaps(order)
     const points = (n: number) => `${n} ${n === 1 ? "point" : "points"}`
+    // The person behind, after a clause about the person ahead: "; Alex is 12 points behind" or "; you're level with Alex"
+    const andBehind = !behind ? "" : behind.points === 0 ? `; you're level with ${behind.name}` : `; ${behind.name} is ${points(behind.points)} behind`
     let gaps = ""
-    if (ahead && ahead.points === 0) gaps = `You're level with ${ahead.name}.`
-    else if (ahead) gaps = `${ahead.name} is ${points(ahead.points)} ahead${behind ? `; ${behind.name} is ${behind.points} behind` : ""}.`
+    if (ahead && ahead.points === 0) gaps = behind?.points === 0 ? `You're level with ${ahead.name} and ${behind.name}.` : `You're level with ${ahead.name}${andBehind}.`
+    else if (ahead) gaps = `${ahead.name} is ${points(ahead.points)} ahead${andBehind}.`
     else if (behind) gaps = behind.points === 0 ? `You're level with ${behind.name}.` : `You lead ${behind.name} by ${points(behind.points)}.`
     return gaps ? `${first} ${gaps}` : first
 }
@@ -61,32 +63,36 @@ export default function RaceGrid({ metrics, targets, week, standings }: { metric
 
     return (
         <div className="space-y-3">
-            <table aria-label="This week's race" className="w-full border-collapse text-sm max-md:block">
-                <thead className="max-md:hidden">
-                    <tr className="text-left text-xs text-ink-muted">
-                        <th className="w-6 px-1.5 py-1 font-medium"><span className="sr-only">Place</span></th>
-                        <th className="px-1.5 py-1 font-medium"><span className="sr-only">Person</span></th>
+            {/* The roles are spelled out because display: block on a phone makes browsers drop the table's own */}
+            <table role="table" aria-label="This week's race" className="w-full border-collapse text-sm max-md:block">
+                <thead role="rowgroup" className="max-md:hidden">
+                    <tr role="row" className="text-left text-xs text-ink-muted">
+                        <th role="columnheader" className="w-6 px-1.5 py-1 font-medium"><span className="sr-only">Place</span></th>
+                        <th role="columnheader" className="px-1.5 py-1 font-medium"><span className="sr-only">Person</span></th>
                         {metrics.map(m => (
-                            <th key={m.id} className="px-1.5 py-1 font-medium">
+                            <th key={m.id} role="columnheader" className="px-1.5 py-1 font-medium">
                                 {m.name} <span className="text-ink-muted/70">/ {amountText(targetOf(m.id), null)}</span>
                             </th>
                         ))}
-                        <th className="px-1.5 py-1 text-right font-medium">Week</th>
+                        <th role="columnheader" className="px-1.5 py-1 text-right font-medium">Week</th>
                     </tr>
                 </thead>
-                <tbody className="max-md:block max-md:space-y-1">
-                    {order.map((row, i) => {
+                <tbody role="rowgroup" className="max-md:block max-md:space-y-1">
+                    {order.map(row => {
                         const name = row.isYou ? "You" : row.name.split(" ")[0]
+                        // People on the same shown percent share a number: 1, 2, 2 (everyone at 0% on Sunday is 1st)
+                        const place = order.findIndex(r => Math.round(r.race) === Math.round(row.race)) + 1
                         return (
                             <tr
                                 key={row.participantId}
-                                aria-label={`${i + 1} ${name}`}
+                                role="row"
+                                aria-label={`${place} ${name}`}
                                 data-you={row.isYou || undefined}
                                 {...catProps(row.name)}
                                 className={`border-t border-line max-md:grid max-md:grid-cols-[1.5rem_minmax(0,1fr)_auto] max-md:gap-x-2 max-md:rounded-lg max-md:border-0 max-md:p-2 ${row.isYou ? "bg-sunken" : ""}`}
                             >
-                                <td className="px-1.5 py-2.5 font-extrabold text-ink-muted tabular-nums max-md:p-0">{i + 1}</td>
-                                <th scope="row" className="px-1.5 py-2.5 text-left font-normal max-md:p-0">
+                                <td role="cell" className="px-1.5 py-2.5 font-extrabold text-ink-muted tabular-nums max-md:p-0">{place}</td>
+                                <th scope="row" role="rowheader" className="px-1.5 py-2.5 text-left font-normal max-md:p-0">
                                     <span className="flex min-w-0 items-center gap-2">
                                         <Avatar name={row.name} initials={row.initials} size="sm" />
                                         <span className={`max-w-28 truncate ${row.isYou ? "font-bold text-ink" : "text-ink-soft"}`}>{name}</span>
@@ -96,7 +102,7 @@ export default function RaceGrid({ metrics, targets, week, standings }: { metric
                                     const metric = metrics.find(m => m.id === goal.metricId)!
                                     const done = goal.target > 0 && goal.total >= goal.target
                                     return (
-                                        <td key={goal.metricId} className="px-1.5 py-2.5 align-middle max-md:col-span-3 max-md:col-start-2 max-md:row-start-auto max-md:p-0 max-md:pt-1.5">
+                                        <td key={goal.metricId} role="cell" className="px-1.5 py-2.5 align-middle max-md:col-span-3 max-md:col-start-2 max-md:row-start-auto max-md:p-0 max-md:pt-1.5">
                                             <span className="mb-0.5 hidden text-xs text-ink-muted max-md:block">{metric.name}</span>
                                             <GoalBar row={goal} />
                                             <span className="mt-1 flex items-center gap-1 font-mono text-[11px] text-ink-muted">
@@ -106,7 +112,7 @@ export default function RaceGrid({ metrics, targets, week, standings }: { metric
                                         </td>
                                     )
                                 })}
-                                <td className="px-1.5 py-2.5 text-right font-mono text-[15px] font-bold tabular-nums max-md:col-start-3 max-md:row-start-1 max-md:p-0">
+                                <td role="cell" className="px-1.5 py-2.5 text-right font-mono text-[15px] font-bold tabular-nums max-md:col-start-3 max-md:row-start-1 max-md:p-0">
                                     <span className={row.week?.complete ? "text-win-ink" : "text-ink"}>{Math.round(row.race)}%</span>
                                 </td>
                             </tr>

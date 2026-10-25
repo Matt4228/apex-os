@@ -216,6 +216,12 @@ describe("CompetitionDetail", () => {
         expect(screen.getByRole("img", { name: "This week 75%" })).toBeInTheDocument()
     })
 
+    it("says where you finished on a finished competition", () => {
+        render(<CompetitionDetail competition={view({ position: { state: "finished" }, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-11-02" />)
+
+        expect(within(screen.getByRole("region", { name: "Standing" })).getByText(/You finished 2nd, 1 week behind Sam\./)).toBeInTheDocument()
+    })
+
     it("has no podium before the competition starts", () => {
         render(<CompetitionDetail competition={view({ position: { state: "upcoming" }, competitors: [{ ...you, totals: [] }, sam, alex] })} today="2026-10-14" />)
 
@@ -350,6 +356,36 @@ describe("CompetitionDetail", () => {
         const feed = within(screen.getByRole("region", { name: "Activity" }))
         expect(feed.getByRole("button", { name: "Remove 9 km from week 2" })).toBeInTheDocument()
         expect(feed.queryByRole("button", { name: /from week 1/ })).not.toBeInTheDocument()
+    })
+
+    it("puts a log back and explains when removing it fails", async () => {
+        const user = userEvent.setup()
+        vi.mocked(deleteLog).mockResolvedValue({ error: "Not found" })
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        await user.click(screen.getByRole("button", { name: "Remove 9 km from week 2" }))
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't remove that log. Not found.")
+        expect(screen.getByRole("button", { name: "Remove 9 km from week 2" })).toBeInTheDocument()
+        expect(within(screen.getByRole("table", { name: "This week's race" })).getByText("9 km")).toBeInTheDocument()
+    })
+
+    it("keeps data refreshed during a failed remove, putting back only the log", async () => {
+        const user = userEvent.setup()
+        let answer!: (value: unknown) => void
+        vi.mocked(deleteLog).mockReturnValue(new Promise(resolve => { answer = resolve }) as never)
+        const { rerender } = render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+        await user.click(screen.getByRole("button", { name: "Remove 9 km from week 2" }))
+
+        // A refresh lands mid-remove, without the log (as if the remove had worked) and with a new log from Sam
+        const samLog = { id: "s1", metricId: "km", week: 2, amount: 6.2, note: "Legs were dead", createdAt: new Date("2026-10-14T18:00:00Z"), participantId: "p2", name: "Sam Chen", initials: "SC", isYou: false }
+        const withoutA = <T extends { id: string }>(rows: T[]) => rows.filter(r => r.id !== "a")
+        rerender(<CompetitionDetail competition={view({ logs: withoutA(logs), activity: [samLog, ...withoutA(activity)], loadedAt: "2026-10-14T03:00:00.000Z" })} today="2026-10-14" />)
+        await act(async () => answer({ error: "Not found" }))
+
+        const feed = within(screen.getByRole("region", { name: "Activity" }))
+        expect(feed.getByText("Legs were dead")).toBeInTheDocument()
+        expect(feed.getAllByRole("button", { name: "Remove 9 km from week 2" })).toHaveLength(1)
     })
 
     it("shows the other people's logs and notes in the activity feed", () => {

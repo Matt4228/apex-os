@@ -110,13 +110,19 @@ export default function CompetitionDetail({
 
     async function handleDeleteLog(id: string) {
         setError(null)
-        const before = { logs, activity }
+        const removedLog = logs.find(l => l.id === id)
+        const removedEntry = activity.find(l => l.id === id)
         setLogs(current => current.filter(l => l.id !== id))
         setActivity(current => current.filter(l => l.id !== id))
         const problem = await failureMessage(deleteLog(id), "remove that log")
         if (problem) {
-            setLogs(before.logs)
-            setActivity(before.activity)
+            // Put back just this log, newest first, into whatever is current: a refresh may have landed meanwhile
+            const putBack = <T extends { id: string; createdAt: Date }>(current: T[], entry: T | undefined) =>
+                !entry || current.some(l => l.id === entry.id)
+                    ? current
+                    : [...current, entry].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            setLogs(current => putBack(current, removedLog))
+            setActivity(current => putBack(current, removedEntry))
             setError(problem)
         }
     }
