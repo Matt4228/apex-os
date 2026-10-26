@@ -8,6 +8,7 @@ import { sortSteps } from "@/lib/goalProgress"
 import TaskCard from "./TaskCard"
 import CreateTaskForm from "./CreateTaskForm"
 import { useUndoableDelete } from "@/lib/use-undoable-delete"
+import { useSettling } from "@/lib/useSettling"
 import { UndoToast } from "../ui/undo-toast"
 import type { EmptyCopy } from "../ui/empty-state"
 import { ListChecks } from "lucide-react"
@@ -45,6 +46,9 @@ export default function TaskList({
   const { pending, undo, requestDelete, isHidden } = useUndoableDelete("task", deleteTask, setError)
   // A new or edited task can land anywhere in the sorted list, so it is highlighted and announced
   const [highlight, setHighlight] = useState<{ id: string; message: string } | null>(null)
+  // A task just checked off stays put while its check draws, then moves down to Completed, highlighted there
+  const { settling, settle, cancel } = useSettling()
+
 
   useEffect(() => {
     if (!highlight) return
@@ -57,9 +61,12 @@ export default function TaskList({
     if (!oldStatus) return
     setError(null)
     setTasks(current => current.map(t => t.id === id ? { ...t, status: newStatus } : t))
+    const title = tasks.find(t => t.id === id)?.title
+    if (newStatus === "done") settle(id, () => setHighlight({ id, message: `Completed "${title}"` }))
 
     const problem = await failureMessage(updateTaskStatus(id, newStatus), "update that task")
     if (problem) {
+      cancel(id)
       setTasks(current => current.map(t => t.id === id ? { ...t, status: oldStatus } : t))
       setError(problem)
     }
@@ -89,8 +96,8 @@ export default function TaskList({
   const visibleTasks = tasks.filter(t => !isHidden(t.id))
   // On a goal's page the next step is always first; everywhere else, the same order the server sends
   const ordered = goalId ? sortSteps(visibleTasks) : sortTasksByPriority(visibleTasks)
-  const todo = ordered.filter(t => t.status === "todo")
-  const done = ordered.filter(t => t.status === "done")
+  const todo = ordered.filter(t => t.status === "todo" || settling(t.id))
+  const done = ordered.filter(t => t.status === "done" && !settling(t.id))
 
   return (
     <div>
@@ -108,6 +115,7 @@ export default function TaskList({
             onUpdate={handleUpdate}
             today={today}
             highlighted={highlight?.id === task.id}
+            settling={settling(task.id)}
           />
         ))}
         <CreateTaskForm

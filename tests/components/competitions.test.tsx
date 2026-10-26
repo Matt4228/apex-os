@@ -343,6 +343,34 @@ describe("CompetitionDetail", () => {
         expect((vi.mocked(logProgress).mock.calls[0][1] as FormData).get("amount")).toBe("3")
     })
 
+    it("celebrates a finished week: confetti over the standing, a burst from its square, the count rolling up", async () => {
+        const user = userEvent.setup()
+        vi.mocked(logProgress).mockResolvedValue({ log: { id: "c", metricId: "km", week: 2, amount: 3, note: null,createdAt: new Date() } } as never)
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        await user.type(screen.getByLabelText("Amount"), "3")
+        await user.click(screen.getByRole("button", { name: "Log it" }))
+
+        const standing = within(await screen.findByRole("region", { name: "Standing" }))
+        expect(await standing.findByTestId("confetti")).toBeInTheDocument()
+        expect(standing.getByTestId("weeks-complete")).toHaveTextContent("2")
+        expect(standing.getByTestId("weeks-complete").firstElementChild).toHaveClass("motion-safe:animate-roll-in")
+        expect(within(screen.getByText("Week 2: complete").parentElement!).getByTestId("burst")).toBeInTheDocument()
+    })
+
+    it("doesn't celebrate a log that leaves the week unfinished", async () => {
+        const user = userEvent.setup()
+        vi.mocked(logProgress).mockResolvedValue({ log: { id: "c", metricId: "km", week: 2, amount: 1, note: null,createdAt: new Date() } } as never)
+        render(<CompetitionDetail competition={view()} today="2026-10-14" />)
+
+        await user.type(screen.getByLabelText("Amount"), "1")
+        await user.click(screen.getByRole("button", { name: "Log it" }))
+
+        await waitFor(() => expect(logProgress).toHaveBeenCalled())
+        expect(screen.queryByTestId("confetti")).not.toBeInTheDocument()
+        expect(screen.queryByTestId("burst")).not.toBeInTheDocument()
+    })
+
     it("explains when a log is refused", async () => {
         const user = userEvent.setup()
         vi.mocked(logProgress).mockResolvedValue({ error: "This competition has finished" })

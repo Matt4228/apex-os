@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/ui/avatar"
 import type { Standing } from "@/lib/standings"
+import { Burst, GOLD, Shockwave } from "@/components/ui/celebrate"
 import { CELL, SAY } from "./SeasonGrid"
 
 const ROW = 13 // a quarter of a year, the same rhythm as the season grid
@@ -39,8 +40,15 @@ export default function SeasonBoard({ weeks, standings, popWeek }: { weeks: numb
                                                         role="img"
                                                         aria-label={`Week ${week}: ${SAY[state]}`}
                                                         title={`Week ${week}: ${SAY[state]}`}
-                                                        className={`aspect-square rounded-[4px] ${CELL[state]} ${row.isYou && week === popWeek ? "motion-safe:animate-check-pop" : ""}`}
-                                                    />
+                                                        className={`relative aspect-square rounded-[4px] ${CELL[state]} ${row.isYou && week === popWeek ? "motion-safe:animate-check-pop" : ""}`}
+                                                    >
+                                                        {row.isYou && week === popWeek && (
+                                                            <>
+                                                                <Shockwave className="rounded-[4px] text-win" />
+                                                                <Burst colors={GOLD} />
+                                                            </>
+                                                        )}
+                                                    </span>
                                                 )
                                             })}
                                         </div>
