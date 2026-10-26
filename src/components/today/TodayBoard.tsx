@@ -8,12 +8,15 @@ import { catProps } from "@/lib/categoryColor"
 import CreateTaskForm from "@/components/tasks/CreateTaskForm"
 import type { Task } from "@/components/tasks/types"
 import TodaySchedule from "@/components/today/TodaySchedule"
+import { Burst, CheckMark, Strike } from "@/components/ui/celebrate"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatDateOnly, parseDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
 import { buildToday, dueLabel, groupPlan, isOverdue, type PlanBlock } from "@/lib/today"
+import { useFlash } from "@/lib/useFlash"
 import { isHappening, useMinutesNow } from "@/lib/useMinutesNow"
 import { usePop } from "@/lib/usePop"
+import { useSettling } from "@/lib/useSettling"
 import { useStoredToggles } from "@/lib/useStoredToggles"
 
 type BoardTask = Task & { plannedFor: Date | null; scheduleBlockId: string | null }
@@ -63,16 +66,25 @@ export default function TodayBoard({
     const [error, setError] = useState<string | null>(null)
     const minutes = useMinutesNow()
     const sections = useStoredToggles("apex.today.suggestions", OPEN_BY_DEFAULT)
+    // A task just checked off keeps its place while its check draws, then joins the done ones with a brief flash
+    const { settling, settle, cancel } = useSettling()
+    const [arrived, setArrived] = useFlash<string>(1300)
+
+    // While it settles, a finished task is sorted as if still open; everything shown reads the real task
+    const placed = tasks.map(t => (t.status === "done" && settling(t.id) ? { ...t, status: "todo" } : t))
+    const actual = (task: BoardTask) => tasks.find(t => t.id === task.id) ?? task
 
     // Goals read their steps from the same state, so planning or finishing a step moves "next step" on right away
     const { plan, unfinished, urgent, dueSoon, goalSteps, everythingElse } = buildToday({
-        tasks,
-        goals: goals.map(g => ({ ...g, targetValue: null, entries: [], tasks: tasks.filter(t => t.goalId === g.id) })),
+        tasks: placed,
+        goals: goals.map(g => ({ ...g, targetValue: null, entries: [], tasks: placed.filter(t => t.goalId === g.id) })),
         today,
     })
-    // The rail's progress comes from the same grouping, so the plan and the rail always agree
-    const { groups, anytime, progress } = groupPlan(plan, blocks)
-    const doneCount = plan.filter(t => t.status === "done").length
+    const { groups, anytime } = groupPlan(plan, blocks)
+    // The rail's progress comes from the same grouping, so the plan and the rail always agree; it counts a task the
+    // moment it's checked, not once it has moved
+    const { progress } = groupPlan(plan.map(actual), blocks)
+    const doneCount = plan.filter(t => actual(t).status === "done").length
     const nothingWaiting =
         unfinished.length + urgent.length + dueSoon.length + goalSteps.length + everythingElse.length === 0
     const withDue = (t: BoardTask) => ({ task: t, detail: joinDetails(t.dueDate && <DueLabel dueDate={t.dueDate} today={today} />, t.goal?.title) })
@@ -86,6 +98,7 @@ export default function TodayBoard({
 
         const problem = await failureMessage(save(), what)
         if (problem) {
+            cancel(id)
             setTasks(current => current.map(t => (t.id === id ? before : t)))
             setError(problem)
         }
@@ -93,6 +106,7 @@ export default function TodayBoard({
 
     function toggle(task: BoardTask) {
         const status = task.status === "done" ? "todo" : "done"
+        if (status === "done") settle(task.id, () => setArrived(task.id))
         return change(task.id, { status }, () => updateTaskStatus(task.id, status), "update that task")
     }
 
@@ -116,7 +130,9 @@ export default function TodayBoard({
     const row = (task: BoardTask) => (
         <PlanRow
             key={task.id}
-            task={task}
+            task={actual(task)}
+            settling={settling(task.id)}
+            arrived={arrived === task.id}
             today={today}
             blocks={blocks}
             onToggle={() => toggle(task)}
@@ -242,6 +258,8 @@ function PlanGroup({
 
 function PlanRow({
     task,
+    settling,
+    arrived,
     today,
     blocks,
     onToggle,
@@ -249,6 +267,10 @@ function PlanRow({
     onMove,
 }: {
     task: BoardTask
+    /** Just checked off: the check draws and a line sweeps the title before it moves */
+    settling: boolean
+    /** Just moved among the done ones: a brief flash shows where it went */
+    arrived: boolean
     today: string
     blocks: PlanBlock[]
     onToggle: () => void
@@ -265,7 +287,7 @@ function PlanRow({
         : isDone ? "bg-cat-solid border-cat-solid" : "border-cat-solid hover:bg-cat-tint"
 
     return (
-        <li className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface/70 transition-colors ${isDone ? "opacity-60" : ""}`}>
+        <li className={`flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface/70 transition-colors ${isDone ? "opacity-60" : ""} ${arrived ? "motion-safe:animate-arrive" : ""}`}>
             <button
                 {...color}
                 role="checkbox"
@@ -276,10 +298,15 @@ function PlanRow({
                     onToggle()
                 }}
                 onAnimationEnd={pop.end}
-                className={`w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors ${checkColors} ${pop.className()}`}
-            />
+                className={`relative flex w-5 h-5 items-center justify-center rounded-full border-2 flex-shrink-0 text-white transition-colors ${checkColors} ${pop.className()}`}
+            >
+                {isDone && <CheckMark draw={settling} />}
+                {settling && <Burst small count={6} colors={[color["data-cat"] === undefined ? "var(--color-accent)" : "var(--cat-solid)"]} />}
+            </button>
             <div className="flex-1 min-w-0">
-                <p className={`text-sm text-ink ${isDone ? "line-through" : ""}`}>{task.title}</p>
+                <p className={`text-sm text-ink ${isDone && !settling ? "line-through" : ""}`}>
+                    {settling ? <span className="relative">{task.title}<Strike /></span> : task.title}
+                </p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-ink-muted">
                     <span className={`font-medium px-1.5 py-0.5 rounded-full ${priorityStyles[task.priority] ?? ""}`}>
                         {task.priority}

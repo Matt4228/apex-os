@@ -1,6 +1,7 @@
 import type { Metric, Position, Season, WeekProgress } from "@/lib/competition"
 import { formatDateOnly } from "@/lib/dates"
 import type { Standing } from "@/lib/standings"
+import { ConfettiFall } from "@/components/ui/celebrate"
 import { leftText, standingText } from "./format"
 import Podium from "./Podium"
 
@@ -49,6 +50,7 @@ export default function CompetitionHero({
     metrics,
     daysLeft,
     standings = [],
+    celebrate = false,
 }: {
     title: string
     category: string | null
@@ -62,6 +64,8 @@ export default function CompetitionHero({
     daysLeft: number | null
     /** Everyone in season order; with two or more the podium shows */
     standings?: Standing[]
+    /** A week was just completed: gold confetti falls, a glow passes over, and the count rolls up */
+    celebrate?: boolean
 }) {
     const withRivals = standings.length >= 2 && position.state !== "upcoming"
     const week = position.state === "active" ? position.week : null
@@ -82,7 +86,15 @@ export default function CompetitionHero({
         <section aria-label="Standing" className="relative overflow-hidden rounded-2xl bg-hero p-5 text-hero-ink sm:p-6">
             {/* A faint ring in the corner, for depth */}
             <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-16 h-64 w-64 rounded-full border-[36px] border-hero-ink/5" />
-
+            {celebrate && (
+                <>
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_62%,oklch(0.78_0.15_80/0.38),transparent_55%)] opacity-0 motion-safe:animate-glow motion-reduce:hidden"
+                    />
+                    <ConfettiFall colors={["var(--color-win)", "var(--color-hero-gold)", "var(--color-hero-ink)", "oklch(0.75 0.12 290)"]} />
+                </>
+            )}
             <div className="relative flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p className="text-xs uppercase tracking-[0.08em] text-hero-soft">Competition{category && ` · ${category}`}</p>
@@ -93,8 +105,10 @@ export default function CompetitionHero({
 
             <div className="relative mt-5 flex flex-wrap items-center gap-x-8 gap-y-4">
                 <div>
-                    <p className="text-5xl font-extrabold leading-none tracking-tight tabular-nums">
-                        {season.completedWeeks}
+                    <p data-testid="weeks-complete" className="overflow-hidden text-5xl font-extrabold leading-none tracking-tight tabular-nums">
+                        <span key={season.completedWeeks} className={`inline-block ${celebrate ? "text-hero-gold motion-safe:animate-roll-in" : ""}`}>
+                            {season.completedWeeks}
+                        </span>
                         <span className="text-lg font-semibold text-hero-soft"> / {weeks}</span>
                     </p>
                     <p className="mt-1 text-sm text-hero-soft">weeks complete</p>
@@ -119,7 +133,7 @@ export default function CompetitionHero({
                         <>Finished with <b className="text-hero-gold">{season.completedWeeks} of {weeks}</b> weeks complete.</>
                     )
                 ) : progress?.complete ? (
-                    <><b className="text-hero-gold">Week {week} complete.</b> Everything past here counts toward the tie-breaker.</>
+                    <><b className={`inline-block text-hero-gold ${celebrate ? "motion-safe:animate-spring-in" : ""}`}>Week {week} complete.</b> Everything past here counts toward the tie-breaker.</>
                 ) : (
                     <><b className="text-hero-gold">{remaining?.join(" and ")}</b> to finish week {week}</>
                 )}

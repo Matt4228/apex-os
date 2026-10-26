@@ -12,6 +12,7 @@ import type { CompetitionDetailView } from "@/lib/competitionData"
 import { formatDateOnly } from "@/lib/dates"
 import { failureMessage } from "@/lib/optimistic"
 import { standings } from "@/lib/standings"
+import { useFlash } from "@/lib/useFlash"
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus"
 import ActivityFeed from "./ActivityFeed"
 import CompetitionHero from "./CompetitionHero"
@@ -48,7 +49,8 @@ export default function CompetitionDetail({
     const [targets, setTargets] = useState(competition.targets)
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
-    const [popWeek, setPopWeek] = useState<number | null>(null)
+    // A week just finished: its square pops and bursts and the top card celebrates, then it all settles
+    const [popWeek, setPopWeek] = useFlash<number>(1800)
     const [metricId, setMetricId] = useState(competition.metrics[0]?.id ?? "")
     const [logAmount, setLogAmount] = useState("")
     const [note, setNote] = useState("")
@@ -161,6 +163,7 @@ export default function CompetitionDetail({
                     metrics={metrics}
                     daysLeft={thisWeek ? daysLeft(competition, thisWeek, today) : null}
                     standings={ranked}
+                    celebrate={popWeek !== null}
                 />
             </div>
 

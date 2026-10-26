@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest"
 import { UNDO_WINDOW_MS } from "@/lib/use-undoable-delete"
 import { HIGHLIGHT_MS } from "@/components/tasks/TaskList"
+import { SETTLE_MS } from "@/lib/useSettling"
 
 vi.mock("@/app/actions/tasks", () => ({
     createTask: vi.fn(),
@@ -87,6 +88,36 @@ describe("TaskList when the server says no", () => {
         await act(() => vi.advanceTimersByTimeAsync(UNDO_WINDOW_MS))
         expect(deleteTask).toHaveBeenCalledWith("task-1")
         expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument()
+    })
+})
+
+describe("TaskList checking a task off", () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ shouldAdvanceTime: true })
+        vi.mocked(updateTaskStatus).mockReset()
+        vi.mocked(updateTaskStatus).mockResolvedValue(undefined as never)
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    it("draws the check in place for a moment, then moves the task to Completed and highlights it there", async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+        render(<TaskList today="2026-10-14" initialTasks={[task]} />)
+
+        await user.click(screen.getByRole("checkbox", { name: "Write report" }))
+
+        // Still in the open list, checked, with the strike sweeping through it
+        expect(screen.getByRole("checkbox", { name: "Write report" })).toBeChecked()
+        expect(screen.queryByText("Completed")).not.toBeInTheDocument()
+        expect(screen.getByTestId("strike")).toBeInTheDocument()
+
+        await act(() => vi.advanceTimersByTimeAsync(SETTLE_MS))
+
+        expect(screen.getByText("Completed")).toBeInTheDocument()
+        expect(screen.getByText("Write report").closest("[data-highlighted]")).toBeInTheDocument()
+        expect(screen.getByRole("status")).toHaveTextContent('Completed "Write report"')
     })
 })
 

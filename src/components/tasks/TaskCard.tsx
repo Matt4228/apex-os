@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { Target } from "lucide-react"
 import { updateTask } from "@/app/actions/tasks"
+import { Burst, CheckMark, Strike } from "@/components/ui/celebrate"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatDateOnly, parseDateOnly, toDateInputValue } from "@/lib/dates"
@@ -28,6 +29,7 @@ export default function TaskCard({
     onDelete,
     onUpdate,
     highlighted = false,
+    settling = false,
     today,
 }: {
     task: Task
@@ -40,6 +42,8 @@ export default function TaskCard({
     highlighted?: boolean
     /** The user's calendar day, "YYYY-MM-DD", from the server, so an open task past its due date shows in red */
     today: string
+    /** Just checked off and about to move to the done ones: the check draws and a line sweeps through the title */
+    settling?: boolean
 }) {
     const [editing, setEditing] = useState(false)
     const cardRef = useRef<HTMLDivElement>(null)
@@ -140,17 +144,20 @@ focus:outline-none focus:ring-2 focus:ring-accent"
             >
                 <span
                     aria-hidden="true"
-                    className={`block w-5 h-5 rounded-full border-2 transition-colors ${pop.className()} ${
+                    className={`relative flex w-5 h-5 items-center justify-center rounded-full border-2 text-white transition-colors ${pop.className()} ${
                         isDone
                             ? "bg-accent border-accent"
                             : "border-line-strong group-hover:border-accent"
                     }`}
-                />
+                >
+                    {isDone && <CheckMark draw={settling} />}
+                    {settling && <Burst small count={6} colors={["var(--color-accent)"]} />}
+                </span>
             </button>
 
             <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium text-ink transition-all ${isDone ? "line-through" : ""}`}>
-                    {task.title}
+                <p className={`text-sm font-medium text-ink transition-all ${isDone && !settling ? "line-through" : ""}`}>
+                    {settling ? <span className="relative">{task.title}<Strike /></span> : task.title}
                 </p>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityStyles[task.priority as keyof typeof priorityStyles]}`}>

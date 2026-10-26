@@ -81,6 +81,24 @@
 
   /* A check pops once when ticked (usePop decides which one) */
   --animate-check-pop: check-pop 220ms ease-out;
+
+  /* Celebrations (src/components/ui/celebrate.tsx): a burst and a ring from what was clicked, confetti falling,
+  and the text and numbers that change with it. Used with motion-safe:, so reduced motion keeps the end state only */
+  --animate-burst-near: burst-near 750ms cubic-bezier(0.12, 0.75, 0.3, 1) forwards;
+  --animate-burst-mid: burst-mid 750ms cubic-bezier(0.12, 0.75, 0.3, 1) forwards;
+  --animate-burst-far: burst-far 750ms cubic-bezier(0.12, 0.75, 0.3, 1) forwards;
+  --animate-spark: spark 320ms 40ms ease-out forwards;
+  --animate-shockwave: shockwave 650ms ease-out forwards;
+  --animate-fall-left: fall-left 1700ms cubic-bezier(0.3, 0.6, 0.5, 1) forwards;
+  --animate-fall-right: fall-right 1700ms cubic-bezier(0.3, 0.6, 0.5, 1) forwards;
+  --animate-glow: glow 1500ms ease-out forwards;
+  --animate-shine: shine 900ms 380ms ease-out both;
+  --animate-spring-in: spring-in 520ms 120ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  --animate-roll-in: roll-in 480ms 250ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --animate-float-up: float-up 1100ms 400ms ease-out both;
+  --animate-check-draw: check-draw 200ms 60ms ease-out both;
+  --animate-strike: strike 220ms 90ms ease-out both;
+  --animate-arrive: arrive 300ms ease-out both, row-flash 1200ms ease-out both;
 }
 
 [data-theme="light"] {
@@ -176,6 +194,90 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
+}
+
+/* Celebrations. A burst's bits fly out along their ray (each ray is rotated), three distances so it isn't a ring */
+@keyframes burst-near {
+  from { opacity: 1; transform: translateY(0) scale(1.2); }
+  to { opacity: 0; transform: translateY(-38px) rotate(140deg) scale(0.5); }
+}
+
+@keyframes burst-mid {
+  from { opacity: 1; transform: translateY(0) scale(1.2); }
+  to { opacity: 0; transform: translateY(-58px) rotate(220deg) scale(0.5); }
+}
+
+@keyframes burst-far {
+  from { opacity: 1; transform: translateY(0) scale(1.2); }
+  to { opacity: 0; transform: translateY(-80px) rotate(300deg) scale(0.4); }
+}
+
+@keyframes spark {
+  from { opacity: 1; transform: translateY(-8px); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes shockwave {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.7); }
+}
+
+@keyframes fall-left {
+  from { opacity: 1; transform: translate(0, 0) rotate(0); }
+  to { opacity: 0; transform: translate(-36px, 320px) rotate(-540deg); }
+}
+
+@keyframes fall-right {
+  from { opacity: 1; transform: translate(0, 0) rotate(0); }
+  to { opacity: 0; transform: translate(36px, 320px) rotate(480deg); }
+}
+
+@keyframes glow {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes shine {
+  from { left: -35%; }
+  to { left: 110%; }
+}
+
+@keyframes spring-in {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes roll-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+
+/* A check draws itself: its path is 18 units long */
+@keyframes check-draw {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes strike {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes row-flash {
+  from { background-color: var(--color-primary-tint); }
+  to { background-color: transparent; }
 }
 
 /* The welcome screen's form fades up when its tab is picked */

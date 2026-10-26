@@ -1,5 +1,6 @@
 import { streak, weekDates, type CompetitionShape, type Season, type WeekState } from "@/lib/competition"
 import { formatDateOnly } from "@/lib/dates"
+import { Burst, GOLD, Shockwave } from "@/components/ui/celebrate"
 
 const ROW = 13 // a quarter of a year
 const YEAR = 52
@@ -66,12 +67,18 @@ export default function SeasonGrid({
                                             <li
                                                 key={i}
                                                 title={`Week ${week}, ${formatDateOnly(weekDates(competition, week).from, "MMM d")}: ${SAY[state]}`}
-                                                className={`flex aspect-square items-center justify-center rounded-[5px] text-[9px] font-bold tabular-nums ${CELL[state]} ${
+                                                className={`relative flex aspect-square items-center justify-center rounded-[5px] text-[9px] font-bold tabular-nums ${CELL[state]} ${
                                                     week === popWeek ? "motion-safe:animate-check-pop" : ""
                                                 }`}
                                             >
                                                 <span className="sr-only">Week {week}: {SAY[state]}</span>
                                                 <span aria-hidden="true">{week}</span>
+                                                {week === popWeek && (
+                                                    <>
+                                                        <Shockwave className="rounded-[5px] text-win" />
+                                                        <Burst colors={GOLD} />
+                                                    </>
+                                                )}    
                                             </li>
                                         )
                                     })}

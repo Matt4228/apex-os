@@ -188,3 +188,34 @@ describe("HabitCard check-ins", () => {
         expect(day()).toHaveAttribute("aria-pressed", "true")
     })
 })
+
+describe("HabitCard celebration", () => {
+    const logs = (...days: string[]) => days.map((day, i) => ({ id: `log-${i}`, completedOn: parseDateOnly(day) }))
+    // Three a week, with Monday and Tuesday already in: Wednesday is the check-in that hits the target
+    const weekly = { ...habit, frequency: "weekly", targetPerWeek: 3, logs: logs("2026-10-12", "2026-10-13") }
+
+    beforeEach(() => {
+        vi.mocked(toggleHabitLog).mockReset()
+        vi.mocked(toggleHabitLog).mockReturnValue(new Promise(() => {}))
+    })
+
+    it("bursts, springs in Target hit and adds to the streak when a check-in hits the target", async () => {
+        const user = userEvent.setup()
+        render(<HabitList initialHabits={[weekly]} today="2026-10-14" />)
+
+        await user.click(screen.getByRole("button", { name: "Wednesday, Oct 14" }))
+
+        expect(screen.getByTestId("burst")).toBeInTheDocument()
+        expect(screen.getByText("Target hit")).toHaveClass("motion-safe:animate-spring-in")
+        expect(within(screen.getByTestId("streak")).getByText("+1")).toBeInTheDocument()
+    })
+
+    it("stays calm for a check-in that doesn't reach the target", async () => {
+        const user = userEvent.setup()
+        render(<HabitList initialHabits={[{ ...weekly, logs: logs("2026-10-12") }]} today="2026-10-14" />)
+        
+        await user.click(screen.getByRole("button", { name: "Wednesday, Oct 14" }))
+
+        expect(screen.queryByTestId("burst")).not.toBeInTheDocument()
+    })
+})

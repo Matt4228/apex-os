@@ -3,7 +3,7 @@
 import TodayBoard from "@/components/today/TodayBoard"
 import { assignBlock, createTask, planTask, updateTaskStatus } from "@/app/actions/tasks"
 import { parseDateOnly } from "@/lib/dates"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -127,6 +127,28 @@ describe("TodayBoard", () => {
         await user.click(screen.getByRole("checkbox", { name: "Email recruiter" }))
 
         expect(within(plan()).getByText("1 of 2 done")).toBeInTheDocument()
+    })
+
+    it("draws the check on a finished task in place, then moves it among the done ones with a flash", async () => {
+        const user = userEvent.setup()
+        vi.mocked(updateTaskStatus).mockResolvedValue(undefined)
+        render(
+            <TodayBoard
+                initialTasks={[task("t1", "Email recruiter", { plannedFor: TODAY }), task("t2", "Prep questions", { plannedFor: TODAY })]}
+                goals={[]}
+                today={TODAY}
+            />
+        )
+        const order = () => within(plan()).getAllByRole("checkbox").map(box => box.getAttribute("aria-label"))
+
+        await user.click(screen.getByRole("checkbox", { name: "Email recruiter" }))
+
+        expect(order()).toEqual(["Email recruiter", "Prep questions"])
+        expect(screen.getByRole("checkbox", { name: "Email recruiter" })).toBeChecked()
+        expect(within(plan()).getByTestId("strike")).toBeInTheDocument()
+
+        await waitFor(() => expect(order()).toEqual(["Prep questions", "Email recruiter"]))
+        expect(screen.getByRole("checkbox", { name: "Email recruiter" }).closest("li")).toHaveClass("motion-safe:animate-arrive")
     })
 
     it("shows a goal's next step, and the one after once it's planned", async () => {

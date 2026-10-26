@@ -6,14 +6,19 @@ import { toggleHabitLog } from "@/app/actions/habits"
 import { catProps } from "@/lib/categoryColor"
 import { formatDateOnly, toDateInputValue, weekRangeOf } from "@/lib/dates"
 import { bestDayStreak, bestWeekStreak, dayStreak, heatmapDays, heatmapLabel, monthLabels, weekStreak } from "@/lib/habitHistory"
+import { Burst, Shockwave } from "@/components/ui/celebrate"
 import { failureMessage } from "@/lib/optimistic"
 import { usePop } from "@/lib/usePop"
+import { useFlash } from "@/lib/useFlash"
 import HabitForm, { type HabitFields } from "./HabitForm"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** The heatmap's rows, top to bottom: its weeks start on Sunday */
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"]
+
+// The havit's own color, then goal and teal, so a burst reads as this habit's win
+const BURST_COLORS = ["var(--cat-solid)", "var(--color-win)", "var(--color-accent-light)", "var(--cat-line)"]
 
 type HabitLog = {
   id: string
@@ -55,6 +60,9 @@ export default function HabitCard({
   const [error, setError] = useState<string | null>(null)
   const pop = usePop()
 
+  //The check-in that hitis the week's target, and the streak just before it, while its celebration plays
+  const [celebration, celebrate] = useFlash<{ day: string; streakBefore: number }>(1600)
+
   // Sunday to Saturday as "YYYY-MM-DD" days, which compare correctly as text
   const { start: weekStart } = weekRangeOf(today)
   const weekDays = Array.from({ length: 7 }, (_, i) => toDateInputValue(new Date(weekStart.getTime() + i * DAY_MS)))
@@ -78,10 +86,13 @@ export default function HabitCard({
     setError(null)
     setLoading(dateStr)
     onLogToggle(habit.id, dateStr, action)
+    // Only the check-in that reaches the target is celebrated, not every one, and not those past it
+    if (action === "added" && completedThisWeek + 1 === habit.targetPerWeek) celebrate({ day: dateStr, streakBefore: streak })
 
     const problem = await failureMessage(toggleHabitLog(habit.id, dateStr), "update that habit")
     if (problem) {
       onLogToggle(habit.id, dateStr, action === "added" ? "removed" : "added")
+      celebrate(null)
       setError(problem)
     }
     setLoading(null)
@@ -126,7 +137,7 @@ export default function HabitCard({
                 <span>{`${completedThisWeek} / ${habit.targetPerWeek} this week`}</span>
                 {" · "}
                 {/* What's left pulls toward the target; hitting it gets a bold finish */}
-                {toGo > 0 ? <span>{`${toGo} to go`}</span> : <span className="font-semibold text-cat-ink">Target hit</span>}
+                {toGo > 0 ? <span>{`${toGo} to go`}</span> : <span className={`inline-block font-semibold text-cat-ink ${celebration ? "motion-safe:animate-spring-in" : ""}`}>Target hit</span>}
               </>
             )}
           </p>
@@ -167,7 +178,17 @@ export default function HabitCard({
               </div>
             </div>
             <div data-testid="streak" className="flex-shrink-0 border-l border-line pl-5">
-              <p className="text-[34px] font-extrabold leading-none tracking-tight tabular-nums text-cat-ink">{streak}</p>
+              {/* A target hit rolls the new number in, with a "+1" floating off when the streak grew */}
+              <div className="relative">
+                <p className="overflow-hidden text-[34px] font-extrabold leading-none tracking-tight tabular-nums text-cat-ink">
+                  <span key={streak} className={`inline-block ${celebration ? "motion-safe:animate-roll-in" : ""}`}>{streak}</span>
+                </p>
+                {celebration && streak > celebration.streakBefore && (
+                  <span aria-hidden="true" className="absolute -top-1 left-full -ml-3 text-sm font-extrabold text-cat-solid opacity-0 motion-safe:animate-float-up motion-reduce:hidden">
+                    +1
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-xs font-semibold text-cat-ink">{unit} streak</p>
               <p className="mt-1.5 text-[11px] text-ink-muted">{`Best: ${best} ${best === 1 ? unit : `${unit}s`}`}</p>
             </div>
@@ -208,34 +229,42 @@ export default function HabitCard({
               const isLoadingDay = loading === day
 
               return (
-                <button
-                  key={day}
-                  aria-label={formatDateOnly(day, "EEEE, MMM d")}
-                  aria-pressed={isLogged}
-                  onClick={() => {
-                    if (isFuture) return
-                    if (!isLogged) pop.start(day)
-                    handleDayClick(day)
-                  }}
-                  onAnimationEnd={pop.end}
-                  disabled={isFuture || isLoadingDay}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${pop.className(day)} ${
-                    isFuture
-                      ? "border-line text-ink-muted cursor-not-allowed"
-                      : isLogged
-                      ? "bg-cat-solid border-cat-solid text-cat-on-solid"
-                      : isToday
-                      ? "border-cat-solid hover:bg-cat-tint text-ink-soft"
-                      : "border-cat-line hover:bg-cat-tint text-ink-soft"
-                  }`}
-                >
-                  <span className="text-xs font-medium">
-                    {formatDateOnly(day, "EEE")[0]}
-                  </span>
-                  <span className="text-xs">
-                    {formatDateOnly(day, "d")}
-                  </span>
-                </button>
+                // Each day sits in its own box so a target hit can burst out of it
+                <div key={day} className="relative flex flex-1">
+                  <button
+                    aria-label={formatDateOnly(day, "EEEE, MMM d")}
+                    aria-pressed={isLogged}
+                    onClick={() => {
+                      if (isFuture) return
+                      if (!isLogged) pop.start(day)
+                      handleDayClick(day)
+                    }}
+                    onAnimationEnd={pop.end}
+                    disabled={isFuture || isLoadingDay}
+                    className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md transition-colors border ${pop.className(day)} ${
+                      isFuture
+                        ? "border-line text-ink-muted cursor-not-allowed"
+                        : isLogged
+                        ? "bg-cat-solid border-cat-solid text-cat-on-solid"
+                        : isToday
+                        ? "border-cat-solid hover:bg-cat-tint text-ink-soft"
+                        : "border-cat-line hover:bg-cat-tint text-ink-soft"
+                    }`}
+                  >
+                    <span className="text-xs font-medium">
+                      {formatDateOnly(day, "EEE")[0]}
+                    </span>
+                    <span className="text-xs">
+                      {formatDateOnly(day, "d")}
+                    </span>
+                  </button>
+                  {celebration?.day === day && (
+                    <>
+                      <Shockwave className="rounded-md text-cat-solid" />
+                      <Burst colors={BURST_COLORS} />
+                    </>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -243,7 +272,14 @@ export default function HabitCard({
           {error && <p role="alert" className="text-sm text-danger-ink mt-2">{error}</p>}
 
           <div className="mt-3">
-            <div className="h-1 bg-cat-tint rounded-full overflow-hidden">
+            <div className="relative h-1 bg-cat-tint rounded-full overflow-hidden">
+              {/* On a target hit a light sweeps along the full bar */}
+              {celebration && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 z-10 w-1/3 bg-[linear-gradient(90deg,transparent,rgb(255_255_255/0.85),transparent)] motion-safe:animate-shine motion-reduce:hidden"
+                />
+              )}
               <div
                 className="h-full bg-cat-solid rounded-full transition-all"
                 style={{
