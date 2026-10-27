@@ -4,6 +4,8 @@ A personal growth CRM built for daily use. Track goals, habits, tasks, and compe
 
 **Live:** https://apex-os-sand.vercel.app
 
+![Today page: the day's timeline, plan grouped by schedule block, and habit progress](docs/today.png)
+
 ---
 
 ## Stack
